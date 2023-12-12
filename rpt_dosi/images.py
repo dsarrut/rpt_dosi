@@ -1,21 +1,28 @@
 import SimpleITK as itk
 import math
+from .helpers import fatal
 
 
-def is_image_same_sizes(image1, image2, tolerance=1e-5):
+def images_have_same_domain(image1, image2, tolerance=1e-5):
     # Check if the sizes and origins of the images are the same,
     # and if the spacing values are close within the given tolerance
     is_same = (
         len(image1.GetSize()) == len(image2.GetSize())
         and all(i == j for i, j in zip(image1.GetSize(), image2.GetSize()))
-        and all(
-            math.isclose(i, j, rel_tol=tolerance)
-            for i, j in zip(image1.GetSpacing(), image2.GetSpacing())
-        )
+        and images_have_same_spacing(image1, image2, tolerance)
         and all(
             math.isclose(i, j, rel_tol=tolerance)
             for i, j in zip(image1.GetOrigin(), image2.GetOrigin())
         )
+    )
+    return is_same
+
+
+def images_have_same_spacing(image1, image2, tolerance=1e-5):
+    # Check if the spacing values are close within the given tolerance
+    is_same = all(
+        math.isclose(i, j, rel_tol=tolerance)
+        for i, j in zip(image1.GetSpacing(), image2.GetSpacing())
     )
     return is_same
 
@@ -86,6 +93,11 @@ def resample_image(img, spacing, default_pixel_value=-1000, linear=True):
 
 
 def image_set_background(ct, roi, bg_value=-1000, roi_bg_value=0):
+    if not images_have_same_domain(ct, roi):
+        fatal(
+            f"Cannot set_background for images, the sizes are different"
+            f" : {ct.GetSize()} {ct.GetSpacing()} vs {roi.GetSize()} {roi.GetSpacing()}"
+        )
     # get as array
     cta = itk.GetArrayFromImage(ct)
     bga = itk.GetArrayFromImage(roi)
@@ -123,21 +135,3 @@ def crop_to_bounding_box(img, bg_value=-1000):
     cropped_img = roi_filter.Execute(img)
 
     return cropped_img
-
-
-def dose_scale_and_crop(dose, simu_activity, final_activity, roi=None, roi_bg_value=0):
-    array = itk.GetArrayFromImage(dose)
-    array = array / simu_activity * final_activity
-    o = itk.GetImageFromArray(array)
-    o.CopyInformation(dose)
-
-    # crop dose in air
-    if roi is not None:
-        roi = itk.ReadImage(roi)
-        if not is_image_same_sizes(dose, roi):
-            roi = resample_image_like(
-                roi, dose, default_pixel_value=roi_bg_value, linear=True
-            )
-        o = image_set_background(o, roi, bg_value=0, roi_bg_value=roi_bg_value)
-
-    return o

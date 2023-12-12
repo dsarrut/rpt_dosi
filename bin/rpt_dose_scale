@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import click
+import rpt_dosi as rpt
+import rpt_dosi.images as im
+import SimpleITK as itk
+
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+
+
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.option("--dose_filename", "-d", required=True, help="Dose filename")
+@click.option(
+    "--activity_filename", "-s", required=True, help="Activity filename (SPECT)"
+)
+@click.option(
+    "--sim_activity",
+    "-a",
+    required=True,
+    type=float,
+    help="Initial total simulated activity in Bq",
+)
+@click.option(
+    "--calibration_factor",
+    "-c",
+    required=True,
+    type=float,
+    help="Calibration factor to convert SPECT in BqmL",
+)
+@click.option("--output", "-o", required=True, help="output filename")
+@click.option(
+    "--body", "-b", default=None, help="Body roi for setting dose value to zero"
+)
+def go(
+    dose_filename, activity_filename, sim_activity, calibration_factor, body, output
+):
+    """
+    Scale a dose image computed from Monte Carlo simulation in Gy.s-1
+    taking into account the SPECT activity calibration factor and
+    the total activity in the image FOV
+    """
+    # create simulation
+    dose = itk.ReadImage(dose_filename)
+    activity = itk.ReadImage(activity_filename)
+
+    # remove dose in air
+    roi = itk.ReadImage(body)
+    if not im.images_have_same_domain(dose, roi):
+        roi = im.resample_image_like(roi, dose, default_pixel_value=0, linear=False)
+    dose = im.image_set_background(dose, roi, bg_value=0, roi_bg_value=0)
+
+    # scale and crop
+    dose = rpt.doserate.scale_to_absorbed_dose_rate(
+        activity, dose, sim_activity, calibration_factor, body
+    )
+
+    # write
+    itk.WriteImage(dose, output)
+
+
+# --------------------------------------------------------------------------
+if __name__ == "__main__":
+    go()

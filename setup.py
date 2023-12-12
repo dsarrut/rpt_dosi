@@ -43,9 +43,11 @@ setuptools.setup(
         "matplotlib",
     ],
     scripts=[
-        "bin/rpt_doserate",
         "bin/rpt_crop_bg",
         "bin/rpt_resample_image",
-        "bin/rpt_dosescale",
+        "bin/rpt_dose_rate",
+        "bin/rpt_dose_scale",
+        # "bin/rpt_dose_uncertainty",
+        "bin/rpt_dose_time_integration",
     ],
 )

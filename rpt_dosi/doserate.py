@@ -1,6 +1,7 @@
 import json
 from box import Box
-from rpt_dosi.helpers import check_required_keys, fatal
+from .helpers import check_required_keys, fatal
+from .images import images_have_same_domain, resample_image_like, image_set_background
 from pathlib import Path
 import os
 import opengate as gate
@@ -8,6 +9,8 @@ from opengate import g4_units
 from opengate.geometry.materials import HounsfieldUnit_to_material
 from opengate.image import get_translation_between_images_center, read_image_info
 import pkg_resources
+import SimpleITK as itk
+import numpy as np
 
 
 def read_dose_rate_options(json_file):
@@ -143,6 +146,34 @@ def add_dose_actor(sim, ct, source):
     if not sim.user_info.visu:
         dose.img_coord_system = True
     dose.hit_type = "random"
+    # dose.hit_type = "pre"
     dose.uncertainty = True
+    dose.square = True
     dose.gray = True
     return dose
+
+
+def scale_to_absorbed_dose_rate(
+    activity,
+    dose_in_gray,
+    simu_activity,
+    calibration_factor,
+    verbose=True,
+):
+    dose_a = itk.GetArrayFromImage(dose_in_gray)
+    activity_a = itk.GetArrayFromImage(activity)
+
+    volume_voxel_mL = np.prod(activity.GetSpacing()) / 1000
+    total_activity = np.sum(activity_a) * volume_voxel_mL / calibration_factor
+
+    if verbose:
+        print(f"Total activity in the image FOV: {total_activity/1e6:.2f} MBq")
+
+    print(f"dose mean = {np.mean(dose_a)} gray.s-1")
+    dose_a = dose_a / simu_activity * total_activity
+    print(f"dose mean after scaling = {np.mean(dose_a)} gray.s-1")
+
+    # create output image
+    o = itk.GetImageFromArray(dose_a)
+    o.CopyInformation(dose_in_gray)
+    return o
