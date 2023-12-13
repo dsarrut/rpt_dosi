@@ -8,9 +8,10 @@ from bs4 import BeautifulSoup
 import json
 from rpt_dosi.helpers import find_closest_match
 import pkg_resources
+from path import Path
 
 
-def get_phantom_id(phantom_name):
+def guess_phantom_id(phantom_name):
     # which phantom ?
     phantoms = {"ICRP 110 AF": "1", "ICRP 110 AM": "2"}
     phantom_name = find_closest_match(phantom_name, phantoms.keys())
@@ -18,22 +19,32 @@ def get_phantom_id(phantom_name):
     return phantom_id, phantom_name
 
 
-def get_source_id(source_name):
-    sources_file = pkg_resources.resource_filename(
-        "rpt_dosi", "data/opendose_sources.json"
-    )
+def guess_source_id(phantom_name, source_name):
+    sources_file = get_data_folder(phantom_name) / "opendose_sources.json"
     with open(sources_file) as f:
         sources = json.load(f)
     return get_match_in_list(sources, source_name)
 
 
-def get_isotope_id(isotope_name):
-    isotopes_file = pkg_resources.resource_filename(
-        "rpt_dosi", "data/opendose_isotopes.json"
-    )
+def guess_isotope_id(phantom_name, isotope_name):
+    isotopes_file = get_data_folder(phantom_name) / "opendose_isotopes.json"
     with open(isotopes_file) as f:
         isotopes = json.load(f)
     return get_match_in_list(isotopes, isotope_name)
+
+
+def get_data_folder(phantom_name):
+    _, phantom_name = guess_phantom_id(phantom_name)
+    folder = phantom_name.replace(" ", "_")
+    folder = pkg_resources.resource_filename("rpt_dosi", f"data/{folder}")
+    return Path(folder)
+
+
+def get_svalue_data_filename(phantom_name, source_name, isotope_name):
+    output = (
+        get_data_folder(phantom_name) / f"{isotope_name}_{source_name}.json".lower()
+    )
+    return output
 
 
 def get_match_in_list(names_list, name):
@@ -128,3 +139,19 @@ def web_svalues_query_data(driver, source_id, isotope_id):
         data.append(row_data)
 
     return data
+
+
+def get_svalue_and_mass(phantom, roi, rad, dest_roi):
+    _, source_name = guess_source_id(phantom, roi)
+    _, rad_name = guess_isotope_id(phantom, rad)
+    file_name = get_svalue_data_filename(phantom, source_name, rad_name)
+    with open(file_name, "r") as f:
+        data = json.load(f)
+    _, r = guess_source_id(phantom, dest_roi)
+    print("dest roi is", r)
+    print(data)
+    print()
+    d = data.find(dest_roi)
+    print(d)
+
+    return 1.3713e-5, 1

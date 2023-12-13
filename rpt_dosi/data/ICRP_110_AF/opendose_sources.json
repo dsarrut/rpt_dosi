@@ -1,0 +1,506 @@
+[
+    {
+        "167": "Adipose/residual tissue"
+    },
+    {
+        "2": "Adrenal, left"
+    },
+    {
+        "3": "Adrenal, right"
+    },
+    {
+        "137": "Air inside body"
+    },
+    {
+        "1": "Air outside body"
+    },
+    {
+        "159": "Alveolar-interstitium"
+    },
+    {
+        "38": "Ankles and foot bones, cortical"
+    },
+    {
+        "39": "Ankles and foot bones, spongiosa"
+    },
+    {
+        "4": "Anterior nasal passage (ET1)"
+    },
+    {
+        "77": "Ascending colon contents"
+    },
+    {
+        "76": "Ascending colon wall"
+    },
+    {
+        "12": "Blood vessels, arms"
+    },
+    {
+        "10": "Blood vessels, head"
+    },
+    {
+        "13": "Blood vessels, legs"
+    },
+    {
+        "11": "Blood vessels, trunk"
+    },
+    {
+        "61": "Brain"
+    },
+    {
+        "143": "Breast-a + Breast-g"
+    },
+    {
+        "62": "Breast, left, adipose tissue"
+    },
+    {
+        "63": "Breast, left, glandular tissue"
+    },
+    {
+        "64": "Breast, right, adipose tissue"
+    },
+    {
+        "65": "Breast, right, glandular tissue"
+    },
+    {
+        "9": "Bronchi"
+    },
+    {
+        "59": "Cartilage, arms"
+    },
+    {
+        "57": "Cartilage, head"
+    },
+    {
+        "60": "Cartilage, legs"
+    },
+    {
+        "58": "Cartilage, trunk"
+    },
+    {
+        "48": "Cervical spine, cortical"
+    },
+    {
+        "49": "Cervical spine, spongiosa"
+    },
+    {
+        "25": "Clavicles, cortical"
+    },
+    {
+        "26": "Clavicles, spongiosa"
+    },
+    {
+        "149": "Colon"
+    },
+    {
+        "27": "Cranium, cortical"
+    },
+    {
+        "28": "Cranium, spongiosa"
+    },
+    {
+        "83": "Descending colon contents"
+    },
+    {
+        "82": "Descending colon wall"
+    },
+    {
+        "140": "ET region"
+    },
+    {
+        "67": "Eye bulb, left"
+    },
+    {
+        "69": "Eye bulb, right"
+    },
+    {
+        "66": "Eye lense, left"
+    },
+    {
+        "68": "Eye lense, right"
+    },
+    {
+        "32": "Femora, lower half, cortical"
+    },
+    {
+        "34": "Femora, lower half, medullary cavity"
+    },
+    {
+        "33": "Femora, lower half, spongiosa"
+    },
+    {
+        "29": "Femora, upper half, cortical"
+    },
+    {
+        "31": "Femora, upper half, medullary cavity"
+    },
+    {
+        "30": "Femora, upper half, spongiosa"
+    },
+    {
+        "71": "Gall bladder contents"
+    },
+    {
+        "70": "Gall bladder wall"
+    },
+    {
+        "88": "Heart contents (blood)"
+    },
+    {
+        "87": "Heart wall"
+    },
+    {
+        "17": "Humeri, lower half, cortical"
+    },
+    {
+        "19": "Humeri, lower half, medullary cavity"
+    },
+    {
+        "18": "Humeri, lower half, spongiosa"
+    },
+    {
+        "14": "Humeri, upper half, cortical"
+    },
+    {
+        "16": "Humeri, upper half, medullary cavity"
+    },
+    {
+        "15": "Humeri, upper half, spongiosa"
+    },
+    {
+        "89": "Kidney, left, cortex"
+    },
+    {
+        "90": "Kidney, left, medulla"
+    },
+    {
+        "91": "Kidney, left, pelvis"
+    },
+    {
+        "92": "Kidney, right, cortex"
+    },
+    {
+        "93": "Kidney, right, medulla"
+    },
+    {
+        "94": "Kidney, right, pelvis"
+    },
+    {
+        "145": "LBreast-a + LBresat-g"
+    },
+    {
+        "151": "Left colon wall (left transverse + descending)"
+    },
+    {
+        "155": "Left kidney C+M+P"
+    },
+    {
+        "158": "Left lung lobe"
+    },
+    {
+        "148": "Lenses of eye"
+    },
+    {
+        "95": "Liver"
+    },
+    {
+        "52": "Lumbar spine, cortical"
+    },
+    {
+        "53": "Lumbar spine, spongiosa"
+    },
+    {
+        "96": "Lung, left, blood"
+    },
+    {
+        "97": "Lung, left, tissue"
+    },
+    {
+        "98": "Lung, right, blood"
+    },
+    {
+        "99": "Lung, right, tissue"
+    },
+    {
+        "104": "Lymphatic nodes, arms"
+    },
+    {
+        "100": "Lymphatic nodes, extrathoracic airways"
+    },
+    {
+        "102": "Lymphatic nodes, head"
+    },
+    {
+        "105": "Lymphatic nodes, legs"
+    },
+    {
+        "101": "Lymphatic nodes, thoracic airways"
+    },
+    {
+        "103": "Lymphatic nodes, trunk"
+    },
+    {
+        "160": "Lymph nodes"
+    },
+    {
+        "161": "Lymph nodes, except LN-ET + LN-Th"
+    },
+    {
+        "40": "Mandible, cortical"
+    },
+    {
+        "41": "Mandible, spongiosa"
+    },
+    {
+        "162": "Muscle"
+    },
+    {
+        "108": "Muscle, arms"
+    },
+    {
+        "106": "Muscle, head"
+    },
+    {
+        "109": "Muscle, legs"
+    },
+    {
+        "107": "Muscle, trunk"
+    },
+    {
+        "110": "Oesophagus"
+    },
+    {
+        "141": "Oral mucosa"
+    },
+    {
+        "7": "Oral mucosa, lips and cheeks"
+    },
+    {
+        "6": "Oral mucosa, tongue"
+    },
+    {
+        "111": "Ovary, left"
+    },
+    {
+        "112": "Ovary, right"
+    },
+    {
+        "113": "Pancreas"
+    },
+    {
+        "42": "Pelvis, cortical"
+    },
+    {
+        "43": "Pelvis, spongiosa"
+    },
+    {
+        "114": "Pituitary gland"
+    },
+    {
+        "5": "Posterior nasal passage down to larynx (ET2)"
+    },
+    {
+        "139": "RAdrenal + LAdrenal"
+    },
+    {
+        "146": "RBreast-a + LBreast-a"
+    },
+    {
+        "144": "RBreast-a + RBreast-g"
+    },
+    {
+        "147": "RBreast-g + LBreast-g"
+    },
+    {
+        "86": "Rectum wall"
+    },
+    {
+        "117": "Residual tissue, arms"
+    },
+    {
+        "115": "Residual tissue, head"
+    },
+    {
+        "118": "Residual tissue, legs"
+    },
+    {
+        "116": "Residual tissue, trunk"
+    },
+    {
+        "44": "Ribs, cortical"
+    },
+    {
+        "45": "Ribs, spongiosa"
+    },
+    {
+        "150": "Right colon wall (ascending + right transverse)"
+    },
+    {
+        "154": "Right kidney C+M+P"
+    },
+    {
+        "157": "Right lung lobe"
+    },
+    {
+        "153": "RKidney + LKidney"
+    },
+    {
+        "156": "RLung + LLung"
+    },
+    {
+        "163": "ROvary + LOvary"
+    },
+    {
+        "54": "Sacrum, spongiosa"
+    },
+    {
+        "164": "Salivary glands"
+    },
+    {
+        "119": "Salivary glands, left"
+    },
+    {
+        "120": "Salivary glands, right"
+    },
+    {
+        "46": "Scapulae, cortical"
+    },
+    {
+        "47": "Scapulae, spongiosa"
+    },
+    {
+        "85": "Sigmoid colon contents"
+    },
+    {
+        "84": "Sigmoid colon wall"
+    },
+    {
+        "152": "Sigmoid colon wall + rectum wall"
+    },
+    {
+        "165": "Skin"
+    },
+    {
+        "123": "Skin, arms"
+    },
+    {
+        "138": "Skin at top and bottom"
+    },
+    {
+        "121": "Skin, head"
+    },
+    {
+        "124": "Skin, legs"
+    },
+    {
+        "122": "Skin, trunk"
+    },
+    {
+        "75": "Small intestine contents"
+    },
+    {
+        "74": "Small intestine wall"
+    },
+    {
+        "125": "Spinal cord"
+    },
+    {
+        "126": "Spleen"
+    },
+    {
+        "55": "Sternum, cortical"
+    },
+    {
+        "56": "Sternum, spongiosa"
+    },
+    {
+        "73": "Stomach contents"
+    },
+    {
+        "72": "Stomach wall"
+    },
+    {
+        "127": "Teeth"
+    },
+    {
+        "50": "Thoracic spine, cortical"
+    },
+    {
+        "51": "Thoracic spine, spongiosa"
+    },
+    {
+        "128": "Thymus"
+    },
+    {
+        "129": "Thyroid"
+    },
+    {
+        "35": "Tibiae, fibulae and patellae, cortical"
+    },
+    {
+        "37": "Tibiae, fibulae and patellae, medullary cavity"
+    },
+    {
+        "36": "Tibiae, fibulae and patellae, spongiosa"
+    },
+    {
+        "142": "Tongue"
+    },
+    {
+        "130": "Tongue (inner part)"
+    },
+    {
+        "131": "Tonsils"
+    },
+    {
+        "168": "Total body except organ contents"
+    },
+    {
+        "8": "Trachea"
+    },
+    {
+        "81": "Transverse colon contents, left"
+    },
+    {
+        "79": "Transverse colon contents, right"
+    },
+    {
+        "80": "Transverse colon wall, left"
+    },
+    {
+        "78": "Transverse colon wall, right"
+    },
+    {
+        "20": "Ulnae and radii, cortical"
+    },
+    {
+        "22": "Ulnae and radii, medullary cavity"
+    },
+    {
+        "21": "Ulnae and radii, spongiosa"
+    },
+    {
+        "132": "Ureter, left"
+    },
+    {
+        "133": "Ureter, right"
+    },
+    {
+        "166": "Ureters"
+    },
+    {
+        "135": "Urinary bladder contents"
+    },
+    {
+        "134": "Urinary bladder wall"
+    },
+    {
+        "136": "Uterus"
+    },
+    {
+        "23": "Wrists and hand bones, cortical"
+    },
+    {
+        "24": "Wrists and hand bones, spongiosa"
+    }
+]

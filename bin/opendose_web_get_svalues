@@ -16,17 +16,19 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     "--source", "-s", default="liver", help="Name of the source: liver, kidney, etc"
 )
 @click.option("--rad", "-r", default="lu177", help="Name of isotope")
-@click.option("--output", "-o", required=True, help="output filename (json)")
+@click.option(
+    "--output", "-o", required=True, default="auto", help="output filename (json)"
+)
 def go(phantom, source, rad, output):
     # get ids
-    ph_id, phantom = od.get_phantom_id(phantom)
+    ph_id, phantom = od.guess_phantom_id(phantom)
     print(f"Phantom id: {ph_id} = {phantom}")
 
-    source_id, source = od.get_source_id(source)
-    print(f"Source id: {source_id} = {source}")
+    source_id, source_name = od.guess_source_id(phantom, source)
+    print(f"Source id: {source_id} = {source_name}")
 
-    isotope_id, source = od.get_isotope_id(rad)
-    print(f"Isotope id: {isotope_id} = {rad}")
+    isotope_id, isotope_name = od.guess_isotope_id(phantom, rad)
+    print(f"Isotope id: {isotope_id} = {isotope_name}")
 
     # query the site for the file
     print(f"Connecting to the opendose site https://opendose.org/svalues ...")
@@ -35,6 +37,10 @@ def go(phantom, source, rad, output):
     od.web_svalues_select_phantom(driver, model_dropdown, ph_id)
     print(f"Query the {rad} svalues for {source} ...")
     data = od.web_svalues_query_data(driver, source_id, isotope_id)
+
+    # auto output ?
+    if output == "auto":
+        output = od.get_svalue_data_filename(phantom, source_name, isotope_name)
 
     # write to json file
     print(f"Save the data in {output}")

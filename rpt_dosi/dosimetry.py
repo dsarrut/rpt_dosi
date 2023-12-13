@@ -179,27 +179,42 @@ def scale_to_absorbed_dose_rate(
     return o
 
 
-def get_Svalue_and_mass(roi_filename, rad):
-    if rad != "Lu177":
-        fatal(f"Svalue only for Lu177")
-    return 1.3713e-5, 1
+def spect_calibration(spect, calibration_factor, concentration_flag, verbose=True):
+    # get voxel volume
+    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
+    arr = itk.GetArrayFromImage(spect)
+    total_activity = np.sum(arr) * volume_voxel_mL / calibration_factor
+    if verbose:
+        print(f"Total activity in the image FOV: {total_activity/1e6:.2f} MBq")
+    # calibration
+    if concentration_flag:
+        arr = arr * volume_voxel_mL / calibration_factor
+    else:
+        arr = arr / calibration_factor
+
+    # create output image
+    o = itk.GetImageFromArray(arr)
+    o.CopyInformation(spect)
+    return o
 
 
-def dose_hanscheid2018(img, roi, time_sec, roi_mass, Svalue):
+def dose_hanscheid2018(spect_Bq, roi, time_sec, svalue, mass_scaling):
     """
-    Input img and ROI must be numpy arrays
-
+    Input image and ROI must be numpy arrays
+    - spect must be in Bq (not concentration)
+    - svalue in mGy/MBq/s
+    - time in seconds
+    - output is in Gray
     """
-    # compute mean activity in the ROI
-    v = img[roi == 1]
-    At = np.sum(v)/1e6
+    # compute mean activity in the ROI, in MBq
+    v = spect_Bq[roi == 1]
+    At = np.sum(v) / 1e6
 
     # S is in (mGy/MBq/s), so we get dose in mGy
-    Svalue = 1.3713e-5
-    # FIXME add mass scaling
-    dose = At * Svalue * (2 * time_sec) / np.log(2) / 1000
+    dose = mass_scaling * At * svalue * (2 * time_sec) / np.log(2) / 1000
 
     return dose
+
 
 def dose_hanscheid2017(img, roi, time_sec, pixel_volume_ml):
     """
@@ -207,14 +222,14 @@ def dose_hanscheid2017(img, roi, time_sec, pixel_volume_ml):
 
     """
 
-    time_h = time_sec/3600
+    time_h = time_sec / 3600
     time_eff_h = 67.0
 
     # compute mean activity in the ROI
     v = img[roi == 1] / pixel_volume_ml
-    Ct = np.mean(v)/1e6
+    Ct = np.mean(v) / 1e6
 
     #
-    dose = 0.125 * Ct * np.power(2, time_h/time_eff_h) * time_eff_h
+    dose = 0.125 * Ct * np.power(2, time_h / time_eff_h) * time_eff_h
 
     return dose

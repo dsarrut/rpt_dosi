@@ -10,10 +10,15 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option("--output", "-o", required=True, help="output filename (json)")
-def go(output):
-    # get all the sources
+@click.option("--phantom", "-p", required=True, help="Phantom ICRP 110 AF or AM")
+def go(output, phantom):
+    # get ids
+    ph_id, phantom = od.guess_phantom_id(phantom)
+    print(f"Phantom id: {ph_id} = {phantom}")
+
+    # get all the isotopes
     driver, model_dropdown = od.web_svalues_get_driver()
-    od.web_svalues_select_phantom(driver, model_dropdown)
+    od.web_svalues_select_phantom(driver, model_dropdown, ph_id)
     isotopes = od.get_all_dropdown_options(driver, "isotope")
 
     # Quit the WebDriver

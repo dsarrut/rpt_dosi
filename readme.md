@@ -3,24 +3,35 @@
 # (4) single timepoint dose estimation with Madsen method
 
 
-    rpt_dose_hanscheid -i spect.mhd -r rois/liver.nii.gz -c 0.176906614 -o a.txt
+    rpt_dose_hanscheid2018 -i spect_Bq.nii.gz -r rois/liver.nii.gz -o a.txt -t 24
+    rpt_dose_hanscheid2017 -i spect.nii.gz -r rois/liver.nii.gz -o a.txt
 
+    rpt_spect_calibration -i spect.nii.gz -o spect_Bq.nii.gz -c 0.176906614 --concentration
+    rpt_spect_calibration -i spect.nii.gz -o spect_Bqml.nii.gz -c 0.176906614
 
-# (3) spect pre processing for PVC ----> FIXME <----- 
+# (3) spect pre processing for Partial Volume Correction 
 
     TODO 
 
 # Get S-values from the Opendose website
 
-They are stored in the data folder, not need to query them.
+They are stored in the data folder.
 
-        opendose_web_get_sources -o opendose_sources.json
-        opendose_web_get_isotopes_list -o opendose_isotopes.json
+        opendose_web_get_sources_list -o opendose_sources.json -p "ICRP 110 AM"
+        opendose_web_get_isotopes_list -o opendose_isotopes.json -p "ICRP 110 AM"
 
-        opendose_web_get_svalues -r lu177 -s "liver" -o lu177_liver.json
-        opendose_web_get_svalues -r lu177 -s "spleen" -o lu177_spleen.json
-        opendose_web_get_svalues -r lu177 -s "right kidney" -o lu177_right_kidney.json
-        opendose_web_get_svalues -r lu177 -s "left kidney" -o lu177_left_kidney.json
+        opendose_web_get_svalues -r lu177 -s "liver" -p "ICRP 110 AM"
+        opendose_web_get_svalues -r lu177 -s "spleen" -p "ICRP 110 AM"
+        opendose_web_get_svalues -r lu177 -s "right kidney" -p "ICRP 110 AM"
+        opendose_web_get_svalues -r lu177 -s "left kidney" -p "ICRP 110 AM"
+
+        opendose_web_get_sources_list -o opendose_sources.json -p "ICRP 110 AF"     
+        opendose_web_get_isotopes_list -o opendose_isotopes.json -p "ICRP 110 AF" 
+
+        opendose_web_get_svalues -r lu177 -s "liver" -p "ICRP 110 AF"               
+        opendose_web_get_svalues -r lu177 -s "spleen" -p "ICRP 110 AF"
+        opendose_web_get_svalues -r lu177 -s "right kidney" -p "ICRP 110 AF"
+        opendose_web_get_svalues -r lu177 -s "left kidney" -p "ICRP 110 AF"
 
 
 # (2) ROI segmentation
@@ -30,6 +41,8 @@ Todo for all images:
     cd cycle1/tp1
     TotalSegmentator -i ct.nii.gz --bs -o rois -ta body 
     TotalSegmentator -i ct.nii.gz --bs -o rois 
+
+FIXME -> for visu, crop is better, do a script to autocrop the images (in separate folder)
 
 The option -fast can be used if too slow. Warning, a GPU is highly advised.
 
@@ -43,12 +56,12 @@ Exemple of DICOM conversion, adapt the folder/filenames to your own data:
     gt_image_convert P1/CT/Other_/19700918/091617.804/1.250000E+00/soft_tissue_/*dcm -o P1_mhd/cycle1/tp3/ct.nii.gz -v
 
     # SPECT
-    gt_image_convert P1/NM/Lu177-PSMA/19700912/142334.000/2.46/7_FFS_LU177_OSAC_Recon_Patient1_ScC_/*.dcm -o P1_mhd/cycle1/tp1/spect.mhd
-    gt_image_convert P1/NM/Lu177-PSMA/19700913/090544.000/2.46/7_FFS_LU177_OSAC_Recon_Patient1_ScC_/*.dcm -o P1_mhd/cycle1/tp2/spect.mhd
-    gt_image_convert P1/NM/Lu177-PSMA/19700918/091324.000/2.46/7_FFS_LU177_OSAC_Recon_Patient1_ScC_/*.dcm -o P1_mhd/cycle1/tp3/spect.mhd
+    gt_image_convert P1/NM/Lu177-PSMA/19700912/142334.000/2.46/7_FFS_LU177_OSAC_Recon_Patient1_ScC_/*.dcm -o P1_mhd/cycle1/tp1/spect.nii.gz
+    gt_image_convert P1/NM/Lu177-PSMA/19700913/090544.000/2.46/7_FFS_LU177_OSAC_Recon_Patient1_ScC_/*.dcm -o P1_mhd/cycle1/tp2/spect.nii.gz
+    gt_image_convert P1/NM/Lu177-PSMA/19700918/091324.000/2.46/7_FFS_LU177_OSAC_Recon_Patient1_ScC_/*.dcm -o P1_mhd/cycle1/tp3/spect.nii.gz
 
     # visu 
-    vv P1_mhd/cycle1/tp1/ct.nii.gz --fusion P1_mhd/cycle1/tp1/spect.mhd P1_mhd/cycle1/tp2/ct.nii.gz --fusion P1_mhd/cycle1/tp2/spect.mhd P1_mhd/cycle1/tp3/ct.nii.gz --fusion P1_mhd/cycle1/tp3/spect.mhd 
+    vv P1_mhd/cycle1/tp1/ct.nii.gz --fusion P1_mhd/cycle1/tp1/spect.nii.gz P1_mhd/cycle1/tp2/ct.nii.gz --fusion P1_mhd/cycle1/tp2/spect.nii.gz P1_mhd/cycle1/tp3/ct.nii.gz --fusion P1_mhd/cycle1/tp3/spect.nii.gz 
 
 We consider the folder structure as follows:
   

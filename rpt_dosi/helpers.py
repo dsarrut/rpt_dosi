@@ -3,7 +3,6 @@ from box import Box
 import inspect
 import colored
 import Levenshtein
-from fuzzywuzzy import process
 
 
 try:

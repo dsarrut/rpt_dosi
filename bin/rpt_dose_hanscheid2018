@@ -4,6 +4,7 @@
 import click
 from rpt_dosi import images as im
 from rpt_dosi import dosimetry as dosi
+from rpt_dosi import opendose as od
 import SimpleITK as itk
 import numpy as np
 
@@ -22,22 +23,18 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--roi", "-r", required=True, multiple=True, help="ROI filenames")
 @click.option("--acq_time", "-t", type=float, required=True, help="Time in h")
 @click.option(
-    "--calibration_factor",
-    "-c",
-    required=True,
-    type=float,
-    help="SPECT calibration factor Bqml",
+    "--phantom", "-p", default="ICRP 110 AM", help="Phantom ICRP 110 AF or AM"
 )
-def go(input_image, roi, acq_time, output, calibration_factor):
+def go(input_image, roi, acq_time, phantom, output):
     # read image
     img = itk.ReadImage(input_image)
 
-    # calibration factor
-    imga, _ = im.spect_calibration(img, calibration_factor, True)
-
     # time in sec
     time_sec = acq_time * 3600
-    pixel_volume_ml = np.prod(img.GetSpacing()) / 1000
+
+    # MIRD phantom
+    ph_id, phantom = od.guess_phantom_id(phantom)
+    print(f"Phantom id: {ph_id} = {phantom}")
 
     # loop on ROI
     for roi_file in roi:
@@ -47,15 +44,16 @@ def go(input_image, roi, acq_time, output, calibration_factor):
             r = im.resample_image_like(r, img, 0, linear=False)
 
         # retrieve Svalue from the roi name
-        Svalue, Smass = dosi.get_Svalue_and_mass(roi_file, "Lu177")
+        svalue, s_mass = od.get_svalue_and_mass(phantom, roi_file, "Lu177", roi_file)
+        exit()
 
         # compute mass of the current ROI
-        # mass = im.compute_roi_mass()
+        roi_mass = im.compute_roi_mass()
 
         # dose computation with Hanscheid method
         roia = itk.GetArrayFromImage(r)
-        #dose = dosi.dose_hanscheid17(imga, roia, time_sec, mass, Svalue)
-        dose = dosi.dose_hanscheid2017(imga, roia, time_sec, pixel_volume_ml)
+        # dose = dosi.dose_hanscheid17(imga, roia, time_sec, mass, Svalue)
+        dose = dosi.dose_hanscheid2018(imga, roia, time_sec, pixel_volume_ml)
         print(f"Dose for {roi_file}: {dose:.2f} Gray")
 
 
