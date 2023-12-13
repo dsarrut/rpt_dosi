@@ -177,3 +177,44 @@ def scale_to_absorbed_dose_rate(
     o = itk.GetImageFromArray(dose_a)
     o.CopyInformation(dose_in_gray)
     return o
+
+
+def get_Svalue_and_mass(roi_filename, rad):
+    if rad != "Lu177":
+        fatal(f"Svalue only for Lu177")
+    return 1.3713e-5, 1
+
+
+def dose_hanscheid2018(img, roi, time_sec, roi_mass, Svalue):
+    """
+    Input img and ROI must be numpy arrays
+
+    """
+    # compute mean activity in the ROI
+    v = img[roi == 1]
+    At = np.sum(v)/1e6
+
+    # S is in (mGy/MBq/s), so we get dose in mGy
+    Svalue = 1.3713e-5
+    # FIXME add mass scaling
+    dose = At * Svalue * (2 * time_sec) / np.log(2) / 1000
+
+    return dose
+
+def dose_hanscheid2017(img, roi, time_sec, pixel_volume_ml):
+    """
+    Input img and ROI must be numpy arrays
+
+    """
+
+    time_h = time_sec/3600
+    time_eff_h = 67.0
+
+    # compute mean activity in the ROI
+    v = img[roi == 1] / pixel_volume_ml
+    Ct = np.mean(v)/1e6
+
+    #
+    dose = 0.125 * Ct * np.power(2, time_h/time_eff_h) * time_eff_h
+
+    return dose

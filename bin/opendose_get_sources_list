@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import click
+import rpt_dosi.opendose as od
+import json
+
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+
+
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.option("--output", "-o", required=True, help="output filename")
+def go(output):
+
+    # get all the sources
+    driver, model_dropdown = od.open_svalues()
+    od.svalues_select_phantom(driver, model_dropdown)
+    sources = od.get_all_dropdown_options(driver, 'source')
+
+    # Quit the WebDriver
+    driver.quit()
+
+    # save as a json file
+    with open(output, "w") as f:
+        json.dump(sources, f, indent=4)
+
+
+# --------------------------------------------------------------------------
+if __name__ == "__main__":
+    go()

@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import click
+from rpt_dosi import images as im
+from rpt_dosi import dosimetry as dosi
+import SimpleITK as itk
+import numpy as np
+
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+
+
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.option(
+    "--input_image",
+    "-i",
+    required=True,
+    type=click.Path(exists=True),
+    help="Input SPECT image",
+)
+@click.option("--output", "-o", required=True, help="Output txt filename")
+@click.option("--roi", "-r", required=True, multiple=True, help="ROI filenames")
+@click.option("--acq_time", "-t", type=float, required=True, help="Time in h")
+@click.option(
+    "--calibration_factor",
+    "-c",
+    required=True,
+    type=float,
+    help="SPECT calibration factor Bqml",
+)
+def go(input_image, roi, acq_time, output, calibration_factor):
+    # read image
+    img = itk.ReadImage(input_image)
+
+    # calibration factor
+    imga, _ = im.spect_calibration(img, calibration_factor, True)
+
+    # time in sec
+    time_sec = acq_time * 3600
+    pixel_volume_ml = np.prod(img.GetSpacing()) / 1000
+
+    # loop on ROI
+    for roi_file in roi:
+        # read roi mask and resample if needed
+        r = itk.ReadImage(roi_file)
+        if not im.images_have_same_domain(img, r):
+            r = im.resample_image_like(r, img, 0, linear=False)
+
+        # retrieve Svalue from the roi name
+        Svalue, Smass = dosi.get_Svalue_and_mass(roi_file, "Lu177")
+
+        # compute mass of the current ROI
+        # mass = im.compute_roi_mass()
+
+        # dose computation with Hanscheid method
+        roia = itk.GetArrayFromImage(r)
+        #dose = dosi.dose_hanscheid17(imga, roia, time_sec, mass, Svalue)
+        dose = dosi.dose_hanscheid2017(imga, roia, time_sec, pixel_volume_ml)
+        print(f"Dose for {roi_file}: {dose:.2f} Gray")
+
+
+# --------------------------------------------------------------------------
+if __name__ == "__main__":
+    go()

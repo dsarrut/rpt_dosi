@@ -1,6 +1,7 @@
 import SimpleITK as itk
 import math
 from .helpers import fatal
+import numpy as np
 
 
 def images_have_same_domain(image1, image2, tolerance=1e-5):
@@ -135,3 +136,13 @@ def crop_to_bounding_box(img, bg_value=-1000):
     cropped_img = roi_filter.Execute(img)
 
     return cropped_img
+
+
+def spect_calibration(img, calibration_factor, verbose):
+    imga = itk.GetArrayFromImage(img)
+    volume_voxel_mL = np.prod(img.GetSpacing()) / 1000
+    imga = imga * volume_voxel_mL / calibration_factor
+    total_activity = np.sum(imga)
+    if verbose:
+        print(f"Total activity in the image FOV: {total_activity/1e6:.2f} MBq")
+    return imga, total_activity

@@ -1,7 +1,7 @@
 import setuptools
 from setuptools import find_packages
 
-with open("README.md", "r") as fh:
+with open("readme.md", "r") as fh:
     long_description = fh.read()
 
 with open("VERSION", "r") as fh:
@@ -41,13 +41,15 @@ setuptools.setup(
         "numpy",
         "SimpleITK",
         "matplotlib",
+        "python-Levenshtein",
+        "bs4",
+        "selenium"
     ],
     scripts=[
         "bin/rpt_crop_bg",
         "bin/rpt_resample_image",
-        "bin/rpt_dose_rate",
-        "bin/rpt_dose_scale",
-        # "bin/rpt_dose_uncertainty",
-        "bin/rpt_dose_time_integration",
+        "bin/rpt_dose_hanscheid",
+        "bin/opendose_get_isotopes_list",
+        "bin/opendose_get_sources_list",
     ],
 )
