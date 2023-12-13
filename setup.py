@@ -43,13 +43,14 @@ setuptools.setup(
         "matplotlib",
         "python-Levenshtein",
         "bs4",
-        "selenium"
+        "selenium",
     ],
     scripts=[
         "bin/rpt_crop_bg",
         "bin/rpt_resample_image",
         "bin/rpt_dose_hanscheid",
-        "bin/opendose_get_isotopes_list",
-        "bin/opendose_get_sources_list",
+        "bin/opendose_web_get_isotopes_list",
+        "bin/opendose_web_get_sources_list",
+        "bin/opendose_web_get_svalues",
     ],
 )

@@ -1,682 +1,512 @@
 [
     {
-        "id": "",
-        "value": "Select a source"
+        "": "Select a source"
     },
     {
-        "id": "336",
-        "value": "Adipose/residual tissue"
+        "336": "Adipose/residual tissue"
     },
     {
-        "id": "170",
-        "value": "Adrenal, left"
+        "170": "Adrenal, left"
     },
     {
-        "id": "171",
-        "value": "Adrenal, right"
+        "171": "Adrenal, right"
     },
     {
-        "id": "306",
-        "value": "Air inside body"
+        "306": "Air inside body"
     },
     {
-        "id": "169",
-        "value": "Air outside body"
+        "169": "Air outside body"
     },
     {
-        "id": "328",
-        "value": "Alveolar-interstitium"
+        "328": "Alveolar-interstitium"
     },
     {
-        "id": "206",
-        "value": "Ankles and foot bones, cortical"
+        "206": "Ankles and foot bones, cortical"
     },
     {
-        "id": "207",
-        "value": "Ankles and foot bones, spongiosa"
+        "207": "Ankles and foot bones, spongiosa"
     },
     {
-        "id": "172",
-        "value": "Anterior nasal passage (ET1)"
+        "172": "Anterior nasal passage (ET1)"
     },
     {
-        "id": "246",
-        "value": "Ascending colon contents"
+        "246": "Ascending colon contents"
     },
     {
-        "id": "245",
-        "value": "Ascending colon wall"
+        "245": "Ascending colon wall"
     },
     {
-        "id": "180",
-        "value": "Blood vessels, arms"
+        "180": "Blood vessels, arms"
     },
     {
-        "id": "178",
-        "value": "Blood vessels, head"
+        "178": "Blood vessels, head"
     },
     {
-        "id": "181",
-        "value": "Blood vessels, legs"
+        "181": "Blood vessels, legs"
     },
     {
-        "id": "179",
-        "value": "Blood vessels, trunk"
+        "179": "Blood vessels, trunk"
     },
     {
-        "id": "230",
-        "value": "Brain"
+        "230": "Brain"
     },
     {
-        "id": "312",
-        "value": "Breast-a + Breast-g"
+        "312": "Breast-a + Breast-g"
     },
     {
-        "id": "231",
-        "value": "Breast, left, adipose tissue"
+        "231": "Breast, left, adipose tissue"
     },
     {
-        "id": "232",
-        "value": "Breast, left, glandular tissue"
+        "232": "Breast, left, glandular tissue"
     },
     {
-        "id": "233",
-        "value": "Breast, right, adipose tissue"
+        "233": "Breast, right, adipose tissue"
     },
     {
-        "id": "234",
-        "value": "Breast, right, glandular tissue"
+        "234": "Breast, right, glandular tissue"
     },
     {
-        "id": "177",
-        "value": "Bronchi"
+        "177": "Bronchi"
     },
     {
-        "id": "228",
-        "value": "Cartilage, arms"
+        "228": "Cartilage, arms"
     },
     {
-        "id": "226",
-        "value": "Cartilage, head"
+        "226": "Cartilage, head"
     },
     {
-        "id": "229",
-        "value": "Cartilage, legs"
+        "229": "Cartilage, legs"
     },
     {
-        "id": "227",
-        "value": "Cartilage, trunk"
+        "227": "Cartilage, trunk"
     },
     {
-        "id": "216",
-        "value": "Cervical spine, cortical"
+        "216": "Cervical spine, cortical"
     },
     {
-        "id": "217",
-        "value": "Cervical spine, spongiosa"
+        "217": "Cervical spine, spongiosa"
     },
     {
-        "id": "193",
-        "value": "Clavicles, cortical"
+        "193": "Clavicles, cortical"
     },
     {
-        "id": "194",
-        "value": "Clavicles, spongiosa"
+        "194": "Clavicles, spongiosa"
     },
     {
-        "id": "318",
-        "value": "Colon"
+        "318": "Colon"
     },
     {
-        "id": "195",
-        "value": "Cranium, cortical"
+        "195": "Cranium, cortical"
     },
     {
-        "id": "196",
-        "value": "Cranium, spongiosa"
+        "196": "Cranium, spongiosa"
     },
     {
-        "id": "252",
-        "value": "Descending colon contents"
+        "252": "Descending colon contents"
     },
     {
-        "id": "251",
-        "value": "Descending colon wall"
+        "251": "Descending colon wall"
     },
     {
-        "id": "309",
-        "value": "ET region"
+        "309": "ET region"
     },
     {
-        "id": "236",
-        "value": "Eye bulb, left"
+        "236": "Eye bulb, left"
     },
     {
-        "id": "238",
-        "value": "Eye bulb, right"
+        "238": "Eye bulb, right"
     },
     {
-        "id": "235",
-        "value": "Eye lense, left"
+        "235": "Eye lense, left"
     },
     {
-        "id": "237",
-        "value": "Eye lense, right"
+        "237": "Eye lense, right"
     },
     {
-        "id": "200",
-        "value": "Femora, lower half, cortical"
+        "200": "Femora, lower half, cortical"
     },
     {
-        "id": "202",
-        "value": "Femora, lower half, medullary cavity"
+        "202": "Femora, lower half, medullary cavity"
     },
     {
-        "id": "201",
-        "value": "Femora, lower half, spongiosa"
+        "201": "Femora, lower half, spongiosa"
     },
     {
-        "id": "197",
-        "value": "Femora, upper half, cortical"
+        "197": "Femora, upper half, cortical"
     },
     {
-        "id": "199",
-        "value": "Femora, upper half, medullary cavity"
+        "199": "Femora, upper half, medullary cavity"
     },
     {
-        "id": "198",
-        "value": "Femora, upper half, spongiosa"
+        "198": "Femora, upper half, spongiosa"
     },
     {
-        "id": "240",
-        "value": "Gall bladder contents"
+        "240": "Gall bladder contents"
     },
     {
-        "id": "239",
-        "value": "Gall bladder wall"
+        "239": "Gall bladder wall"
     },
     {
-        "id": "257",
-        "value": "Heart contents (blood)"
+        "257": "Heart contents (blood)"
     },
     {
-        "id": "256",
-        "value": "Heart wall"
+        "256": "Heart wall"
     },
     {
-        "id": "185",
-        "value": "Humeri, lower half, cortical"
+        "185": "Humeri, lower half, cortical"
     },
     {
-        "id": "187",
-        "value": "Humeri, lower half, medullary cavity"
+        "187": "Humeri, lower half, medullary cavity"
     },
     {
-        "id": "186",
-        "value": "Humeri, lower half, spongiosa"
+        "186": "Humeri, lower half, spongiosa"
     },
     {
-        "id": "182",
-        "value": "Humeri, upper half, cortical"
+        "182": "Humeri, upper half, cortical"
     },
     {
-        "id": "184",
-        "value": "Humeri, upper half, medullary cavity"
+        "184": "Humeri, upper half, medullary cavity"
     },
     {
-        "id": "183",
-        "value": "Humeri, upper half, spongiosa"
+        "183": "Humeri, upper half, spongiosa"
     },
     {
-        "id": "258",
-        "value": "Kidney, left, cortex"
+        "258": "Kidney, left, cortex"
     },
     {
-        "id": "259",
-        "value": "Kidney, left, medulla"
+        "259": "Kidney, left, medulla"
     },
     {
-        "id": "260",
-        "value": "Kidney, left, pelvis"
+        "260": "Kidney, left, pelvis"
     },
     {
-        "id": "261",
-        "value": "Kidney, right, cortex"
+        "261": "Kidney, right, cortex"
     },
     {
-        "id": "262",
-        "value": "Kidney, right, medulla"
+        "262": "Kidney, right, medulla"
     },
     {
-        "id": "263",
-        "value": "Kidney, right, pelvis"
+        "263": "Kidney, right, pelvis"
     },
     {
-        "id": "314",
-        "value": "LBreast-a + LBresat-g"
+        "314": "LBreast-a + LBresat-g"
     },
     {
-        "id": "320",
-        "value": "Left colon wall (left transverse + descending)"
+        "320": "Left colon wall (left transverse + descending)"
     },
     {
-        "id": "324",
-        "value": "Left kidney C+M+P"
+        "324": "Left kidney C+M+P"
     },
     {
-        "id": "327",
-        "value": "Left lung lobe"
+        "327": "Left lung lobe"
     },
     {
-        "id": "317",
-        "value": "Lenses of eye"
+        "317": "Lenses of eye"
     },
     {
-        "id": "264",
-        "value": "Liver"
+        "264": "Liver"
     },
     {
-        "id": "220",
-        "value": "Lumbar spine, cortical"
+        "220": "Lumbar spine, cortical"
     },
     {
-        "id": "221",
-        "value": "Lumbar spine, spongiosa"
+        "221": "Lumbar spine, spongiosa"
     },
     {
-        "id": "265",
-        "value": "Lung, left, blood"
+        "265": "Lung, left, blood"
     },
     {
-        "id": "266",
-        "value": "Lung, left, tissue"
+        "266": "Lung, left, tissue"
     },
     {
-        "id": "267",
-        "value": "Lung, right, blood"
+        "267": "Lung, right, blood"
     },
     {
-        "id": "268",
-        "value": "Lung, right, tissue"
+        "268": "Lung, right, tissue"
     },
     {
-        "id": "273",
-        "value": "Lymphatic nodes, arms"
+        "273": "Lymphatic nodes, arms"
     },
     {
-        "id": "269",
-        "value": "Lymphatic nodes, extrathoracic airways"
+        "269": "Lymphatic nodes, extrathoracic airways"
     },
     {
-        "id": "271",
-        "value": "Lymphatic nodes, head"
+        "271": "Lymphatic nodes, head"
     },
     {
-        "id": "274",
-        "value": "Lymphatic nodes, legs"
+        "274": "Lymphatic nodes, legs"
     },
     {
-        "id": "270",
-        "value": "Lymphatic nodes, thoracic airways"
+        "270": "Lymphatic nodes, thoracic airways"
     },
     {
-        "id": "272",
-        "value": "Lymphatic nodes, trunk"
+        "272": "Lymphatic nodes, trunk"
     },
     {
-        "id": "329",
-        "value": "Lymph nodes"
+        "329": "Lymph nodes"
     },
     {
-        "id": "330",
-        "value": "Lymph nodes, except LN-ET + LN-Th"
+        "330": "Lymph nodes, except LN-ET + LN-Th"
     },
     {
-        "id": "208",
-        "value": "Mandible, cortical"
+        "208": "Mandible, cortical"
     },
     {
-        "id": "209",
-        "value": "Mandible, spongiosa"
+        "209": "Mandible, spongiosa"
     },
     {
-        "id": "331",
-        "value": "Muscle"
+        "331": "Muscle"
     },
     {
-        "id": "277",
-        "value": "Muscle, arms"
+        "277": "Muscle, arms"
     },
     {
-        "id": "275",
-        "value": "Muscle, head"
+        "275": "Muscle, head"
     },
     {
-        "id": "278",
-        "value": "Muscle, legs"
+        "278": "Muscle, legs"
     },
     {
-        "id": "276",
-        "value": "Muscle, trunk"
+        "276": "Muscle, trunk"
     },
     {
-        "id": "279",
-        "value": "Oesophagus"
+        "279": "Oesophagus"
     },
     {
-        "id": "310",
-        "value": "Oral mucosa"
+        "310": "Oral mucosa"
     },
     {
-        "id": "175",
-        "value": "Oral mucosa, lips and cheeks"
+        "175": "Oral mucosa, lips and cheeks"
     },
     {
-        "id": "174",
-        "value": "Oral mucosa, tongue"
+        "174": "Oral mucosa, tongue"
     },
     {
-        "id": "280",
-        "value": "Pancreas"
+        "280": "Pancreas"
     },
     {
-        "id": "210",
-        "value": "Pelvis, cortical"
+        "210": "Pelvis, cortical"
     },
     {
-        "id": "211",
-        "value": "Pelvis, spongiosa"
+        "211": "Pelvis, spongiosa"
     },
     {
-        "id": "281",
-        "value": "Pituitary gland"
+        "281": "Pituitary gland"
     },
     {
-        "id": "173",
-        "value": "Posterior nasal passage down to larynx (ET2)"
+        "173": "Posterior nasal passage down to larynx (ET2)"
     },
     {
-        "id": "282",
-        "value": "Prostate"
+        "282": "Prostate"
     },
     {
-        "id": "308",
-        "value": "RAdrenal + LAdrenal"
+        "308": "RAdrenal + LAdrenal"
     },
     {
-        "id": "315",
-        "value": "RBreast-a + LBreast-a"
+        "315": "RBreast-a + LBreast-a"
     },
     {
-        "id": "313",
-        "value": "RBreast-a + RBreast-g"
+        "313": "RBreast-a + RBreast-g"
     },
     {
-        "id": "316",
-        "value": "RBreast-g + LBreast-g"
+        "316": "RBreast-g + LBreast-g"
     },
     {
-        "id": "255",
-        "value": "Rectum wall"
+        "255": "Rectum wall"
     },
     {
-        "id": "285",
-        "value": "Residual tissue, arms"
+        "285": "Residual tissue, arms"
     },
     {
-        "id": "283",
-        "value": "Residual tissue, head"
+        "283": "Residual tissue, head"
     },
     {
-        "id": "286",
-        "value": "Residual tissue, legs"
+        "286": "Residual tissue, legs"
     },
     {
-        "id": "284",
-        "value": "Residual tissue, trunk"
+        "284": "Residual tissue, trunk"
     },
     {
-        "id": "212",
-        "value": "Ribs, cortical"
+        "212": "Ribs, cortical"
     },
     {
-        "id": "213",
-        "value": "Ribs, spongiosa"
+        "213": "Ribs, spongiosa"
     },
     {
-        "id": "319",
-        "value": "Right colon wall (ascending + right transverse)"
+        "319": "Right colon wall (ascending + right transverse)"
     },
     {
-        "id": "323",
-        "value": "Right kidney C+M+P"
+        "323": "Right kidney C+M+P"
     },
     {
-        "id": "326",
-        "value": "Right lung lobe"
+        "326": "Right lung lobe"
     },
     {
-        "id": "322",
-        "value": "RKidney + LKidney"
+        "322": "RKidney + LKidney"
     },
     {
-        "id": "325",
-        "value": "RLung + LLung"
+        "325": "RLung + LLung"
     },
     {
-        "id": "222",
-        "value": "Sacrum, cortical"
+        "222": "Sacrum, cortical"
     },
     {
-        "id": "223",
-        "value": "Sacrum, spongiosa"
+        "223": "Sacrum, spongiosa"
     },
     {
-        "id": "332",
-        "value": "Salivary glands"
+        "332": "Salivary glands"
     },
     {
-        "id": "287",
-        "value": "Salivary glands, left"
+        "287": "Salivary glands, left"
     },
     {
-        "id": "288",
-        "value": "Salivary glands, right"
+        "288": "Salivary glands, right"
     },
     {
-        "id": "214",
-        "value": "Scapulae, cortical"
+        "214": "Scapulae, cortical"
     },
     {
-        "id": "215",
-        "value": "Scapulae, spongiosa"
+        "215": "Scapulae, spongiosa"
     },
     {
-        "id": "254",
-        "value": "Sigmoid colon contents"
+        "254": "Sigmoid colon contents"
     },
     {
-        "id": "253",
-        "value": "Sigmoid colon wall"
+        "253": "Sigmoid colon wall"
     },
     {
-        "id": "321",
-        "value": "Sigmoid colon wall + rectum wall"
+        "321": "Sigmoid colon wall + rectum wall"
     },
     {
-        "id": "333",
-        "value": "Skin"
+        "333": "Skin"
     },
     {
-        "id": "291",
-        "value": "Skin, arms"
+        "291": "Skin, arms"
     },
     {
-        "id": "307",
-        "value": "Skin at top and bottom"
+        "307": "Skin at top and bottom"
     },
     {
-        "id": "289",
-        "value": "Skin, head"
+        "289": "Skin, head"
     },
     {
-        "id": "292",
-        "value": "Skin, legs"
+        "292": "Skin, legs"
     },
     {
-        "id": "290",
-        "value": "Skin, trunk"
+        "290": "Skin, trunk"
     },
     {
-        "id": "244",
-        "value": "Small intestine contents"
+        "244": "Small intestine contents"
     },
     {
-        "id": "243",
-        "value": "Small intestine wall"
+        "243": "Small intestine wall"
     },
     {
-        "id": "293",
-        "value": "Spinal cord"
+        "293": "Spinal cord"
     },
     {
-        "id": "294",
-        "value": "Spleen"
+        "294": "Spleen"
     },
     {
-        "id": "224",
-        "value": "Sternum, cortical"
+        "224": "Sternum, cortical"
     },
     {
-        "id": "225",
-        "value": "Sternum, spongiosa"
+        "225": "Sternum, spongiosa"
     },
     {
-        "id": "242",
-        "value": "Stomach contents"
+        "242": "Stomach contents"
     },
     {
-        "id": "241",
-        "value": "Stomach wall"
+        "241": "Stomach wall"
     },
     {
-        "id": "295",
-        "value": "Teeth"
+        "295": "Teeth"
     },
     {
-        "id": "334",
-        "value": "Testes"
+        "334": "Testes"
     },
     {
-        "id": "296",
-        "value": "Testis, left"
+        "296": "Testis, left"
     },
     {
-        "id": "297",
-        "value": "Testis, right"
+        "297": "Testis, right"
     },
     {
-        "id": "218",
-        "value": "Thoracic spine, cortical"
+        "218": "Thoracic spine, cortical"
     },
     {
-        "id": "219",
-        "value": "Thoracic spine, spongiosa"
+        "219": "Thoracic spine, spongiosa"
     },
     {
-        "id": "298",
-        "value": "Thymus"
+        "298": "Thymus"
     },
     {
-        "id": "299",
-        "value": "Thyroid"
+        "299": "Thyroid"
     },
     {
-        "id": "203",
-        "value": "Tibiae, fibulae and patellae, cortical"
+        "203": "Tibiae, fibulae and patellae, cortical"
     },
     {
-        "id": "205",
-        "value": "Tibiae, fibulae and patellae, medullary cavity"
+        "205": "Tibiae, fibulae and patellae, medullary cavity"
     },
     {
-        "id": "204",
-        "value": "Tibiae, fibulae and patellae, spongiosa"
+        "204": "Tibiae, fibulae and patellae, spongiosa"
     },
     {
-        "id": "311",
-        "value": "Tongue"
+        "311": "Tongue"
     },
     {
-        "id": "300",
-        "value": "Tongue (inner part)"
+        "300": "Tongue (inner part)"
     },
     {
-        "id": "301",
-        "value": "Tonsils"
+        "301": "Tonsils"
     },
     {
-        "id": "337",
-        "value": "Total body except organ contents"
+        "337": "Total body except organ contents"
     },
     {
-        "id": "176",
-        "value": "Trachea"
+        "176": "Trachea"
     },
     {
-        "id": "250",
-        "value": "Transverse colon contents, left"
+        "250": "Transverse colon contents, left"
     },
     {
-        "id": "248",
-        "value": "Transverse colon contents, right"
+        "248": "Transverse colon contents, right"
     },
     {
-        "id": "249",
-        "value": "Transverse colon wall, left"
+        "249": "Transverse colon wall, left"
     },
     {
-        "id": "247",
-        "value": "Transverse colon wall, right"
+        "247": "Transverse colon wall, right"
     },
     {
-        "id": "188",
-        "value": "Ulnae and radii, cortical"
+        "188": "Ulnae and radii, cortical"
     },
     {
-        "id": "190",
-        "value": "Ulnae and radii, medullary cavity"
+        "190": "Ulnae and radii, medullary cavity"
     },
     {
-        "id": "189",
-        "value": "Ulnae and radii, spongiosa"
+        "189": "Ulnae and radii, spongiosa"
     },
     {
-        "id": "302",
-        "value": "Ureter, left"
+        "302": "Ureter, left"
     },
     {
-        "id": "303",
-        "value": "Ureter, right"
+        "303": "Ureter, right"
     },
     {
-        "id": "335",
-        "value": "Ureters"
+        "335": "Ureters"
     },
     {
-        "id": "305",
-        "value": "Urinary bladder contents"
+        "305": "Urinary bladder contents"
     },
     {
-        "id": "304",
-        "value": "Urinary bladder wall"
+        "304": "Urinary bladder wall"
     },
     {
-        "id": "191",
-        "value": "Wrists and hand bones, cortical"
+        "191": "Wrists and hand bones, cortical"
     },
     {
-        "id": "192",
-        "value": "Wrists and hand bones, spongiosa"
+        "192": "Wrists and hand bones, spongiosa"
     }
 ]

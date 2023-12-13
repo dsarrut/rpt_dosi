@@ -9,13 +9,12 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.option("--output", "-o", required=True, help="output filename")
+@click.option("--output", "-o", required=True, help="output filename (json)")
 def go(output):
-
     # get all the sources
-    driver, model_dropdown = od.open_svalues()
-    od.svalues_select_phantom(driver, model_dropdown)
-    isotopes = od.get_all_dropdown_options(driver, 'isotope')
+    driver, model_dropdown = od.web_svalues_get_driver()
+    od.web_svalues_select_phantom(driver, model_dropdown)
+    isotopes = od.get_all_dropdown_options(driver, "isotope")
 
     # Quit the WebDriver
     driver.quit()

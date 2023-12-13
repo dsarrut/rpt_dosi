@@ -3,6 +3,7 @@ from box import Box
 import inspect
 import colored
 import Levenshtein
+from fuzzywuzzy import process
 
 
 try:
@@ -25,6 +26,7 @@ def fatal(s):
     print(s)
     raise Exception(s)
 
+
 def read_and_check_input_infos(json_file):
     # read
     print(json_file)
@@ -32,7 +34,7 @@ def read_and_check_input_infos(json_file):
     param = Box(json.loads(f))
 
     # check
-    required_keys = ['cycles']
+    required_keys = ["cycles"]
     check_required_keys(param, required_keys)
     return param
 
@@ -43,28 +45,14 @@ def check_required_keys(param, required_keys):
             fatal(f"Cannot find the required key '{k} in the param {param}")
 
 
-def find_closest_match_str(input_string, string_list):
+def find_closest_match(input_string, string_list):
     # Initialize with a large distance
-    min_distance = float('inf')
+    min_distance = float("inf")
     closest_match = None
 
     for candidate in string_list:
-        distance = Levenshtein.distance(input_string, candidate)
-        if distance < min_distance:
-            min_distance = distance
-            closest_match = candidate
-
-    return closest_match
-
-import Levenshtein
-
-def find_closest_match_dict(input_string, string_dict):
-    # Initialize with a large distance
-    min_distance = float('inf')
-    closest_match = None
-
-    for candidate, value in string_dict.items():
-        distance = Levenshtein.distance(input_string, candidate)
+        distance = Levenshtein.distance(input_string.lower(), candidate.lower())
+        # print(f"Distance between {input_string} and {candidate} is {distance}")
         if distance < min_distance:
             min_distance = distance
             closest_match = candidate

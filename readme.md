@@ -10,11 +10,17 @@
 
     TODO 
 
-# opendose svalues
+# Get S-values from the Opendose website
 
+They are stored in the data folder, not need to query them.
 
-        opendose_get_sources -o opendose_sources.json
-        opendose_get_isotopes_list -o opendose_isotopes.json
+        opendose_web_get_sources -o opendose_sources.json
+        opendose_web_get_isotopes_list -o opendose_isotopes.json
+
+        opendose_web_get_svalues -r lu177 -s "liver" -o lu177_liver.json
+        opendose_web_get_svalues -r lu177 -s "spleen" -o lu177_spleen.json
+        opendose_web_get_svalues -r lu177 -s "right kidney" -o lu177_right_kidney.json
+        opendose_web_get_svalues -r lu177 -s "left kidney" -o lu177_left_kidney.json
 
 
 # (2) ROI segmentation
