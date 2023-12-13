@@ -43,7 +43,8 @@ def go(input_image, spacing, output, no_gauss, sigma, like, def_pixel):
 
     # resample
     if like is not None:
-        ct = rpt.resample_like(ct, like, default_pixel_value=def_pixel)
+        like = itk.ReadImage(like)
+        ct = rpt.resample_image_like(ct, like, default_pixel_value=def_pixel)
     else:
         ct = rpt.resample_image(ct, spacing, default_pixel_value=def_pixel)
 

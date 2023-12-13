@@ -146,3 +146,11 @@ def spect_calibration(img, calibration_factor, verbose):
     if verbose:
         print(f"Total activity in the image FOV: {total_activity/1e6:.2f} MBq")
     return imga, total_activity
+
+
+def convert_ct_to_densities(ct):
+    # Simple conversion from HU to g/cm^3
+    densities = ct / 1000 + 1
+    # the density of air is near 0, not negative
+    densities[densities < 0] = 0
+    return densities

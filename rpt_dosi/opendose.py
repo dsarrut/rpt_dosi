@@ -6,7 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 from bs4 import BeautifulSoup
 import json
-from rpt_dosi.helpers import find_closest_match
+from rpt_dosi.helpers import find_closest_match, fatal
 import pkg_resources
 from path import Path
 
@@ -141,17 +141,17 @@ def web_svalues_query_data(driver, source_id, isotope_id):
     return data
 
 
-def get_svalue_and_mass(phantom, roi, rad, dest_roi):
-    _, source_name = guess_source_id(phantom, roi)
-    _, rad_name = guess_isotope_id(phantom, rad)
-    file_name = get_svalue_data_filename(phantom, source_name, rad_name)
+def get_svalue_and_mass(phantom, roi, rad, target_roi):
+    file_name = get_svalue_data_filename(phantom, roi, rad)
     with open(file_name, "r") as f:
         data = json.load(f)
-    _, r = guess_source_id(phantom, dest_roi)
-    print("dest roi is", r)
-    print(data)
-    print()
-    d = data.find(dest_roi)
-    print(d)
-
-    return 1.3713e-5, 1
+    _, r = guess_source_id(phantom, target_roi)
+    d = [item for item in data if item[0].lower() == r.lower()]
+    if len(d) != 1:
+        fatal(f"Cannot find one region {r}, I found : {d}")
+    d = d[0]
+    # S-value (mGy/MBq/s)	Standard error	Mass (g)
+    svalues = d[1]
+    # std_err = d[2]
+    mass = d[3]
+    return float(svalues), float(mass)

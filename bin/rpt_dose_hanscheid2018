@@ -13,47 +13,79 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
-    "--input_image",
+    "--spect",
     "-i",
     required=True,
     type=click.Path(exists=True),
     help="Input SPECT image",
 )
+@click.option(
+    "--ct",
+    "-c",
+    required=True,
+    type=click.Path(exists=True),
+    help="Input CT image",
+)
 @click.option("--output", "-o", required=True, help="Output txt filename")
-@click.option("--roi", "-r", required=True, multiple=True, help="ROI filenames")
+@click.option(
+    "--roi",
+    "-r",
+    required=True,
+    type=(str, str),
+    multiple=True,
+    help="ROI filename and name",
+)
 @click.option("--acq_time", "-t", type=float, required=True, help="Time in h")
 @click.option(
     "--phantom", "-p", default="ICRP 110 AM", help="Phantom ICRP 110 AF or AM"
 )
-def go(input_image, roi, acq_time, phantom, output):
+def go(spect, ct, roi, acq_time, phantom, output):
     # read image
-    img = itk.ReadImage(input_image)
+    spect = itk.ReadImage(spect)
+    spect_a = itk.GetArrayFromImage(spect)
+    ct = itk.ReadImage(ct)
+
+    # resample ct like spect
+    if not im.images_have_same_domain(spect, ct):
+        sigma = [0.5 * sp for sp in ct.GetSpacing()]
+        print(f"Resample ct image")
+        ct = im.apply_gauss_smoothing(ct, sigma)
+        ct = im.resample_image_like(ct, spect, -1000, linear=True)
+    ct_a = itk.GetArrayFromImage(ct)
 
     # time in sec
     time_sec = acq_time * 3600
 
+    # pixel volume and ct densities
+    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
+    densities = im.convert_ct_to_densities(ct_a)
+
     # MIRD phantom
     ph_id, phantom = od.guess_phantom_id(phantom)
+    _, rad_name = od.guess_isotope_id(phantom, "lu177")
     print(f"Phantom id: {ph_id} = {phantom}")
 
     # loop on ROI
-    for roi_file in roi:
+    for roi_file, roi_name in roi:
         # read roi mask and resample if needed
         r = itk.ReadImage(roi_file)
-        if not im.images_have_same_domain(img, r):
-            r = im.resample_image_like(r, img, 0, linear=False)
+        if not im.images_have_same_domain(spect, r):
+            r = im.resample_image_like(r, spect, 0, linear=False)
+        roi_a = itk.GetArrayFromImage(r)
 
         # retrieve Svalue from the roi name
-        svalue, s_mass = od.get_svalue_and_mass(phantom, roi_file, "Lu177", roi_file)
-        exit()
+        _, roi_name = od.guess_source_id(phantom, roi_name)
+        svalue, s_mass = od.get_svalue_and_mass(phantom, roi_name, rad_name, roi_name)
+        print(f"Svalue of '{roi_name}' is {svalue} mGy/MBq/s and mass is {s_mass} g")
 
         # compute mass of the current ROI
-        roi_mass = im.compute_roi_mass()
+        roi_mass = np.sum(densities[roi_a == 1]) * volume_voxel_mL
+        print(f"Mass of '{roi_name}' is {roi_mass} g")
+        mass_scaling = roi_mass / s_mass
+        print(f"Mass scaling is {mass_scaling}")
 
         # dose computation with Hanscheid method
-        roia = itk.GetArrayFromImage(r)
-        # dose = dosi.dose_hanscheid17(imga, roia, time_sec, mass, Svalue)
-        dose = dosi.dose_hanscheid2018(imga, roia, time_sec, pixel_volume_ml)
+        dose = dosi.dose_hanscheid2018(spect_a, roi_a, time_sec, svalue, mass_scaling)
         print(f"Dose for {roi_file}: {dose:.2f} Gray")
 
 

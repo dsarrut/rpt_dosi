@@ -3,15 +3,17 @@
 # (4) single timepoint dose estimation with Madsen method
 
 
-    rpt_dose_hanscheid2018 -i spect_Bq.nii.gz -r rois/liver.nii.gz -o a.txt -t 24
-    rpt_dose_hanscheid2017 -i spect.nii.gz -r rois/liver.nii.gz -o a.txt
+    rpt_dose_hanscheid2018 -i spect_Bq.nii.gz -r rois/kidney_left.nii.gz "left kidney" -o a.txt -t 24 --ct ct_2.5mm.nii.gz
 
+
+# (3) spect and ct pre processing  
+
+TODO : Partial Volume Correction
+
+    rpt_resample_image -i ct.nii.gz -o ct_2.5mm.nii.gz --like spect.nii.gz
     rpt_spect_calibration -i spect.nii.gz -o spect_Bq.nii.gz -c 0.176906614 --concentration
     rpt_spect_calibration -i spect.nii.gz -o spect_Bqml.nii.gz -c 0.176906614
 
-# (3) spect pre processing for Partial Volume Correction 
-
-    TODO 
 
 # Get S-values from the Opendose website
 
