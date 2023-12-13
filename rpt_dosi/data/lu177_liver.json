@@ -1,0 +1,1016 @@
+[
+    [
+        "Adipose/residual tissue",
+        "2.2938e-8",
+        "1.8990e-11",
+        "20470.798"
+    ],
+    [
+        "Adrenal, left",
+        "6.6244e-8",
+        "4.6146e-10",
+        "6.999"
+    ],
+    [
+        "Adrenal, right",
+        "4.3013e-7",
+        "1.0627e-9",
+        "6.999"
+    ],
+    [
+        "Air inside body",
+        "4.7552e-9",
+        "2.7426e-7",
+        "0.154"
+    ],
+    [
+        "Air outside body",
+        "4.2269e-9",
+        "9.6685e-11",
+        "190.380"
+    ],
+    [
+        "Alveolar-interstitium",
+        "9.6466e-8",
+        "3.6402e-10",
+        "1058.342"
+    ],
+    [
+        "Ankles and foot bones, cortical",
+        "3.7114e-11",
+        "2.9492e-7",
+        "232.533"
+    ],
+    [
+        "Ankles and foot bones, spongiosa",
+        "1.3139e-11",
+        "3.0101e-7",
+        "511.700"
+    ],
+    [
+        "Anterior nasal passage (ET1)",
+        "2.0774e-9",
+        "3.9750e-11",
+        "11.026"
+    ],
+    [
+        "Ascending colon contents",
+        "7.6505e-8",
+        "1.4238e-10",
+        "55.018"
+    ],
+    [
+        "Ascending colon wall",
+        "7.6951e-8",
+        "2.0858e-10",
+        "89.973"
+    ],
+    [
+        "Blood vessels, arms",
+        "2.1118e-8",
+        "5.0991e-8",
+        "15.723"
+    ],
+    [
+        "Blood vessels, head",
+        "4.8012e-9",
+        "1.5093e-7",
+        "0.852"
+    ],
+    [
+        "Blood vessels, legs",
+        "2.5636e-11",
+        "4.7302e-7",
+        "83.029"
+    ],
+    [
+        "Blood vessels, trunk",
+        "8.1965e-8",
+        "8.1276e-11",
+        "271.897"
+    ],
+    [
+        "Brain",
+        "6.7880e-10",
+        "4.8223e-8",
+        "1449.810"
+    ],
+    [
+        "Breast, left, adipose tissue",
+        "2.0119e-8",
+        "4.5105e-8",
+        "7.497"
+    ],
+    [
+        "Breast, left, glandular tissue",
+        "1.7539e-8",
+        "9.4989e-8",
+        "4.993"
+    ],
+    [
+        "Breast, right, adipose tissue",
+        "9.5065e-8",
+        "7.1963e-10",
+        "7.497"
+    ],
+    [
+        "Breast, right, glandular tissue",
+        "8.4250e-8",
+        "1.1439e-9",
+        "4.993"
+    ],
+    [
+        "Breast-a + Breast-g",
+        "5.5096e-8",
+        "4.4548e-10",
+        "24.981"
+    ],
+    [
+        "Bronchi",
+        "6.9399e-8",
+        "3.3914e-9",
+        "66.304"
+    ],
+    [
+        "Cartilage, arms",
+        "1.5080e-9",
+        "1.1681e-10",
+        "5.908"
+    ],
+    [
+        "Cartilage, head",
+        "5.6738e-9",
+        "1.0873e-7",
+        "15.954"
+    ],
+    [
+        "Cartilage, legs",
+        "4.4932e-12",
+        "1.2980e-12",
+        "34.722"
+    ],
+    [
+        "Cartilage, trunk",
+        "2.9080e-8",
+        "1.1980e-10",
+        "88.654"
+    ],
+    [
+        "Cervical spine, cortical",
+        "9.8650e-9",
+        "4.7657e-8",
+        "102.904"
+    ],
+    [
+        "Cervical spine, spongiosa",
+        "4.4848e-9",
+        "5.3070e-8",
+        "79.491"
+    ],
+    [
+        "Clavicles, cortical",
+        "3.0068e-8",
+        "1.4468e-10",
+        "47.769"
+    ],
+    [
+        "Clavicles, spongiosa",
+        "1.5250e-8",
+        "2.0659e-10",
+        "54.912"
+    ],
+    [
+        "Colon",
+        "6.5755e-8",
+        "1.3275e-10",
+        "369.924"
+    ],
+    [
+        "Cranium, cortical",
+        "1.8417e-9",
+        "1.1737e-11",
+        "562.778"
+    ],
+    [
+        "Cranium, spongiosa",
+        "8.3899e-10",
+        "7.1235e-8",
+        "485.098"
+    ],
+    [
+        "Descending colon contents",
+        "3.1921e-8",
+        "7.4959e-11",
+        "34.994"
+    ],
+    [
+        "Descending colon wall",
+        "2.6766e-8",
+        "3.1412e-8",
+        "89.973"
+    ],
+    [
+        "ET region",
+        "2.6322e-9",
+        "1.0318e-11",
+        "39.436"
+    ],
+    [
+        "Eye bulb, left",
+        "8.5586e-10",
+        "3.7538e-11",
+        "7.289"
+    ],
+    [
+        "Eye bulb, right",
+        "1.4083e-9",
+        "1.8970e-7",
+        "7.327"
+    ],
+    [
+        "Eye lense, left",
+        "7.1219e-10",
+        "3.3278e-10",
+        "0.192"
+    ],
+    [
+        "Eye lense, right",
+        "1.4813e-9",
+        "4.2302e-10",
+        "0.192"
+    ],
+    [
+        "Femora, lower half, cortical",
+        "4.8067e-11",
+        "5.4133e-12",
+        "294.050"
+    ],
+    [
+        "Femora, lower half, medullary cavity",
+        "2.4107e-11",
+        "1.6446e-12",
+        "80.880"
+    ],
+    [
+        "Femora, lower half, spongiosa",
+        "8.7437e-12",
+        "2.4956e-7",
+        "441.958"
+    ],
+    [
+        "Femora, upper half, cortical",
+        "1.2736e-9",
+        "1.4854e-7",
+        "261.643"
+    ],
+    [
+        "Femora, upper half, medullary cavity",
+        "6.8755e-11",
+        "9.7785e-12",
+        "25.778"
+    ],
+    [
+        "Femora, upper half, spongiosa",
+        "1.0186e-9",
+        "3.0916e-11",
+        "439.278"
+    ],
+    [
+        "Gall bladder contents",
+        "4.9805e-7",
+        "1.3834e-9",
+        "54.075"
+    ],
+    [
+        "Gall bladder wall",
+        "9.3062e-7",
+        "1.8289e-9",
+        "13.923"
+    ],
+    [
+        "Heart contents (blood)",
+        "9.7364e-8",
+        "9.1529e-11",
+        "509.947"
+    ],
+    [
+        "Heart wall",
+        "1.0211e-7",
+        "1.0898e-10",
+        "329.942"
+    ],
+    [
+        "Humeri, lower half, cortical",
+        "4.9128e-8",
+        "1.0840e-8",
+        "128.016"
+    ],
+    [
+        "Humeri, lower half, medullary cavity",
+        "1.9738e-8",
+        "7.3751e-8",
+        "37.128"
+    ],
+    [
+        "Humeri, lower half, spongiosa",
+        "2.3770e-8",
+        "1.4389e-10",
+        "60.193"
+    ],
+    [
+        "Humeri, upper half, cortical",
+        "2.7606e-8",
+        "6.2280e-11",
+        "135.241"
+    ],
+    [
+        "Humeri, upper half, medullary cavity",
+        "1.4697e-8",
+        "5.0451e-8",
+        "33.476"
+    ],
+    [
+        "Humeri, upper half, spongiosa",
+        "1.0268e-8",
+        "1.4306e-10",
+        "181.830"
+    ],
+    [
+        "Kidney, left, cortex",
+        "4.7175e-8",
+        "1.0553e-10",
+        "107.104"
+    ],
+    [
+        "Kidney, left, medulla",
+        "4.6348e-8",
+        "2.5392e-8",
+        "38.246"
+    ],
+    [
+        "Kidney, left, pelvis",
+        "5.0505e-8",
+        "1.4230e-7",
+        "7.634"
+    ],
+    [
+        "Kidney, right, cortex",
+        "2.3495e-7",
+        "2.7495e-10",
+        "109.904"
+    ],
+    [
+        "Kidney, right, medulla",
+        "2.1665e-7",
+        "9.0743e-9",
+        "39.243"
+    ],
+    [
+        "Kidney, right, pelvis",
+        "2.1562e-7",
+        "7.3121e-10",
+        "7.864"
+    ],
+    [
+        "LBreast-a + LBresat-g",
+        "1.9076e-8",
+        "1.0539e-10",
+        "12.490"
+    ],
+    [
+        "Left colon wall (left transverse + descending)",
+        "3.9630e-8",
+        "1.1303e-10",
+        "149.968"
+    ],
+    [
+        "Left kidney C+M+P",
+        "4.7165e-8",
+        "1.0998e-10",
+        "152.983"
+    ],
+    [
+        "Left lung lobe",
+        "3.1028e-8",
+        "1.7056e-10",
+        "556.980"
+    ],
+    [
+        "Lenses of eye",
+        "1.0125e-9",
+        "1.5899e-10",
+        "0.384"
+    ],
+    [
+        "Liver",
+        "1.3713e-5",
+        "9.1331e-10",
+        "1799.776"
+    ],
+    [
+        "Lumbar spine, cortical",
+        "1.0331e-7",
+        "1.2576e-10",
+        "186.166"
+    ],
+    [
+        "Lumbar spine, spongiosa",
+        "5.3153e-8",
+        "1.1209e-9",
+        "318.166"
+    ],
+    [
+        "Lung, left, blood",
+        "3.6132e-8",
+        "6.0293e-11",
+        "79.001"
+    ],
+    [
+        "Lung, left, tissue",
+        "3.0185e-8",
+        "8.8761e-9",
+        "477.979"
+    ],
+    [
+        "Lung, right, blood",
+        "1.2604e-7",
+        "1.8480e-10",
+        "71.527"
+    ],
+    [
+        "Lung, right, tissue",
+        "1.5123e-7",
+        "4.1445e-10",
+        "580.363"
+    ],
+    [
+        "Lymph nodes",
+        "5.7602e-8",
+        "9.0167e-11",
+        "137.952"
+    ],
+    [
+        "Lymph nodes, except LN-ET + LN-Th",
+        "5.9523e-8",
+        "7.3735e-11",
+        "129.297"
+    ],
+    [
+        "Lymphatic nodes, arms",
+        "2.8781e-8",
+        "8.8802e-9",
+        "7.827"
+    ],
+    [
+        "Lymphatic nodes, extrathoracic airways",
+        "5.3235e-9",
+        "1.5093e-7",
+        "2.258"
+    ],
+    [
+        "Lymphatic nodes, head",
+        "3.8211e-9",
+        "1.2568e-7",
+        "5.983"
+    ],
+    [
+        "Lymphatic nodes, legs",
+        "6.9283e-11",
+        "7.5186e-12",
+        "11.101"
+    ],
+    [
+        "Lymphatic nodes, thoracic airways",
+        "3.7365e-8",
+        "7.4120e-8",
+        "6.397"
+    ],
+    [
+        "Lymphatic nodes, trunk",
+        "7.1328e-8",
+        "6.0543e-11",
+        "104.386"
+    ],
+    [
+        "Mandible, cortical",
+        "7.6994e-9",
+        "4.7657e-8",
+        "76.108"
+    ],
+    [
+        "Mandible, spongiosa",
+        "5.6588e-9",
+        "5.0451e-8",
+        "71.544"
+    ],
+    [
+        "Muscle",
+        "1.5538e-8",
+        "7.8971e-12",
+        "28996.322"
+    ],
+    [
+        "Muscle, arms",
+        "1.2712e-8",
+        "6.1515e-10",
+        "2750.167"
+    ],
+    [
+        "Muscle, head",
+        "3.2870e-9",
+        "4.3175e-12",
+        "1217.650"
+    ],
+    [
+        "Muscle, legs",
+        "5.1214e-11",
+        "7.3751e-8",
+        "10023.654"
+    ],
+    [
+        "Muscle, trunk",
+        "2.7395e-8",
+        "1.3555e-11",
+        "15004.850"
+    ],
+    [
+        "Oesophagus",
+        "9.2564e-8",
+        "6.2084e-10",
+        "40.001"
+    ],
+    [
+        "Oral mucosa",
+        "2.8533e-9",
+        "2.1399e-11",
+        "35.829"
+    ],
+    [
+        "Oral mucosa, lips and cheeks",
+        "2.7918e-9",
+        "3.1380e-7",
+        "5.102"
+    ],
+    [
+        "Oral mucosa, tongue",
+        "2.8531e-9",
+        "2.2735e-7",
+        "30.727"
+    ],
+    [
+        "Pancreas",
+        "2.4241e-7",
+        "4.4743e-10",
+        "139.979"
+    ],
+    [
+        "Pelvis, cortical",
+        "1.0975e-8",
+        "1.3590e-11",
+        "398.567"
+    ],
+    [
+        "Pelvis, spongiosa",
+        "4.7248e-9",
+        "1.0416e-10",
+        "672.896"
+    ],
+    [
+        "Pituitary gland",
+        "1.0286e-9",
+        "2.0338e-10",
+        "0.602"
+    ],
+    [
+        "Posterior nasal passage down to larynx (ET2)",
+        "2.8358e-9",
+        "5.3070e-8",
+        "28.411"
+    ],
+    [
+        "Prostate",
+        "1.3215e-9",
+        "1.2809e-7",
+        "17.009"
+    ],
+    [
+        "RAdrenal + LAdrenal",
+        "2.4845e-7",
+        "6.4069e-10",
+        "13.998"
+    ],
+    [
+        "RBreast-a + LBreast-a",
+        "5.7682e-8",
+        "2.8623e-10",
+        "14.994"
+    ],
+    [
+        "RBreast-a + RBreast-g",
+        "9.1116e-8",
+        "8.5841e-10",
+        "12.490"
+    ],
+    [
+        "RBreast-g + LBreast-g",
+        "5.1216e-8",
+        "8.1027e-10",
+        "9.987"
+    ],
+    [
+        "RKidney + LKidney",
+        "1.3943e-7",
+        "1.5356e-10",
+        "309.994"
+    ],
+    [
+        "RLung + LLung",
+        "9.4264e-8",
+        "3.0899e-10",
+        "1208.870"
+    ],
+    [
+        "Rectum wall",
+        "2.0719e-9",
+        "4.1719e-11",
+        "29.978"
+    ],
+    [
+        "Residual tissue, arms",
+        "1.1593e-8",
+        "6.3683e-9",
+        "1643.259"
+    ],
+    [
+        "Residual tissue, head",
+        "1.9875e-9",
+        "1.4230e-7",
+        "1048.373"
+    ],
+    [
+        "Residual tissue, legs",
+        "5.9965e-11",
+        "1.3470e-7",
+        "5395.758"
+    ],
+    [
+        "Residual tissue, trunk",
+        "3.6160e-8",
+        "2.6171e-11",
+        "12368.414"
+    ],
+    [
+        "Ribs, cortical",
+        "1.6320e-7",
+        "3.9414e-10",
+        "365.108"
+    ],
+    [
+        "Ribs, spongiosa",
+        "1.3811e-7",
+        "4.6328e-9",
+        "487.201"
+    ],
+    [
+        "Right colon wall (ascending + right transverse)",
+        "1.2115e-7",
+        "2.2933e-10",
+        "149.968"
+    ],
+    [
+        "Right kidney C+M+P",
+        "2.2932e-7",
+        "3.2216e-10",
+        "157.011"
+    ],
+    [
+        "Right lung lobe",
+        "1.4830e-7",
+        "4.3608e-10",
+        "651.890"
+    ],
+    [
+        "Sacrum, cortical",
+        "1.4276e-8",
+        "3.4123e-11",
+        "109.217"
+    ],
+    [
+        "Sacrum, spongiosa",
+        "6.9422e-9",
+        "9.7556e-11",
+        "176.950"
+    ],
+    [
+        "Salivary glands",
+        "2.8353e-9",
+        "1.6942e-11",
+        "84.969"
+    ],
+    [
+        "Salivary glands, left",
+        "1.9402e-9",
+        "2.0008e-7",
+        "42.484"
+    ],
+    [
+        "Salivary glands, right",
+        "3.7269e-9",
+        "3.5639e-8",
+        "42.484"
+    ],
+    [
+        "Scapulae, cortical",
+        "3.7156e-8",
+        "7.1065e-11",
+        "221.099"
+    ],
+    [
+        "Scapulae, spongiosa",
+        "1.7406e-8",
+        "5.1779e-10",
+        "183.222"
+    ],
+    [
+        "Sigmoid colon contents",
+        "4.1822e-9",
+        "2.1248e-7",
+        "74.965"
+    ],
+    [
+        "Sigmoid colon wall",
+        "3.7529e-9",
+        "2.2791e-7",
+        "40.009"
+    ],
+    [
+        "Sigmoid colon wall + rectum wall",
+        "3.0392e-9",
+        "4.1272e-11",
+        "69.988"
+    ],
+    [
+        "Skin",
+        "1.0598e-8",
+        "1.1397e-11",
+        "3727.520"
+    ],
+    [
+        "Skin at top and bottom",
+        "6.2997e-11",
+        "3.8831e-12",
+        "154.510"
+    ],
+    [
+        "Skin, arms",
+        "1.1158e-8",
+        "1.3083e-8",
+        "638.948"
+    ],
+    [
+        "Skin, head",
+        "2.2157e-9",
+        "9.3549e-8",
+        "291.300"
+    ],
+    [
+        "Skin, legs",
+        "3.9281e-11",
+        "1.8406e-7",
+        "1332.253"
+    ],
+    [
+        "Skin, trunk",
+        "2.1617e-8",
+        "1.4443e-11",
+        "1465.020"
+    ],
+    [
+        "Small intestine contents",
+        "7.2470e-8",
+        "1.1794e-10",
+        "349.977"
+    ],
+    [
+        "Small intestine wall",
+        "4.3273e-8",
+        "1.0783e-10",
+        "649.913"
+    ],
+    [
+        "Spinal cord",
+        "4.7924e-8",
+        "3.7330e-10",
+        "36.614"
+    ],
+    [
+        "Spleen",
+        "4.1688e-8",
+        "1.0838e-8",
+        "149.968"
+    ],
+    [
+        "Sternum, cortical",
+        "6.0808e-8",
+        "4.7658e-8",
+        "9.891"
+    ],
+    [
+        "Sternum, spongiosa",
+        "6.4737e-8",
+        "7.3979e-10",
+        "58.219"
+    ],
+    [
+        "Stomach contents",
+        "1.2432e-7",
+        "2.5052e-10",
+        "249.973"
+    ],
+    [
+        "Stomach wall",
+        "1.5565e-7",
+        "1.9716e-10",
+        "149.968"
+    ],
+    [
+        "Teeth",
+        "5.9397e-9",
+        "1.1353e-7",
+        "50.034"
+    ],
+    [
+        "Testes",
+        "2.3774e-10",
+        "4.6882e-12",
+        "34.994"
+    ],
+    [
+        "Testis, left",
+        "2.2810e-10",
+        "1.5224e-7",
+        "17.478"
+    ],
+    [
+        "Testis, right",
+        "2.4259e-10",
+        "1.6306e-11",
+        "17.516"
+    ],
+    [
+        "Thoracic spine, cortical",
+        "1.7151e-7",
+        "3.1523e-10",
+        "286.545"
+    ],
+    [
+        "Thoracic spine, spongiosa",
+        "1.0178e-7",
+        "1.0688e-9",
+        "338.447"
+    ],
+    [
+        "Thymus",
+        "2.4812e-8",
+        "1.0751e-10",
+        "24.986"
+    ],
+    [
+        "Thyroid",
+        "1.2663e-8",
+        "5.4000e-8",
+        "19.986"
+    ],
+    [
+        "Tibiae, fibulae and patellae, cortical",
+        "1.0404e-11",
+        "2.1465e-7",
+        "531.283"
+    ],
+    [
+        "Tibiae, fibulae and patellae, medullary cavity",
+        "2.2704e-12",
+        "1.1858e-12",
+        "78.660"
+    ],
+    [
+        "Tibiae, fibulae and patellae, spongiosa",
+        "5.0276e-12",
+        "1.7450e-12",
+        "735.005"
+    ],
+    [
+        "Tongue",
+        "3.1292e-9",
+        "2.0209e-11",
+        "73.001"
+    ],
+    [
+        "Tongue (inner part)",
+        "3.3282e-9",
+        "5.7765e-8",
+        "42.274"
+    ],
+    [
+        "Tonsils",
+        "1.4947e-9",
+        "9.7865e-11",
+        "3.010"
+    ],
+    [
+        "Total body except organ contents",
+        "3.6582e-7",
+        "6.0757e-11",
+        "71840.449"
+    ],
+    [
+        "Trachea",
+        "1.8857e-8",
+        "9.1129e-8",
+        "10.010"
+    ],
+    [
+        "Transverse colon contents, left",
+        "7.4558e-8",
+        "1.8149e-8",
+        "40.009"
+    ],
+    [
+        "Transverse colon contents, right",
+        "1.8920e-7",
+        "8.1242e-9",
+        "94.989"
+    ],
+    [
+        "Transverse colon wall, left",
+        "5.8779e-8",
+        "1.9537e-10",
+        "59.995"
+    ],
+    [
+        "Transverse colon wall, right",
+        "1.8717e-7",
+        "2.5632e-10",
+        "59.995"
+    ],
+    [
+        "Ulnae and radii, cortical",
+        "1.0573e-8",
+        "1.0838e-8",
+        "270.762"
+    ],
+    [
+        "Ulnae and radii, medullary cavity",
+        "3.1197e-9",
+        "5.0451e-8",
+        "22.664"
+    ],
+    [
+        "Ulnae and radii, spongiosa",
+        "1.0176e-8",
+        "7.3751e-8",
+        "183.312"
+    ],
+    [
+        "Ureter, left",
+        "3.0996e-8",
+        "3.2286e-10",
+        "8.504"
+    ],
+    [
+        "Ureter, right",
+        "4.4153e-8",
+        "3.0424e-8",
+        "7.488"
+    ],
+    [
+        "Ureters",
+        "3.7391e-8",
+        "3.7123e-10",
+        "15.993"
+    ],
+    [
+        "Urinary bladder contents",
+        "3.1603e-9",
+        "2.8489e-11",
+        "199.970"
+    ],
+    [
+        "Urinary bladder wall",
+        "2.8544e-9",
+        "1.8663e-7",
+        "50.002"
+    ],
+    [
+        "Wrists and hand bones, cortical",
+        "7.7199e-10",
+        "1.0998e-7",
+        "179.713"
+    ],
+    [
+        "Wrists and hand bones, spongiosa",
+        "4.8459e-10",
+        "1.6071e-7",
+        "140.667"
+    ]
+]
