@@ -5,6 +5,7 @@ import rpt_dosi.images as im
 import shutil
 import json
 from box import Box
+from datetime import datetime
 
 
 def db_update_injection(db, dicom_ds, cycle_id):
@@ -63,3 +64,21 @@ def db_save(db, output, db_file=None):
         shutil.copy(db_file, b)
     with open(output, "w") as f:
         json.dump(db, f, indent=2)
+
+
+def db_get_time_interval(cycle, acquisition):
+    idate = datetime.strptime(cycle.injection.datetime, "%Y-%m-%d %H:%M:%S")
+    adate = datetime.strptime(acquisition.datetime, "%Y-%m-%d %H:%M:%S")
+    hours_diff = (adate - idate).total_seconds() / 3600
+    return hours_diff
+
+
+def db_get_tac(cycle, roi_name):
+    times = []
+    activities = []
+    for acq in cycle.acquisitions.values():
+        if roi_name in acq.activity.keys():
+            activities.append(acq.activity[roi_name].sum)
+            d = db_get_time_interval(cycle, acq)
+            times.append(d)
+    return times, activities

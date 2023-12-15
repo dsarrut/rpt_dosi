@@ -24,6 +24,9 @@ def go(db_file):
             adate = datetime.strptime(acq.datetime, "%Y-%m-%d %H:%M:%S")
             hours_diff = (adate - idate).total_seconds() / 3600
             print(f'Acquisition {acq_id} : {hours_diff:.3f} hours')
+            # print(rptdb.db_get_time_interval(cycle, acq))
+
+
 
 # --------------------------------------------------------------------------
 if __name__ == "__main__":
