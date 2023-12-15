@@ -9,6 +9,7 @@ import json
 from rpt_dosi.helpers import find_closest_match, fatal
 import pkg_resources
 from path import Path
+import numpy as np
 
 
 def guess_phantom_id(phantom_name):
@@ -31,6 +32,12 @@ def guess_isotope_id(phantom_name, isotope_name):
     with open(isotopes_file) as f:
         isotopes = json.load(f)
     return get_match_in_list(isotopes, isotope_name)
+
+
+def guess_phantom_and_isotope(phantom_name, isotope_name):
+    _, phantom_name = guess_phantom_id(phantom_name)
+    _, rad_name = guess_isotope_id(phantom_name, isotope_name)
+    return phantom_name, rad_name
 
 
 def get_data_folder(phantom_name):
@@ -141,9 +148,9 @@ def web_svalues_query_data(driver, source_id, isotope_id):
     return data
 
 
-def get_svalue_and_mass(phantom, roi, rad, target_roi):
-    file_name = get_svalue_data_filename(phantom, roi, rad)
-    with open(file_name, "r") as f:
+def read_svalue_and_mass(phantom, roi, rad, target_roi):
+    filename = get_svalue_data_filename(phantom, roi, rad)
+    with open(filename, "r") as f:
         data = json.load(f)
     _, r = guess_source_id(phantom, target_roi)
     d = [item for item in data if item[0].lower() == r.lower()]
@@ -155,3 +162,27 @@ def get_svalue_and_mass(phantom, roi, rad, target_roi):
     # std_err = d[2]
     mass = d[3]
     return float(svalues), float(mass)
+
+
+def get_svalue_and_mass_scaling(
+    phantom, roi_a, roi_name, rad_name, volume_voxel_mL, densities, verbose=True
+):
+    # retrieve Svalue from the roi name
+    _, roi_name = guess_source_id(phantom, roi_name)
+    svalue, s_mass = read_svalue_and_mass(phantom, roi_name, rad_name, roi_name)
+    if verbose:
+        print(f"Svalue of '{roi_name}' is {svalue} mGy/MBq/s and mass is {s_mass} g")
+
+    # compute mass of the current ROI
+    d = densities[roi_a == 1]
+    roi_mass = np.sum(d) * volume_voxel_mL
+    roi_vol = len(d) * volume_voxel_mL
+    if verbose:
+        print(f"Mass of '{roi_name}' is {roi_mass} g")
+
+    # mass scaling factor
+    mass_scaling = roi_mass / s_mass
+    if verbose:
+        print(f"Mass scaling is {mass_scaling}")
+
+    return svalue, mass_scaling, roi_mass, roi_vol

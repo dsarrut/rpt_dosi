@@ -2,6 +2,7 @@ import SimpleITK as itk
 import math
 from .helpers import fatal
 import numpy as np
+from datetime import datetime
 
 
 def images_have_same_domain(image1, image2, tolerance=1e-5):
@@ -154,3 +155,40 @@ def convert_ct_to_densities(ct):
     # the density of air is near 0, not negative
     densities[densities < 0] = 0
     return densities
+
+
+def resample_ct_like_spect(spect, ct, verbose=True):
+    if not images_have_same_domain(spect, ct):
+        sigma = [0.5 * sp for sp in ct.GetSpacing()]
+        if verbose:
+            print(
+                f"Resample ct image ({ct.GetSize()}) to spacing={spect.GetSpacing()} size={spect.GetSize()}"
+            )
+        ct = apply_gauss_smoothing(ct, sigma)
+        ct = resample_image_like(ct, spect, -1000, linear=True)
+    ct_a = itk.GetArrayFromImage(ct)
+    return ct_a
+
+
+def resample_roi_like_spect(spect, roi, verbose=True):
+    if not images_have_same_domain(spect, roi):
+        if verbose:
+            print(
+                f"Resample roi mask ({roi.GetSize()}) to spacing={spect.GetSpacing()} size={spect.GetSize()}"
+            )
+        roi = resample_image_like(roi, spect, 0, linear=False)
+    roi_a = itk.GetArrayFromImage(roi)
+    return roi_a
+
+
+def dicom_read_acquisition_datetime(ds):
+    try:
+        # extract the date and time
+        date = ds.AcquisitionDate  # DICOM date tag (0008,0022)
+        time = ds.AcquisitionTime  # DICOM time tag (0008,0032)
+
+        # convert to datetime object
+        dt = datetime.strptime(date + time.split(".")[0], "%Y%m%d%H%M%S")
+        return dt
+    except:
+

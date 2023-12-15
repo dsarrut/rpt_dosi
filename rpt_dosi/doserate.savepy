@@ -1,12 +1,7 @@
 import json
 from box import Box
 from .helpers import check_required_keys, fatal
-from .images import (
-    resample_ct_like_spect,
-    resample_roi_like_spect,
-    convert_ct_to_densities,
-)
-from .opendose import get_svalue_and_mass_scaling
+from .images import images_have_same_domain, resample_image_like, image_set_background
 from pathlib import Path
 import os
 import opengate as gate
@@ -184,96 +179,31 @@ def scale_to_absorbed_dose_rate(
     return o
 
 
-def spect_calibration(spect, calibration_factor, concentration_flag, verbose=True):
-    # get voxel volume
-    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
-    arr = itk.GetArrayFromImage(spect)
-    total_activity = np.sum(arr) * volume_voxel_mL / calibration_factor
-    if verbose:
-        print(f"Total activity in the image FOV: {total_activity/1e6:.2f} MBq")
-    # calibration
-    if concentration_flag:
-        arr = arr * volume_voxel_mL / calibration_factor
-    else:
-        arr = arr / calibration_factor
+def dose_time_integration_mono_expo_arr(dose_arr, roi_arr, bg_value=1):
+    # dose and roi MUST be with the exact same dimensions
+    if dose_arr.shape != roi_arr.shape:
+        fatal(f"Image arrays have different shape: {dose_arr.shape} vs {roi_arr.shape}")
 
-    # create output image
-    o = itk.GetImageFromArray(arr)
-    o.CopyInformation(spect)
-    return o
+    # select pixels within the ROI
+    d = dose_arr[roi_arr == bg_value]
 
+    """# debug
+    dose_arr[roi_arr != bg_value] = 0
+    img = itk.GetImageFromArray(dose_arr)
+    itk.WriteImage(img, "debug.mhd")"""
 
-def dose_hanscheid2018(spect_Bq, roi, time_sec, svalue, mass_scaling):
-    """
-    Input image and ROI must be numpy arrays
-    - spect must be in Bq (not concentration)
-    - svalue in mGy/MBq/s
-    - time in seconds
-    - output is in Gray
-    """
-    # compute mean activity in the ROI, in MBq
-    v = spect_Bq[roi == 1]
-    At = np.sum(v) / 1e6
+    dmean = np.mean(d)
+    print(f"dmean = {dmean} gray.s-1")
 
-    # S is in (mGy/MBq/s), so we get dose in mGy
-    dose = mass_scaling * At * svalue * (2 * time_sec) / np.log(2) / 1000
+    # fixme get half life from db
+    decay_constant_sec = np.log(2) / (6.6475 * 24 * 3600)
+    time_sec = 24 * 3600  # FIXME time as param
 
-    return dose
+    # A0 = dmean * np.exp(-decay_constant_sec * time)
+    # print(f"{A0=}")
+    # print(f"{A0/Bq=}")
+    # print(f"{A0/gray=}")
+    dmean = (dmean * np.exp(-decay_constant_sec * time_sec)) / decay_constant_sec
+    print(f"dmean = {dmean} gray")
 
-
-def dose_hanscheid2017(img, roi, time_sec, pixel_volume_ml):
-    """
-    Input img and ROI must be numpy arrays
-
-    """
-
-    time_h = time_sec / 3600
-    time_eff_h = 67.0
-
-    # compute mean activity in the ROI
-    v = img[roi == 1] / pixel_volume_ml
-    Ct = np.mean(v) / 1e6
-
-    #
-    dose = 0.125 * Ct * np.power(2, time_h / time_eff_h) * time_eff_h
-
-    return dose
-
-
-def dose_hanscheid2018_from_filenames(
-    spect_file, ct_file, roi_file, phantom, roi_name, rad_name, time_h
-):
-    # read spect
-    spect = itk.ReadImage(spect_file)
-    spect_a = itk.GetArrayFromImage(spect)
-
-    # prepare ct : resample and densities
-    ct = itk.ReadImage(ct_file)
-    ct_a = resample_ct_like_spect(spect, ct)
-    densities = convert_ct_to_densities(ct_a)
-    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
-
-    # prepare roi : resample
-    roi = itk.ReadImage(roi_file)
-    roi_a = resample_roi_like_spect(spect, roi)
-
-    # get svalues and scaling
-    svalue, mass_scaling = get_svalue_and_mass_scaling(
-        phantom, roi_a, roi_name, rad_name, volume_voxel_mL, densities
-    )
-
-    # compute dose
-    time_sec = time_h * 3600
-    dose = dose_hanscheid2018(spect_a, roi_a, time_sec, svalue, mass_scaling)
-    print(f"Dose for {roi_file}: {dose:.2f} Gray")
-    return dose
-
-
-def get_roi_list(filename):
-    # open the file
-    with open(filename, "r") as f:
-        data = json.load(f)
-    l = []
-    for item in data:
-        l.append((item["roi_filename"], item["roi_name"]))
-    return l
+    return dmean

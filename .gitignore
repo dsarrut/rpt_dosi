@@ -1,5 +1,7 @@
 
 .idea
 
+.DS_Store
+
 rpt_dosi.egg-info
 __pycache__

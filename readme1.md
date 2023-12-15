@@ -1,10 +1,11 @@
 
 
-# (4) single timepoint dose estimation with Madsen method
+# (4) single timepoint dose estimation with Hanscheid method
 
 
-    rpt_dose_hanscheid2018 -i spect_Bq.nii.gz -r rois/kidney_left.nii.gz "left kidney" -o a.txt -t 24 --ct ct_2.5mm.nii.gz
-
+    rpt_dose_hanscheid2018 -s spect_Bq.nii.gz  --ct ct_2.5mm.nii.gz -r rois_crop/kidney_left.nii.gz "left kidney" -o a.txt -t 24 -v
+    rpt_dose_hanscheid2018 -s spect_Bq.nii.gz  --ct ct_2.5mm.nii.gz  -l oar.json -o a.txt -t 24
+    
 
 # (3) spect and ct pre processing  
 
@@ -15,38 +16,18 @@ TODO : Partial Volume Correction
     rpt_spect_calibration -i spect.nii.gz -o spect_Bqml.nii.gz -c 0.176906614
 
 
-# Get S-values from the Opendose website
-
-They are stored in the data folder.
-
-        opendose_web_get_sources_list -o opendose_sources.json -p "ICRP 110 AM"
-        opendose_web_get_isotopes_list -o opendose_isotopes.json -p "ICRP 110 AM"
-
-        opendose_web_get_svalues -r lu177 -s "liver" -p "ICRP 110 AM"
-        opendose_web_get_svalues -r lu177 -s "spleen" -p "ICRP 110 AM"
-        opendose_web_get_svalues -r lu177 -s "right kidney" -p "ICRP 110 AM"
-        opendose_web_get_svalues -r lu177 -s "left kidney" -p "ICRP 110 AM"
-
-        opendose_web_get_sources_list -o opendose_sources.json -p "ICRP 110 AF"     
-        opendose_web_get_isotopes_list -o opendose_isotopes.json -p "ICRP 110 AF" 
-
-        opendose_web_get_svalues -r lu177 -s "liver" -p "ICRP 110 AF"               
-        opendose_web_get_svalues -r lu177 -s "spleen" -p "ICRP 110 AF"
-        opendose_web_get_svalues -r lu177 -s "right kidney" -p "ICRP 110 AF"
-        opendose_web_get_svalues -r lu177 -s "left kidney" -p "ICRP 110 AF"
-
-
 # (2) ROI segmentation
 
-Todo for all images:
+Run TotalSegmentator for all images (the option -fast can be used if too slow). Warning, a GPU is highly advised.
 
     cd cycle1/tp1
     TotalSegmentator -i ct.nii.gz --bs -o rois -ta body 
     TotalSegmentator -i ct.nii.gz --bs -o rois 
 
-FIXME -> for visu, crop is better, do a script to autocrop the images (in separate folder)
+The output mask images are large (same size than the ct), they can be cropped with the following commands:
 
-The option -fast can be used if too slow. Warning, a GPU is highly advised.
+    rpt_roi_crop rois/* -o rois_crop
+
 
 # (1) convert DICOM to mhd (manual for the moment)
 
@@ -82,4 +63,6 @@ We consider the folder structure as follows:
     ├── cycle2/
     │   ├── tp1/                   # first timepoint
     │   └── ...
+
+
 

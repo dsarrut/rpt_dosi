@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import json
 import click
 from rpt_dosi import images as im
 from rpt_dosi import dosimetry as dosi
 from rpt_dosi import opendose as od
 import SimpleITK as itk
 import numpy as np
+from datetime import datetime
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -14,7 +16,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
     "--spect",
-    "-i",
+    "-s",
     required=True,
     type=click.Path(exists=True),
     help="Input SPECT image",
@@ -30,63 +32,74 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option(
     "--roi",
     "-r",
-    required=True,
     type=(str, str),
     multiple=True,
     help="ROI filename and name",
+)
+@click.option(
+    "--roi_list", "-l", type=str, help="Filename : list of ROI filename and name"
 )
 @click.option("--acq_time", "-t", type=float, required=True, help="Time in h")
 @click.option(
     "--phantom", "-p", default="ICRP 110 AM", help="Phantom ICRP 110 AF or AM"
 )
-def go(spect, ct, roi, acq_time, phantom, output):
-    # read image
+@click.option("--rad", default="Lu177", help="Radionuclide")
+@click.option("--verbose", "-v", default=False, is_flag=True, help="Verbose")
+def go(spect, ct, roi, acq_time, phantom, rad, roi_list, verbose, output):
+    # read spect image
     spect = itk.ReadImage(spect)
     spect_a = itk.GetArrayFromImage(spect)
-    ct = itk.ReadImage(ct)
 
-    # resample ct like spect
-    if not im.images_have_same_domain(spect, ct):
-        sigma = [0.5 * sp for sp in ct.GetSpacing()]
-        print(f"Resample ct image")
-        ct = im.apply_gauss_smoothing(ct, sigma)
-        ct = im.resample_image_like(ct, spect, -1000, linear=True)
-    ct_a = itk.GetArrayFromImage(ct)
+    # read and resample ct like spect
+    ct = itk.ReadImage(ct)
+    ct_a = im.resample_ct_like_spect(spect, ct, verbose=verbose)
+    densities = im.convert_ct_to_densities(ct_a)
 
     # time in sec
     time_sec = acq_time * 3600
 
-    # pixel volume and ct densities
+    # pixel volume
     volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
-    densities = im.convert_ct_to_densities(ct_a)
 
-    # MIRD phantom
-    ph_id, phantom = od.guess_phantom_id(phantom)
-    _, rad_name = od.guess_isotope_id(phantom, "lu177")
-    print(f"Phantom id: {ph_id} = {phantom}")
+    # Opendose phantom and radionuclide name
+    phantom_name, rad_name = od.guess_phantom_and_isotope(phantom, rad)
+    if verbose:
+        print(f"Phantom = {phantom} and isotope = {rad_name}")
+
+    # consider list of roi/name
+    roi = [(file, name) for file, name in roi]
+    if roi_list is not None:
+        r = dosi.get_roi_list(roi_list)
+        roi = roi + r
 
     # loop on ROI
+    results = {"method": "hanscheid2018", "date": str(datetime.now())}
     for roi_file, roi_name in roi:
-        # read roi mask and resample if needed
+        # read roi mask and resample like spect
         r = itk.ReadImage(roi_file)
-        if not im.images_have_same_domain(spect, r):
-            r = im.resample_image_like(r, spect, 0, linear=False)
-        roi_a = itk.GetArrayFromImage(r)
+        roi_a = im.resample_roi_like_spect(spect, r, verbose=verbose)
 
-        # retrieve Svalue from the roi name
-        _, roi_name = od.guess_source_id(phantom, roi_name)
-        svalue, s_mass = od.get_svalue_and_mass(phantom, roi_name, rad_name, roi_name)
-        print(f"Svalue of '{roi_name}' is {svalue} mGy/MBq/s and mass is {s_mass} g")
-
-        # compute mass of the current ROI
-        roi_mass = np.sum(densities[roi_a == 1]) * volume_voxel_mL
-        print(f"Mass of '{roi_name}' is {roi_mass} g")
-        mass_scaling = roi_mass / s_mass
-        print(f"Mass scaling is {mass_scaling}")
+        # get svalues and scaling
+        svalue, mass_scaling, roi_mass, roi_vol = od.get_svalue_and_mass_scaling(
+            phantom,
+            roi_a,
+            roi_name,
+            rad_name,
+            volume_voxel_mL,
+            densities,
+            verbose=verbose,
+        )
 
         # dose computation with Hanscheid method
         dose = dosi.dose_hanscheid2018(spect_a, roi_a, time_sec, svalue, mass_scaling)
-        print(f"Dose for {roi_file}: {dose:.2f} Gray")
+
+        # results
+        print(f"Dose for {roi_name:<20}: {dose:.4f} Gray")
+        results[roi_name] = {"dose_Gy": dose, "mass_g": roi_mass, "volume_ml": roi_vol}
+
+    # save output to json
+    with open(output, "w") as f:
+        json.dump(results, f, indent=4)
 
 
 # --------------------------------------------------------------------------

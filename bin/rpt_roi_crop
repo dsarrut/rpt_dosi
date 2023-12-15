@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import click
+import itk
+import gatetools as gt
+from path import Path
+import os
+
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+
+
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.argument("input_images", nargs=-1, required=True, type=click.Path(exists=True))
+@click.option("--output", "-o", required=True, help="output filename")
+def go(input_images, output):
+    output = Path(output)
+    for filename in input_images:
+        print(filename)
+        img = itk.imread(filename)
+        o = gt.image_auto_crop(img, bg=0)
+        itk.imwrite(o, output / os.path.basename(filename))
+
+
+# --------------------------------------------------------------------------
+if __name__ == "__main__":
+    go()
