@@ -55,5 +55,7 @@ setuptools.setup(
         "bin/opendose_web_get_sources_list",
         "bin/opendose_web_get_svalues",
         "bin/rpt_db_update_spect_info",
+        "bin/rpt_db_rois_activity",
+        "bin/rpt_db_info",
     ],
 )

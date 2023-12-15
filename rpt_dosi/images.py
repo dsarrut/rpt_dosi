@@ -2,8 +2,6 @@ import SimpleITK as itk
 import math
 from .helpers import fatal
 import numpy as np
-from datetime import datetime
-import pydicom
 
 
 def images_have_same_domain(image1, image2, tolerance=1e-5):
@@ -181,89 +179,42 @@ def resample_roi_like_spect(spect, roi, verbose=True):
     roi_a = itk.GetArrayFromImage(roi)
     return roi_a
 
-
-def dicom_read_acquisition_datetime(ds):
-    try:
-        # extract the date and time
-        date = ds.AcquisitionDate  # DICOM date tag (0008,0022)
-        time = ds.AcquisitionTime  # DICOM time tag (0008,0032)
-
-        # convert to datetime object
-        dt = datetime.strptime(date + time.split(".")[0], "%Y%m%d%H%M%S")
-        return {"datetime": str(dt)}
-    except:
-        fatal(f'Cannot read dicom tag Acquisition Date/Time')
-
-
-def dicom_read_injection(ds):
-    """
-    (0054, 0016)  Radiopharmaceutical Information Sequence  1 item(s) ----
-       (0018, 0031) Radiopharmaceutical                 LO: 'LU177'
-       (0018, 1071) Radiopharmaceutical Volume          DS: '9.5'
-       (0018, 1072) Radiopharmaceutical Start Time      TM: '100400.000'
-       (0018, 1073) Radiopharmaceutical Stop Time       TM: '100400.000'
-       (0018, 1074) Radionuclide Total Dose             DS: '7257.568359375'
-       (0018, 1075) Radionuclide Half Life              DS: '574380.0'
-       (0018, 1078) Radiopharmaceutical Start DateTime  DT: '20231012100400'
-       (0018, 1079) Radiopharmaceutical Stop DateTime   DT: '20231012100400'
-       (0054, 0300)  Radionuclide Code Sequence  1 item(s) ----
-    """
-
-    try:
-        # Read the Radiopharmaceutical Information Sequence tag
-        rad_info = ds[(0x0054, 0x0016)].value
-
-        if len(rad_info) != 1:
-            fatal(f'The dicom tag Radiopharmaceutical sequence is not equal to 1')
-
-        item = rad_info[0]
-
-        # Read the Radiopharmaceutical tag
-        radiopharmaceutical = item[(0x0018, 0x0031)].value
-
-        # Read the Radionuclide Total Dose tag
-        total_dose = item[(0x0018, 0x1074)].value
-
-        # Read the Radiopharmaceutical Start DateTime tag
-        start_datetime = item[(0x0018, 0x1078)].value
-        dt = datetime.strptime(start_datetime, "%Y%m%d%H%M%S")
-
-        return {"radionuclide": radiopharmaceutical,
-                "datetime": str(dt),
-                "activity_MBq": total_dose
-                }
-    except:
-        fatal(f'Cannot read dicom tag Radiopharmaceutical')
+def get_stats_in_rois(spect, ct, rois_list):
+    # load spect
+    spect = itk.ReadImage(spect)
+    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
+    spect_a = itk.GetArrayFromImage(spect)
+    # load ct
+    ct = itk.ReadImage(ct)
+    ct_a = resample_ct_like_spect(spect, ct, verbose=False)
+    densities = convert_ct_to_densities(ct_a)
+    # prepare key
+    res = {}
+    # loop on rois
+    for roi_name in rois_list:
+        filename = rois_list[roi_name]
+        # read roi mask and resample like spect
+        r = itk.ReadImage(filename)
+        roi_a = resample_roi_like_spect(spect, r, verbose=False)
+        # compute stats
+        s = image_roi_stats(spect_a, roi_a)
+        # compute mass
+        d = densities[roi_a == 1]
+        mass = np.sum(d) * volume_voxel_mL
+        s['mass_g'] = mass
+        # set in the db
+        res[roi_name] = s
+    return res
 
 
-def db_update_injection(db, dicom_ds, cycle_id):
-    # extract injeection
-    rad = dicom_read_injection(dicom_ds)
-
-    # create cycle if not exist
-    if cycle_id not in db["cycles"]:
-        db["cycles"][cycle_id] = {}
-
-    # update the db: cycle
-    # FIXME maybe check already exist ?
-    cycle = db["cycles"][cycle_id]
-    cycle['injection'].update(rad)
-
-    return db
-
-
-def db_update_acquisition(db, dicom_ds, cycle_id, tp_id):
-    # extract the date/time
-    dt = dicom_read_acquisition_datetime(dicom_ds)
-
-    cycle = db["cycles"][cycle_id]
-
-    # create cycle if not exist
-    if tp_id not in cycle['acquisitions']:
-        cycle['acquisitions'][tp_id] = {}
-
-    # update the db: acquisition
-    acqui = cycle['acquisitions'][tp_id]
-    acqui.update(dt)
-
-    return db
+def image_roi_stats(spect_a, roi_a):
+    # select pixels
+    p = spect_a[roi_a == 1]
+    # compute stats
+    return {
+        "mean": float(np.mean(p)),
+        "std": float(np.std(p)),
+        "min": float(np.min(p)),
+        "max": float(np.max(p)),
+        "sum": float(np.sum(p))
+    }

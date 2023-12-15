@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+import click
+import rpt_dosi.db as rptdb
+from datetime import datetime
+
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+
+
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.option("--db_file", "--db", required=True, help="Input db.json")
+def go(db_file):
+    # open db as a dict
+    db = rptdb.db_load(db_file)
+
+    # loop on cycles
+    print(f'There are {len(db.cycles)} cycles')
+    for cycle_id in db.cycles:
+        cycle = db.cycles[cycle_id]
+        idate = datetime.strptime(cycle.injection.datetime, "%Y-%m-%d %H:%M:%S")
+        print(f'Cycle "{cycle_id}" injection time: {idate}')
+        for acq_id in cycle.acquisitions:
+            acq = cycle.acquisitions[acq_id]
+            adate = datetime.strptime(acq.datetime, "%Y-%m-%d %H:%M:%S")
+            hours_diff = (adate - idate).total_seconds() / 3600
+            print(f'Acquisition {acq_id} : {hours_diff:.3f} hours')
+
+# --------------------------------------------------------------------------
+if __name__ == "__main__":
+    go()

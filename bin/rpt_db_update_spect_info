@@ -1,37 +1,35 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import json
 import click
 import pydicom
-import rpt_dosi.images as im
-import shutil
+import rpt_dosi.db as rptdb
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option("--dicom_file", "-i", required=True, help="Input SPECT DICOM filename")
-@click.option("--db_file", "--db", required=True, help="input db.json to update")
+@click.option("--db_file", "--db", required=True, help="Input db.json")
+@click.option("--output", "-o", default=None, help="Output json (same as input if None)")
 @click.option(
     "--cycle_id", "-c", default=None, help="Cycle id in the db such as cycle1"
 )
 @click.option(
     "--tp_id", "-t", default=None, help="Timepoint id in the db such as cycle1"
 )
-def go(dicom_file, db_file, cycle_id, tp_id):
+def go(dicom_file, db_file, cycle_id, tp_id, output):
 
     # open dicom as a dataset
     ds = pydicom.read_file(dicom_file)
 
     # open db as a dict
-    f = open(db_file, "r")
-    db = json.load(f)
+    db = rptdb.db_load(db_file)
 
     # update injection
-    im.db_update_injection(db, ds, cycle_id)
+    rptdb.db_update_injection(db, ds, cycle_id)
 
     # update acquisition
-    db = im.db_update_acquisition(db, ds, cycle_id, tp_id)
+    db = rptdb.db_update_acquisition(db, ds, cycle_id, tp_id)
 
     # update dicom file
     cycle =db["cycles"][cycle_id]
@@ -39,14 +37,8 @@ def go(dicom_file, db_file, cycle_id, tp_id):
     acqui['dicom_file'] = dicom_file
 
     # save
-    b = db_file.replace('.json', '.json.backup')
-    shutil.copy(db_file, b)
-    with open(db_file, "w") as f:
-        json.dump(db, f, indent=2)
+    rptdb.db_save(db, output, db_file)
 
-    # print
-    print("")
-    print(f'Update database {db_file} (a backup is saved as {b})')
 
 
 # --------------------------------------------------------------------------

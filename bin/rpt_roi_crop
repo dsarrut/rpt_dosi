@@ -15,6 +15,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--output", "-o", required=True, help="output filename")
 def go(input_images, output):
     output = Path(output)
+    os.makedirs(output, exist_ok=True)
     for filename in input_images:
         print(filename)
         img = itk.imread(filename)

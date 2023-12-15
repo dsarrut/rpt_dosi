@@ -1,5 +1,15 @@
 
 
+# (4) Time Integrated Activities
+
+
+
+# (3) compute activities in ROIs + INFO
+
+    rpt_db_rois_activity --db db.json -o activities.json
+    rpt_db_info --db db.json
+    rpt_db_info --db activites.json
+
 # (2) retrieve the timing and injection information from the dicom images
 
     rpt_db_update_spect_info -i P1_mhd/cycle1/tp1/spect.dcm -c cycle1 -t tp1  --db db.json
