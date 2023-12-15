@@ -1,0 +1,50 @@
+{
+  "radionuclide": "Lu177",
+  "cycles": {
+    "cycle1": {
+      "injection": {
+        "radionuclide": "LU177",
+        "datetime": "1970-09-12 10:04:00",
+        "activity_MBq": 7256.8681640625
+      },
+      "acquisitions": {
+        "tp1": {
+          "ct_image": "cycle1/tp1/ct.nii.gz",
+          "spect_image": "cycle1/tp1/spect.nii.gz",
+          "rois": {
+            "liver": "cycle1/tp1/rois_crop/liver.nii.gz",
+            "left kidney": "cycle1/tp1/rois_crop/kidney_left.nii.gz",
+            "right kidney": "cycle1/tp1/rois_crop/kidney_right.nii.gz",
+            "spleen": "cycle1/tp1/rois_crop/spleen.nii.gz"
+          },
+          "datetime": "1970-09-12 15:03:48",
+          "dicom_file": "P1_mhd/cycle1/tp1/spect.dcm"
+        },
+        "tp2": {
+          "ct_image": "cycle1/tp2/ct.nii.gz",
+          "spect_image": "cycle1/tp2/spect.nii.gz",
+          "rois": {
+            "liver": "cycle1/tp2/rois_crop/liver.nii.gz",
+            "left kidney": "cycle1/tp2/rois_crop/kidney_left.nii.gz",
+            "right kidney": "cycle1/tp2/rois_crop/kidney_right.nii.gz",
+            "spleen": "cycle1/tp2/rois_crop/spleen.nii.gz"
+          },
+          "datetime": "1970-09-13 09:47:56",
+          "dicom_file": "P1_mhd/cycle1/tp2/spect.dcm"
+        },
+        "tp3": {
+          "ct_image": "cycle1/tp3/ct.nii.gz",
+          "spect_image": "cycle1/tp3/spect.nii.gz",
+          "rois": {
+            "liver": "cycle1/tp3/rois_crop/liver.nii.gz",
+            "left kidney": "cycle1/tp3/rois_crop/kidney_left.nii.gz",
+            "right kidney": "cycle1/tp3/rois_crop/kidney_right.nii.gz",
+            "spleen": "cycle1/tp3/rois_crop/spleen.nii.gz"
+          },
+          "datetime": "1970-09-18 09:56:27",
+          "dicom_file": "P1_mhd/cycle1/tp3/spect.dcm"
+        }
+      }
+    }
+  }
+}

@@ -3,19 +3,20 @@ import math
 from .helpers import fatal
 import numpy as np
 from datetime import datetime
+import pydicom
 
 
 def images_have_same_domain(image1, image2, tolerance=1e-5):
     # Check if the sizes and origins of the images are the same,
     # and if the spacing values are close within the given tolerance
     is_same = (
-        len(image1.GetSize()) == len(image2.GetSize())
-        and all(i == j for i, j in zip(image1.GetSize(), image2.GetSize()))
-        and images_have_same_spacing(image1, image2, tolerance)
-        and all(
-            math.isclose(i, j, rel_tol=tolerance)
-            for i, j in zip(image1.GetOrigin(), image2.GetOrigin())
-        )
+            len(image1.GetSize()) == len(image2.GetSize())
+            and all(i == j for i, j in zip(image1.GetSize(), image2.GetSize()))
+            and images_have_same_spacing(image1, image2, tolerance)
+            and all(
+        math.isclose(i, j, rel_tol=tolerance)
+        for i, j in zip(image1.GetOrigin(), image2.GetOrigin())
+    )
     )
     return is_same
 
@@ -145,7 +146,7 @@ def spect_calibration(img, calibration_factor, verbose):
     imga = imga * volume_voxel_mL / calibration_factor
     total_activity = np.sum(imga)
     if verbose:
-        print(f"Total activity in the image FOV: {total_activity/1e6:.2f} MBq")
+        print(f"Total activity in the image FOV: {total_activity / 1e6:.2f} MBq")
     return imga, total_activity
 
 
@@ -189,6 +190,80 @@ def dicom_read_acquisition_datetime(ds):
 
         # convert to datetime object
         dt = datetime.strptime(date + time.split(".")[0], "%Y%m%d%H%M%S")
-        return dt
+        return {"datetime": str(dt)}
     except:
+        fatal(f'Cannot read dicom tag Acquisition Date/Time')
 
+
+def dicom_read_injection(ds):
+    """
+    (0054, 0016)  Radiopharmaceutical Information Sequence  1 item(s) ----
+       (0018, 0031) Radiopharmaceutical                 LO: 'LU177'
+       (0018, 1071) Radiopharmaceutical Volume          DS: '9.5'
+       (0018, 1072) Radiopharmaceutical Start Time      TM: '100400.000'
+       (0018, 1073) Radiopharmaceutical Stop Time       TM: '100400.000'
+       (0018, 1074) Radionuclide Total Dose             DS: '7257.568359375'
+       (0018, 1075) Radionuclide Half Life              DS: '574380.0'
+       (0018, 1078) Radiopharmaceutical Start DateTime  DT: '20231012100400'
+       (0018, 1079) Radiopharmaceutical Stop DateTime   DT: '20231012100400'
+       (0054, 0300)  Radionuclide Code Sequence  1 item(s) ----
+    """
+
+    try:
+        # Read the Radiopharmaceutical Information Sequence tag
+        rad_info = ds[(0x0054, 0x0016)].value
+
+        if len(rad_info) != 1:
+            fatal(f'The dicom tag Radiopharmaceutical sequence is not equal to 1')
+
+        item = rad_info[0]
+
+        # Read the Radiopharmaceutical tag
+        radiopharmaceutical = item[(0x0018, 0x0031)].value
+
+        # Read the Radionuclide Total Dose tag
+        total_dose = item[(0x0018, 0x1074)].value
+
+        # Read the Radiopharmaceutical Start DateTime tag
+        start_datetime = item[(0x0018, 0x1078)].value
+        dt = datetime.strptime(start_datetime, "%Y%m%d%H%M%S")
+
+        return {"radionuclide": radiopharmaceutical,
+                "datetime": str(dt),
+                "activity_MBq": total_dose
+                }
+    except:
+        fatal(f'Cannot read dicom tag Radiopharmaceutical')
+
+
+def db_update_injection(db, dicom_ds, cycle_id):
+    # extract injeection
+    rad = dicom_read_injection(dicom_ds)
+
+    # create cycle if not exist
+    if cycle_id not in db["cycles"]:
+        db["cycles"][cycle_id] = {}
+
+    # update the db: cycle
+    # FIXME maybe check already exist ?
+    cycle = db["cycles"][cycle_id]
+    cycle['injection'].update(rad)
+
+    return db
+
+
+def db_update_acquisition(db, dicom_ds, cycle_id, tp_id):
+    # extract the date/time
+    dt = dicom_read_acquisition_datetime(dicom_ds)
+
+    cycle = db["cycles"][cycle_id]
+
+    # create cycle if not exist
+    if tp_id not in cycle['acquisitions']:
+        cycle['acquisitions'][tp_id] = {}
+
+    # update the db: acquisition
+    acqui = cycle['acquisitions'][tp_id]
+    acqui.update(dt)
+
+    return db

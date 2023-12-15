@@ -1,0 +1,35 @@
+{
+  "radionuclide": "Lu177",
+  "cycles": {
+    "cycle1": {
+      "injection": {
+        "date": "2023-01-12",
+        "time": "12:00",
+        "activity_MBq": 7.4
+      },
+      "acquisitions": {
+        "tp1": {
+          "ct_image": "cycle1/tp1/ct.nii.gz",
+          "spect_image": "cycle1/tp1/spect.nii.gz",
+          "rois": {
+            "liver": "cycle1/tp1/rois_crop/liver.nii.gz",
+            "left kidney": "cycle1/tp1/rois_crop/kidney_left.nii.gz",
+            "right kidney": "cycle1/tp1/rois_crop/kidney_right.nii.gz",
+            "spleen": "cycle1/tp1/rois_crop/spleen.nii.gz"
+          },
+          "NO dose_rate": "dose_rate_cycle1/dose_rate.mhd"
+        },
+        "tp2": {
+          "ct_image": "cycle1/tp2/ct.nii.gz",
+          "spect_image": "cycle1/tp2/spect.nii.gz",
+          "rois": {
+            "liver": "cycle1/tp2/rois_crop/liver.nii.gz",
+            "left kidney": "cycle1/tp2/rois_crop/kidney_left.nii.gz",
+            "right kidney": "cycle1/tp2/rois_crop/kidney_right.nii.gz",
+            "spleen": "cycle1/tp2/rois_crop/spleen.nii.gz"
+          }
+        }
+      }
+    }
+  }
+}

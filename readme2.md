@@ -1,8 +1,10 @@
 
 
-# (2) retrieve the timing information from the dicom images
+# (2) retrieve the timing and injection information from the dicom images
 
-    rpt_dicom_get_timing -s spect.dcm -c cycle1 -t tp1 -o db.json
+    rpt_db_update_spect_info -i P1_mhd/cycle1/tp1/spect.dcm -c cycle1 -t tp1  --db db.json
+    rpt_db_update_spect_info -i P1_mhd/cycle1/tp2/spect.dcm -c cycle1 -t tp2  --db db.json
+    rpt_db_update_spect_info -i P1_mhd/cycle1/tp3/spect.dcm -c cycle1 -t tp3  --db db.json
 
 
 # (1) folder structure

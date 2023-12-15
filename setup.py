@@ -54,6 +54,6 @@ setuptools.setup(
         "bin/opendose_web_get_isotopes_list",
         "bin/opendose_web_get_sources_list",
         "bin/opendose_web_get_svalues",
-        "bin/rpt_dicom_info",
+        "bin/rpt_db_update_spect_info",
     ],
 )
