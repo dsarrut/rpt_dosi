@@ -43,10 +43,10 @@ def init_dose_rate_options():
 
 def get_timepoint_output_folder(output_folder, cycle, timepoint, name="doserate"):
     folder = (
-        Path(output_folder)
-        / Path(cycle.cycle_id)
-        / Path(timepoint.acquisition_id)
-        / name
+            Path(output_folder)
+            / Path(cycle.cycle_id)
+            / Path(timepoint.acquisition_id)
+            / name
     )
     os.makedirs(folder, exist_ok=True)
     return folder
@@ -97,7 +97,7 @@ def simu_add_ct(sim, ct_filename, density_tolerance_gcm3):
     ct.voxel_materials, materials = HounsfieldUnit_to_material(
         sim, tol, table_mat, table_density
     )
-    print(f"Density tolerance = {tol/gcm3} gcm3")
+    print(f"Density tolerance = {tol / gcm3} gcm3")
     print(f"Number of materials in the CT : {len(ct.voxel_materials)} materials")
     # ct.dump_label_image = "labels.mhd"
 
@@ -108,10 +108,10 @@ def simu_add_ct(sim, ct_filename, density_tolerance_gcm3):
 
 
 def simu_add_activity_source(
-    sim,
-    ct,
-    activity_filename,
-    rad,
+        sim,
+        ct,
+        activity_filename,
+        rad,
 ):
     rad_list = {
         "Lu177": {"Z": 71, "A": 177, "name": "Lutetium 177"},
@@ -159,11 +159,11 @@ def add_dose_actor(sim, ct, source):
 
 
 def scale_to_absorbed_dose_rate(
-    activity,
-    dose_in_gray,
-    simu_activity,
-    calibration_factor,
-    verbose=True,
+        activity,
+        dose_in_gray,
+        simu_activity,
+        calibration_factor,
+        verbose=True,
 ):
     dose_a = itk.GetArrayFromImage(dose_in_gray)
     activity_a = itk.GetArrayFromImage(activity)
@@ -172,7 +172,7 @@ def scale_to_absorbed_dose_rate(
     total_activity = np.sum(activity_a) * volume_voxel_mL / calibration_factor
 
     if verbose:
-        print(f"Total activity in the image FOV: {total_activity/1e6:.2f} MBq")
+        print(f"Total activity in the image FOV: {total_activity / 1e6:.2f} MBq")
 
     print(f"dose mean = {np.mean(dose_a)} gray.s-1")
     dose_a = dose_a / simu_activity * total_activity
@@ -190,7 +190,7 @@ def spect_calibration(spect, calibration_factor, concentration_flag, verbose=Tru
     arr = itk.GetArrayFromImage(spect)
     total_activity = np.sum(arr) * volume_voxel_mL / calibration_factor
     if verbose:
-        print(f"Total activity in the image FOV: {total_activity/1e6:.2f} MBq")
+        print(f"Total activity in the image FOV: {total_activity / 1e6:.2f} MBq")
     # calibration
     if concentration_flag:
         arr = arr * volume_voxel_mL / calibration_factor
@@ -221,7 +221,7 @@ def dose_hanscheid2018(spect_Bq, roi, time_sec, svalue, mass_scaling):
     return dose
 
 
-def dose_hanscheid2017(img, roi, time_sec, pixel_volume_ml):
+def dose_hanscheid2017(spect_Bqml, roi, time_sec, pixel_volume_ml):
     """
     Input img and ROI must be numpy arrays
 
@@ -231,7 +231,7 @@ def dose_hanscheid2017(img, roi, time_sec, pixel_volume_ml):
     time_eff_h = 67.0
 
     # compute mean activity in the ROI
-    v = img[roi == 1] / pixel_volume_ml
+    v = spect_Bqml[roi == 1] / pixel_volume_ml
     Ct = np.mean(v) / 1e6
 
     #
@@ -241,7 +241,7 @@ def dose_hanscheid2017(img, roi, time_sec, pixel_volume_ml):
 
 
 def dose_hanscheid2018_from_filenames(
-    spect_file, ct_file, roi_file, phantom, roi_name, rad_name, time_h
+        spect_file, ct_file, roi_file, phantom, roi_name, rad_name, time_h
 ):
     # read spect
     spect = itk.ReadImage(spect_file)
@@ -277,3 +277,75 @@ def get_roi_list(filename):
     for item in data:
         l.append((item["roi_filename"], item["roi_name"]))
     return l
+
+
+def fit_exp_linear(x, y):
+    denegative = 1
+    if y[0] < 0:
+        denegative = -1
+        y[0] = -y[0]
+    y = np.log(y)
+    k, A_log = np.polyfit(x, y, 1)
+    A = np.exp(A_log) * denegative
+    if k > 0:
+        k = 0
+    return A, k
+
+
+def fit_triexpo(times, activities):
+    t0 = float(times[0])
+    t1 = float(times[1])
+    t3 = float(times[2])
+    d0 = float(activities[0])
+    d1 = float(activities[1])
+    d3 = float(activities[2])
+    if d3 == d1 or d1 == d0 or d0 == d3:
+        d0 += 0.0001
+        d1 += 0.0002
+        d3 += 0.0003
+    d1lin = (((d3 - d0) / (t3 - t0)) * t1 + (d0 - ((d3 - d0) / ((t3 - t0)) * t0)))
+    A3 = d3 / (np.exp(-0.001 * t3))
+    d1_lowslope = A3 * np.exp(-0.001 * t1)
+    if d1 < d1_lowslope:
+        if d0 < d3:
+            if d1 < d1lin:
+                d1 = d1lin
+        else:
+            d1 = d1_lowslope
+    if d3 < 0.1 * d1:
+        d3 = 0.1 * d1
+    if d0 < 0.2 * d1:
+        d0 = 0.2 * d1
+    if d3 > d1:
+        k3 = -0.001
+        A3 = d3 / (np.exp(k3 * t3))
+
+        x = np.array([t1, t3])
+        y = np.array([d1 - (A3 * np.exp(k3 * t1)), 0.01 * d3])
+        A2, k2 = fit_exp_linear(x, y)
+        if (A2 + A3) < 0:
+            A2 = -A3
+            A1 = 0
+            k1 = 0
+        else:
+            A1 = -(A2 + A3)
+            k1 = -1.3
+    else:
+        x = np.array([t1, t3])
+        y = np.array([d1, d3])
+        A3, k3 = fit_exp_linear(x, y)
+        if k3 > -0.001:
+            k3 = -0.001
+            A3 = d3 / (np.exp(k3 * t3))
+        x = np.array([t0, t1])
+        y = np.array([d0 - (A3 * np.exp(k3 * t0)), 0.01 * d1])
+        A2, k2 = fit_exp_linear(x, y)
+        if (A2 + A3) < 0:
+            A2 = -A3
+            A1 = 0
+            k1 = 0
+        else:
+            A1 = -(A2 + A3)
+            k1 = -1.3
+    params = np.array([A1, k1, A2, k2, A3, k3])
+    return params

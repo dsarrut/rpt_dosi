@@ -1,11 +1,10 @@
-import SimpleITK as itk
 from .dicom import dicom_read_injection, dicom_read_acquisition_datetime
-from .images import resample_roi_like_spect, image_roi_stats
 import rpt_dosi.images as im
 import shutil
 import json
 from box import Box
 from datetime import datetime
+import numpy as np
 
 
 def db_update_injection(db, dicom_ds, cycle_id):
@@ -81,4 +80,4 @@ def db_get_tac(cycle, roi_name):
             activities.append(acq.activity[roi_name].sum)
             d = db_get_time_interval(cycle, acq)
             times.append(d)
-    return times, activities
+    return np.array(times), np.array(activities)

@@ -2,6 +2,7 @@
 
 # (4) Time Integrated Activities
 
+    rpt_db_tac_triexpo --db activities.json -c cycle1
 
 
 # (3) compute activities in ROIs + INFO
@@ -9,8 +10,9 @@
     rpt_db_rois_activity --db db.json -o activities.json
     rpt_db_info --db db.json
     rpt_db_info --db activities.json
+    rpt_db_tac_plot --db activities.json -c cycle1
 
-    rpt_db_plot_tac --db activities.json FIXME TODO 
+FIXME ==> plot or print or dump as excel ?
 
 # (2) get the time and injection information from the dicom images
 
@@ -22,12 +24,10 @@
 # (1) folder structure
 
 We consider the folder structure as follows. The file db.json will contains information about the images, such as the acquisition timing or the activities computed in several ROIs. It is a simple dict structure that can be edited manually or modified by other commands. 
-
-In the db.json the cycle_id and tp_id must correspond to the folder names.
-  
+ 
     one patient
     │
-    ├── db.json                    # database (json): timing and retrieve activities
+    ├── db.json                    # database (json): data, timing and activities
     │
     ├── cycle1/
     │   ├── tp1/                   # first timepoint

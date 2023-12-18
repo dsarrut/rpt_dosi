@@ -57,6 +57,7 @@ setuptools.setup(
         "bin/rpt_db_update_spect_info",
         "bin/rpt_db_rois_activity",
         "bin/rpt_db_info",
-        "bin/rpt_db_plot_tac",
+        "bin/rpt_db_tac_plot",
+        "bin/rpt_db_tac_triexpo",
     ],
 )

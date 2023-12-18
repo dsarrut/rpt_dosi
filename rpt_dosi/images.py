@@ -179,6 +179,7 @@ def resample_roi_like_spect(spect, roi, verbose=True):
     roi_a = itk.GetArrayFromImage(roi)
     return roi_a
 
+
 def get_stats_in_rois(spect, ct, rois_list):
     # load spect
     spect = itk.ReadImage(spect)

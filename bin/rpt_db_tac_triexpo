@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 import click
 import rpt_dosi.db as rptdb
-import matplotlib.pyplot as plt
-import numpy as np
+import rpt_dosi.dosimetry as do
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -17,29 +16,28 @@ def go(db_file, cycle_id):
 
     # get cycle
     cycle = db.cycles[cycle_id]
-    #injected_activity = cycle.injection.activity_MBq
+    # injected_activity = cycle.injection.activity_MBq
 
     # get all roi names with activity
     roi_names = set()
     for acq in cycle.acquisitions.values():
         for r in acq.activity.keys():
             roi_names.add(r)
-    print(f'Plotting {len(roi_names)} ROIs')
 
     # get tac for all rois
     for roi in roi_names:
         t, a = rptdb.db_get_tac(cycle, roi)
-        a = np.array(a) / 1e6
-        #a = a / injected_activity * 100
-        plt.plot(t, a, label=f"{roi}")
+        r = do.fit_triexpo(t, a)
+        print(r)
 
-    plt.xlabel('Time in hours')
-    plt.ylabel('Activity in MBq')
-    #plt.ylabel('% IA')
-    plt.title('Time-Activity Curve')
-    plt.grid(True)
-    plt.legend()
-    plt.show()
+    x = np.linspace(0, lastPoint, lastPoint + 1)
+    y = []
+    y1bis = [y1[0], y1[1], y1[2]]
+    HalfLife = 24 * 6.65
+    constant = log(2) / HalfLife
+    for i in range(np.shape(x)[0]):
+        y.append(A1 * exp(-(-k1 + constant) * x[i]) + A2 * exp(-(-k2 + constant) * x[i]) + A3 * exp(
+            -(-k3 + constant) * x[i]))
 
 
 # --------------------------------------------------------------------------
