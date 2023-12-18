@@ -2,19 +2,20 @@ import SimpleITK as itk
 import math
 from .helpers import fatal
 import numpy as np
+import os
 
 
 def images_have_same_domain(image1, image2, tolerance=1e-5):
     # Check if the sizes and origins of the images are the same,
     # and if the spacing values are close within the given tolerance
     is_same = (
-            len(image1.GetSize()) == len(image2.GetSize())
-            and all(i == j for i, j in zip(image1.GetSize(), image2.GetSize()))
-            and images_have_same_spacing(image1, image2, tolerance)
-            and all(
-        math.isclose(i, j, rel_tol=tolerance)
-        for i, j in zip(image1.GetOrigin(), image2.GetOrigin())
-    )
+        len(image1.GetSize()) == len(image2.GetSize())
+        and all(i == j for i, j in zip(image1.GetSize(), image2.GetSize()))
+        and images_have_same_spacing(image1, image2, tolerance)
+        and all(
+            math.isclose(i, j, rel_tol=tolerance)
+            for i, j in zip(image1.GetOrigin(), image2.GetOrigin())
+        )
     )
     return is_same
 
@@ -202,7 +203,7 @@ def get_stats_in_rois(spect, ct, rois_list):
         # compute mass
         d = densities[roi_a == 1]
         mass = np.sum(d) * volume_voxel_mL
-        s['mass_g'] = mass
+        s["mass_g"] = mass
         # set in the db
         res[roi_name] = s
     return res
@@ -217,5 +218,28 @@ def image_roi_stats(spect_a, roi_a):
         "std": float(np.std(p)),
         "min": float(np.min(p)),
         "max": float(np.max(p)),
-        "sum": float(np.sum(p))
+        "sum": float(np.sum(p)),
     }
+
+
+def compare_images(image1, image2):
+    img1 = itk.ReadImage(image1)
+    img2 = itk.ReadImage(image2)
+    if not images_have_same_domain(img1, img2):
+        return False
+    img1 = itk.GetArrayFromImage(img1)
+    img2 = itk.GetArrayFromImage(img2)
+    return np.all(img1 == img2)
+
+
+def test_compare_image_exact(image1, image2):
+    ok = compare_images(image1, image2)
+    if not ok:
+        try:
+            fatal(
+                f"Images {os.path.basename(image1)} "
+                f"and {os.path.basename(image2)} do not match"
+            )
+        except:
+            pass
+    return ok

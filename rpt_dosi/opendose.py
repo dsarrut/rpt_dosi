@@ -21,14 +21,14 @@ def guess_phantom_id(phantom_name):
 
 
 def guess_source_id(phantom_name, source_name):
-    sources_file = get_data_folder(phantom_name) / "opendose_sources.json"
+    sources_file = get_rpt_data_folder(phantom_name) / "opendose_sources.json"
     with open(sources_file) as f:
         sources = json.load(f)
     return get_match_in_list(sources, source_name)
 
 
 def guess_isotope_id(phantom_name, isotope_name):
-    isotopes_file = get_data_folder(phantom_name) / "opendose_isotopes.json"
+    isotopes_file = get_rpt_data_folder(phantom_name) / "opendose_isotopes.json"
     with open(isotopes_file) as f:
         isotopes = json.load(f)
     return get_match_in_list(isotopes, isotope_name)
@@ -40,7 +40,7 @@ def guess_phantom_and_isotope(phantom_name, isotope_name):
     return phantom_name, rad_name
 
 
-def get_data_folder(phantom_name):
+def get_rpt_data_folder(phantom_name):
     _, phantom_name = guess_phantom_id(phantom_name)
     folder = phantom_name.replace(" ", "_")
     folder = pkg_resources.resource_filename("rpt_dosi", f"data/{folder}")
@@ -49,7 +49,7 @@ def get_data_folder(phantom_name):
 
 def get_svalue_data_filename(phantom_name, source_name, isotope_name):
     output = (
-        get_data_folder(phantom_name) / f"{isotope_name}_{source_name}.json".lower()
+        get_rpt_data_folder(phantom_name) / f"{isotope_name}_{source_name}.json".lower()
     )
     return output
 

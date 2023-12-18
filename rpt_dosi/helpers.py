@@ -1,9 +1,12 @@
 import json
+import os
 from box import Box
 import inspect
 import colored
 import Levenshtein
-
+import pkg_resources
+from path import Path
+import sys
 
 try:
     color_error = colored.fg("red") + colored.attr("bold")
@@ -57,3 +60,32 @@ def find_closest_match(input_string, string_list):
             closest_match = candidate
 
     return closest_match
+
+
+def get_tests_data_folder(sub_folder=None):
+    folder = pkg_resources.resource_filename("rpt_dosi", f"../tests/data")
+    if sub_folder is not None:
+        folder = os.path.join(folder, sub_folder)
+        os.makedirs(folder, exist_ok=True)
+    return Path(folder)
+
+
+def print_tests(is_ok, s):
+    if not is_ok:
+        s = colored.stylize(s, color_error)
+    else:
+        s = colored.stylize(s, color_ok)
+    print(s)
+
+
+def test_ok(is_ok=False):
+    if is_ok:
+        s = "Great, tests are ok."
+        s = "\n" + colored.stylize(s, color_ok)
+        print(s)
+        # sys.exit(0)
+    else:
+        s = "Error during the tests !"
+        s = "\n" + colored.stylize(s, color_error)
+        print(s)
+        sys.exit(-1)

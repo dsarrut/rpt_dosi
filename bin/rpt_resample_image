@@ -10,7 +10,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option("--input_image", "-i", required=True, type=click.Path(exists=True))
-@click.option("--spacing", "-s", default=4, help="isotropic spacing in mm")
+@click.option("--spacing", "-s", default=4.0, help="isotropic spacing in mm")
 @click.option(
     "--like",
     "-l",
