@@ -48,4 +48,4 @@ if __name__ == "__main__":
     is_ok = b and is_ok
 
     # end
-    he.test_ok()
+    he.test_ok(is_ok)
