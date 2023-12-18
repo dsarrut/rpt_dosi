@@ -59,5 +59,6 @@ setuptools.setup(
         "bin/rpt_db_info",
         "bin/rpt_db_tac_plot",
         "bin/rpt_db_tac_triexpo",
+        "bin/rpt_tests",
     ],
 )
