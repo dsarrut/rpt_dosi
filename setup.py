@@ -44,6 +44,7 @@ setuptools.setup(
         "python-Levenshtein",
         "bs4",
         "selenium",
+        "radioactivedecay",
     ],
     scripts=[
         "bin/rpt_crop_bg",

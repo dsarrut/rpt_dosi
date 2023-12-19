@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 import click
 import rpt_dosi.db as rptdb
 import matplotlib.pyplot as plt
-import numpy as np
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -24,7 +24,7 @@ def go(db_file, cycle_id):
     for acq in cycle.acquisitions.values():
         for r in acq.activity.keys():
             roi_names.add(r)
-    print(f'Plotting {len(roi_names)} ROIs')
+    print(f"Plotting {len(roi_names)} ROIs")
 
     # get tac for all rois
     for roi in roi_names:
@@ -33,10 +33,10 @@ def go(db_file, cycle_id):
         # a = a / injected_activity * 100
         plt.plot(t, a, label=f"{roi}")
 
-    plt.xlabel('Time in hours')
-    plt.ylabel('Activity in MBq')
+    plt.xlabel("Time in hours")
+    plt.ylabel("Activity in MBq")
     # plt.ylabel('% IA')
-    plt.title('Time-Activity Curve')
+    plt.title("Time-Activity Curve")
     plt.grid(True)
     plt.legend()
     plt.show()

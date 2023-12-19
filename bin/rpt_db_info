@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 import click
 import rpt_dosi.db as rptdb
 from datetime import datetime
@@ -14,7 +15,10 @@ def go(db_file):
     db = rptdb.db_load(db_file)
 
     # loop on cycles
-    print(f'There are {len(db.cycles)} cycles')
+    if len(db.cycles) > 1:
+        print(f"There are {len(db.cycles)} cycles")
+    else:
+        print(f"There is {len(db.cycles)} cycle")
     for cycle_id in db.cycles:
         cycle = db.cycles[cycle_id]
         idate = datetime.strptime(cycle.injection.datetime, "%Y-%m-%d %H:%M:%S")
@@ -23,9 +27,8 @@ def go(db_file):
             acq = cycle.acquisitions[acq_id]
             adate = datetime.strptime(acq.datetime, "%Y-%m-%d %H:%M:%S")
             hours_diff = (adate - idate).total_seconds() / 3600
-            print(f'Acquisition {acq_id} : {hours_diff:.3f} hours')
+            print(f"Acquisition {acq_id} : {hours_diff:.3f} hours")
             # print(rptdb.db_get_time_interval(cycle, acq))
-
 
 
 # --------------------------------------------------------------------------
