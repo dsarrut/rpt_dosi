@@ -15,8 +15,9 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--db_file", "--db", required=True, help="Input db.json")
 @click.option("--cycle_id", "-c", required=True, help="Cycle to plot")
 @click.option("--rad", default="Lu177", help="Radionuclide")
-@click.option("--plot", is_flag=True, default=True, help="Plot the fit")
-def go(db_file, cycle_id, rad, plot):
+@click.option("--no_plot", is_flag=True, help="Plot the fit")
+@click.option("--output", "-o", default=None, help="Save the fit parameters in this json db file")
+def go(db_file, cycle_id, rad, no_plot, output):
     # open db as a dict
     db = rptdb.db_load(db_file)
 
@@ -48,7 +49,17 @@ def go(db_file, cycle_id, rad, plot):
         activities[roi] = a
         params[roi] = r
 
-    if not plot:
+    # store the fit in the db ?
+    if output is not None:
+        if 'tri_expo_fit' not in cycle:
+            cycle['tri_expo_fit'] = {}
+        tef = cycle['tri_expo_fit']
+        for roi in roi_names:
+            tef[roi] = params[roi]
+        rptdb.db_save(db, output)
+
+    # plot ?
+    if no_plot:
         return
 
     # colors
