@@ -90,10 +90,13 @@ def test_ok(is_ok=False):
         print(s)
         sys.exit(-1)
 
-
-def get_subfolders(folder_path):
+def get_subfolders(folder_path, depth=1):
     subfolders = []
     for root, dirs, files in os.walk(folder_path):
-        for dir in dirs:
-            subfolders.append(os.path.join(root, dir))
+        current_depth = root[len(folder_path) + len(os.path.sep):].count(os.path.sep)
+        if current_depth == depth:
+            for dir in dirs:
+                subfolders.append(os.path.join(root, dir))
+        if current_depth >= depth:
+            break
     return subfolders

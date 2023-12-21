@@ -130,6 +130,7 @@ def sort_series_by_date(studies):
     for study_uid, series in studies.items():
         for series_uid, dicom_files in series.items():
             info = Box(dicom_files[0])
+            info.filenames = dicom_files
             info.study_uid = study_uid
             info.study_idx = study_idx
             info.series_uid = series_uid
@@ -143,14 +144,14 @@ def sort_series_by_date(studies):
     return sorted_series
 
 
-def print_serie(series):
+def print_series(series):
     s = ''
     if 'injection' in series:
         s = f'{series.injection.datetime} - {series.injection.activity_MBq} MBq'
     print(f'Series {series.series_idx:<3} '
           f'Study {series.study_idx:<3} '
           f'{series.modality:<3} '
-          f'{len(series.filepath):<3} files   '
+          f'{len(series.filenames):<3} files   '
           f'{series.datetime}    '
           f'{series.descriptions:<50} '
           f'{s}')
@@ -167,21 +168,44 @@ def filter_studies_include_modality(studies, mod, verbose=True):
         if keepit:
             filtered_studies[study_uid] = series
     if verbose:
-        print(f'Filtered {len(filtered_studies)} / {len(studies)} studies'
-              f' (modality without "{mod}")')
+        print(f'Keep {len(filtered_studies)} / {len(studies)} studies'
+              f' (remove studies without modality == "{mod}")')
     return filtered_studies
 
 
 def filter_series_rm_modality(studies, mod, verbose=True):
     filtered_studies = {}
+    nb_series = 0
+    nb_filtered_series = 0
     for study_uid, series in studies.items():
+        nb_series += len(series)
         filtered_series = {}
         for series_uid, dicom_files in series.items():
             info = dicom_files[0]
             if info['modality'] != mod:
                 filtered_series[series_uid] = dicom_files
         filtered_studies[study_uid] = filtered_series
+        nb_filtered_series += len(filtered_series)
     if verbose:
-        print(f'Filtered {len(filtered_studies)} / {len(studies)} studies'
-              f' (modality is not "{mod}")')
+        print(f'Keep {nb_filtered_series} / {nb_series} series'
+              f' (remove series when modality is "{mod}")')
+    return filtered_studies
+
+
+def filter_series_description(studies, modality, desc, verbose=True):
+    filtered_studies = {}
+    nb_series = 0
+    nb_filtered_series = 0
+    for study_uid, series in studies.items():
+        nb_series += len(series)
+        filtered_series = {}
+        for series_uid, dicom_files in series.items():
+            info = dicom_files[0]
+            if modality != info['modality'] or desc in info['descriptions']:
+                filtered_series[series_uid] = dicom_files
+        filtered_studies[study_uid] = filtered_series
+        nb_filtered_series += len(filtered_series)
+    if verbose:
+        print(f'Keep {nb_filtered_series} / {nb_series} series'
+              f' (remove series when description does not contain "{desc}")')
     return filtered_studies
