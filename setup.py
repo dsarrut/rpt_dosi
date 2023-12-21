@@ -47,6 +47,7 @@ setuptools.setup(
         "radioactivedecay",
     ],
     scripts=[
+        "bin/rpt_tests",
         "bin/rpt_crop_bg",
         "bin/rpt_roi_crop",
         "bin/rpt_resample_image",
@@ -60,6 +61,7 @@ setuptools.setup(
         "bin/rpt_db_info",
         "bin/rpt_db_tac_plot",
         "bin/rpt_db_tac_triexpo",
-        "bin/rpt_tests",
+        "bin/rpt_dicom_browse",
+        "bin/rpt_dicom_select",
     ],
 )

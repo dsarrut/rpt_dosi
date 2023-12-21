@@ -89,3 +89,11 @@ def test_ok(is_ok=False):
         s = "\n" + colored.stylize(s, color_error)
         print(s)
         sys.exit(-1)
+
+
+def get_subfolders(folder_path):
+    subfolders = []
+    for root, dirs, files in os.walk(folder_path):
+        for dir in dirs:
+            subfolders.append(os.path.join(root, dir))
+    return subfolders
