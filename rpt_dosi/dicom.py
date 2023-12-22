@@ -239,7 +239,7 @@ def next_tp_id(current_tp):
     return next_tp
 
 
-def select_for_cycle(cycle, series_txt):
+def select_for_cycle(series_txt):
     selected_series = []
     while len(selected_series) != 2:
         prompt_text = f"Select 2 DICOMs"
@@ -251,18 +251,6 @@ def select_for_cycle(cycle, series_txt):
         ).ask()
     selected_ids = [series["id"] for series in series_txt if series["text"] in selected_series]
     return selected_ids
-
-
-def highlight(question_text, color_code):
-    # ANSI escape code for text color
-    color_start = f"\033[38;5;{color_code}m"
-    color_end = "\033[0m"  # Reset to default color
-
-    # Combine the color code with the question text
-    highlighted_question = f"{color_start}{question_text}{color_end}"
-
-    return highlighted_question
-
 
 def print_colored(text, color_code=33):
     print(f"\033[38;5;{color_code}m{text}\033[0m")

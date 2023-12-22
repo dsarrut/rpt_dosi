@@ -60,7 +60,7 @@ def go(dicom_json, filter, filter_desc, output):
         dicom.print_colored(f'Select CT and SPECT for cycle {cycle_id} and the timepoint {tp_id}')
 
         # select 2 dicoms
-        selected_ids = dicom.select_for_cycle(cycle, series_txt)
+        selected_ids = dicom.select_for_cycle(series_txt)
 
         # update the selected if CT and NM
         b = dicom.update_selected(cycle, series, tp_id, selected_ids)
@@ -71,9 +71,7 @@ def go(dicom_json, filter, filter_desc, output):
         series_txt = [series for series in series_txt if series["id"] not in selected_ids]
 
         # next decision ?
-        print('-' * 70)
         dicom.print_current_selection(the_cycles)
-        print('-' * 70)
         for s in series_txt:
             print(s['text'])
         dicom.print_colored("Next ?")

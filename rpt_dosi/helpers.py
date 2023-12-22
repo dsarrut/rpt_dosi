@@ -90,6 +90,7 @@ def test_ok(is_ok=False):
         print(s)
         sys.exit(-1)
 
+
 def get_subfolders(folder_path, depth=1):
     subfolders = []
     for root, dirs, files in os.walk(folder_path):
@@ -100,3 +101,11 @@ def get_subfolders(folder_path, depth=1):
         if current_depth >= depth:
             break
     return subfolders
+
+
+def escape_special_characters(filename):
+    # Add more characters to escape as needed
+    special_characters = ['?', '#', '&', '$', '|', ';', '<', '>', '(', ')']
+    for char in special_characters:
+        filename = filename.replace(char, '\\' + char)
+    return filename

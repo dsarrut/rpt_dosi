@@ -63,5 +63,6 @@ setuptools.setup(
         "bin/rpt_db_tac_triexpo",
         "bin/rpt_dicom_browse",
         "bin/rpt_dicom_select",
+        "bin/rpt_dicom_db",
     ],
 )
