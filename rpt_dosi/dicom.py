@@ -5,6 +5,7 @@ import pydicom
 from collections import defaultdict
 from tqdm import tqdm
 from box import Box
+import questionary
 
 
 def dicom_read_acquisition_datetime(ds):
@@ -148,13 +149,14 @@ def print_series(series):
     s = ''
     if 'injection' in series:
         s = f'{series.injection.datetime} - {series.injection.activity_MBq} MBq'
-    print(f'Series {series.series_idx:<3} '
-          f'Study {series.study_idx:<3} '
-          f'{series.modality:<3} '
-          f'{len(series.filenames):<3} files   '
-          f'{series.datetime}    '
-          f'{series.descriptions:<50} '
-          f'{s}')
+    t = (f'Series {series.series_idx:<3} '
+         f'Study {series.study_idx:<3} '
+         f'{series.modality:<3} '
+         f'{len(series.filenames):<3} files   '
+         f'{series.datetime}    '
+         f'{series.descriptions:<50} '
+         f'{s}')
+    return t
 
 
 def filter_studies_include_modality(studies, mod, verbose=True):
@@ -209,3 +211,87 @@ def filter_series_description(studies, modality, desc, verbose=True):
         print(f'Keep {nb_filtered_series} / {nb_series} series'
               f' (remove series when description does not contain "{desc}")')
     return filtered_studies
+
+
+def next_cycle_id(current_cycle):
+    # Extract the numeric part from the current cycle string
+    numeric_part = "".join(filter(str.isdigit, current_cycle))
+
+    # Increment the numeric part
+    next_numeric_part = str(int(numeric_part) + 1)
+
+    # Construct the next cycle string
+    next_cycle = current_cycle.replace(numeric_part, next_numeric_part)
+
+    return next_cycle
+
+
+def next_tp_id(current_tp):
+    # Extract the numeric part from the current tp string
+    numeric_part = "".join(filter(str.isdigit, current_tp))
+
+    # Increment the numeric part
+    next_numeric_part = str(int(numeric_part) + 1)
+
+    # Construct the next tp string
+    next_tp = current_tp.replace(numeric_part, next_numeric_part)
+
+    return next_tp
+
+
+def select_for_cycle(cycle, series_txt):
+    selected_series = []
+    while len(selected_series) != 2:
+        prompt_text = f"Select 2 DICOMs"
+        print_colored(prompt_text, 33)
+        # Use 'checkbox' prompt from questionary
+        selected_series = questionary.checkbox(
+            '',
+            choices=[series["text"] for series in series_txt]
+        ).ask()
+    selected_ids = [series["id"] for series in series_txt if series["text"] in selected_series]
+    return selected_ids
+
+
+def highlight(question_text, color_code):
+    # ANSI escape code for text color
+    color_start = f"\033[38;5;{color_code}m"
+    color_end = "\033[0m"  # Reset to default color
+
+    # Combine the color code with the question text
+    highlighted_question = f"{color_start}{question_text}{color_end}"
+
+    return highlighted_question
+
+
+def print_colored(text, color_code=33):
+    print(f"\033[38;5;{color_code}m{text}\033[0m")
+
+
+def print_current_selection(the_cycles):
+    print('-' * 70)
+    for cycle_id, cycle in the_cycles.cycles.items():
+        print(f'Cycle {cycle_id}')
+        for tp_id, tp in cycle.acquisitions.items():
+            if tp:
+                print(f'  Timepoint {tp_id}')
+                print(f'  CT    = ', print_series(tp['ct']))
+                print(f'  SPECT = ', print_series(tp['spect']))
+    print('-' * 70)
+
+
+def update_selected(cycle, series, tp_id, selected_ids):
+    s0 = series[selected_ids[0]]
+    s1 = series[selected_ids[1]]
+    tp = cycle.acquisitions[tp_id]
+    if s0.modality == 'CT' and s1.modality == 'NM':
+        tp['ct'] = s0
+        tp['spect'] = s1
+    else:
+        if s1.modality == 'CT' and s0.modality == 'NM':
+            tp['ct'] = s1
+            tp['spect'] = s0
+        else:
+            print('Error ! Must be one CT and one NM')
+            return False
+    return True
