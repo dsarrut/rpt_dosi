@@ -5,6 +5,7 @@ from .images import (
     convert_ct_to_densities,
 )
 from .opendose import get_svalue_and_mass_scaling
+from .helpers import find_closest_match
 import SimpleITK as itk
 import numpy as np
 
@@ -18,9 +19,11 @@ def spect_calibration(spect, calibration_factor, concentration_flag, verbose=Tru
         print(f"Total activity in the image FOV: {total_activity / 1e6:.2f} MBq")
     # calibration
     if concentration_flag:
-        arr = arr * volume_voxel_mL / calibration_factor
-    else:
+        print('Concentration = in Bqml')
         arr = arr / calibration_factor
+    else:
+        print('Activity = in Bq')
+        arr = arr * volume_voxel_mL / calibration_factor
 
     # create output image
     o = itk.GetImageFromArray(arr)
@@ -46,20 +49,29 @@ def dose_hanscheid2018(spect_Bq, roi, time_sec, svalue, mass_scaling):
     return dose
 
 
-def dose_hanscheid2017(spect_Bqml, roi, time_sec, pixel_volume_ml):
+def get_hanscheid2017_Teff(roi_name):
+    Teff = {
+        'kidney': 50,
+        'liver': 67,
+        'spleen': 67,
+        'NET tumors': 77
+    }
+    a, _ = find_closest_match(roi_name, Teff)
+    return Teff[a]
+
+
+def dose_hanscheid2017(spect_Bq, roi, time_sec, pixel_volume_ml, time_eff_h):
     """
     Input img and ROI must be numpy arrays
-
     """
 
     time_h = time_sec / 3600
-    time_eff_h = 67.0
 
-    # compute mean activity in the ROI
-    v = spect_Bqml[roi == 1] / pixel_volume_ml
+    # compute mean activity concentration in the ROI
+    v = spect_Bq[roi == 1] / pixel_volume_ml
     Ct = np.mean(v) / 1e6
 
-    #
+    # compute dose
     dose = 0.125 * Ct * np.power(2, time_h / time_eff_h) * time_eff_h
 
     return dose

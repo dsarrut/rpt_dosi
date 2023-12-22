@@ -3,8 +3,9 @@
 # (4) single timepoint dose estimation with Hanscheid method
 
 
-    rpt_dose_hanscheid2018 -s spect_Bq.nii.gz  --ct ct_2.5mm.nii.gz -r rois_crop/kidney_left.nii.gz "left kidney" -o a.txt -t 24 -v
-    rpt_dose_hanscheid2018 -s spect_Bq.nii.gz  --ct ct_2.5mm.nii.gz  -l oar.json -o a.txt -t 24
+    rpt_dose_hanscheid -s spect_Bq.nii.gz  --ct ct_2.5mm.nii.gz -r rois_crop/kidney_left.nii.gz "left kidney" -o a.txt -t 24 -v
+    rpt_dose_hanscheid -s spect_Bq.nii.gz  --ct ct_2.5mm.nii.gz  -l oar.json -o a.txt -t 24 -m 2018
+    rpt_dose_hanscheid -s spect_Bq.nii.gz  --ct ct_2.5mm.nii.gz  -l oar.json -o a.txt -t 24 -m 2017
     
 
 # (3) spect and ct pre processing  
@@ -12,8 +13,8 @@
 TODO : Partial Volume Correction
 
     rpt_resample_image -i ct.nii.gz -o ct_2.5mm.nii.gz --like spect.nii.gz
-    rpt_spect_calibration -i spect.nii.gz -o spect_Bq.nii.gz -c 0.176906614 --concentration
-    rpt_spect_calibration -i spect.nii.gz -o spect_Bqml.nii.gz -c 0.176906614
+    rpt_spect_calibration -i spect.nii.gz -o spect_BqmL.nii.gz -c 0.176906614 --concentration
+    rpt_spect_calibration -i spect.nii.gz -o spect_Bq.nii.gz -c 0.176906614
 
 
 # (2) ROI segmentation
@@ -21,8 +22,8 @@ TODO : Partial Volume Correction
 Run TotalSegmentator for all images (the option -fast can be used if too slow). Warning, a GPU is highly advised.
 
     cd cycle1/tp1
-    TotalSegmentator -i ct.nii.gz --bs -o rois -ta body 
-    TotalSegmentator -i ct.nii.gz --bs -o rois 
+    TotalSegmentator -i ct.nii.gz -bs -o rois -ta body 
+    TotalSegmentator -i ct.nii.gz -bs -o rois 
 
 The output mask images are large (same size than the ct), they can be cropped with the following commands:
 

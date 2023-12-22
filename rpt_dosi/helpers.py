@@ -59,7 +59,7 @@ def find_closest_match(input_string, string_list):
             min_distance = distance
             closest_match = candidate
 
-    return closest_match
+    return closest_match, min_distance
 
 
 def get_tests_data_folder(sub_folder=None):

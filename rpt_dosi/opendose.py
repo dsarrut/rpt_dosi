@@ -15,7 +15,7 @@ import numpy as np
 def guess_phantom_id(phantom_name):
     # which phantom ?
     phantoms = {"ICRP 110 AF": "1", "ICRP 110 AM": "2"}
-    phantom_name = find_closest_match(phantom_name, phantoms.keys())
+    phantom_name, _ = find_closest_match(phantom_name, phantoms.keys())
     phantom_id = phantoms[phantom_name]
     return phantom_id, phantom_name
 
@@ -57,7 +57,7 @@ def get_svalue_data_filename(phantom_name, source_name, isotope_name):
 def get_match_in_list(names_list, name):
     rnames_list = {list(d.values())[0]: list(d.keys())[0] for d in names_list}
     values = list(rnames_list.keys())
-    name = find_closest_match(name, values)
+    name, _ = find_closest_match(name, values)
     return rnames_list[name], name
 
 

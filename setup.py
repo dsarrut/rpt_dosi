@@ -51,7 +51,7 @@ setuptools.setup(
         "bin/rpt_crop_bg",
         "bin/rpt_roi_crop",
         "bin/rpt_resample_image",
-        "bin/rpt_dose_hanscheid2018",
+        "bin/rpt_dose_hanscheid",
         "bin/rpt_spect_calibration",
         "bin/opendose_web_get_isotopes_list",
         "bin/opendose_web_get_sources_list",
