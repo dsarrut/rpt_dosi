@@ -70,6 +70,21 @@ def get_tests_data_folder(sub_folder=None):
     return Path(folder)
 
 
+def get_tests_output_folder(sub_folder=None):
+    folder = pkg_resources.resource_filename("rpt_dosi", f"../tests/output")
+    if sub_folder is not None:
+        folder = os.path.join(folder, sub_folder)
+        os.makedirs(folder, exist_ok=True)
+    return Path(folder)
+
+
+def get_tests_folders(test_name):
+    data_folder = get_tests_data_folder()
+    ref_folder = get_tests_data_folder(test_name)
+    output_folder = get_tests_output_folder(test_name)
+    return data_folder, ref_folder, output_folder
+
+
 def print_tests(is_ok, s):
     if not is_ok:
         s = colored.stylize(s, color_error)

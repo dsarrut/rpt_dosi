@@ -8,21 +8,22 @@ import os
 
 if __name__ == "__main__":
     # folders
-    data_input_folder = he.get_tests_data_folder()
-    data_output_folder = he.get_tests_data_folder("test003")
+    data_folder, ref_folder, output_folder = he.get_tests_folders("test003")
     is_ok = True
-    print(f"Input data folder = {data_input_folder}")
-    print(f"Output data folder = {data_output_folder}")
+    print(f"Input data folder = {data_folder}")
+    print(f"Ref data folder = {ref_folder}")
+    print(f"Output data folder = {output_folder}")
+    print()
 
     # test activity
     print()
-    # rpt_db_tac_triexpo --db activities.json -c cycle1 --no_plot -o activities_fit.json
-    db_input = data_input_folder / "activities.json"
-    db_output = data_output_folder / "activities_fit.json"
+    # rpt_db_tac_triexpo --db data/activities.json -c cycle1 --no_plot -o data/test003/activities_fit.json
+    db_input = data_folder / "activities.json"
+    db_output = output_folder / "activities_fit.json"
     cmd = f"rpt_db_tac_triexpo --db {db_input} -o {db_output} -c cycle1 --no_plot"
     print(cmd)
     os.system(cmd)
-    db_ref = data_output_folder / "activities_fit_ref.json"
+    db_ref = ref_folder / "activities_fit_ref.json"
 
     # compare
     print()
