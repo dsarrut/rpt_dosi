@@ -14,7 +14,8 @@ if __name__ == "__main__":
     print(f"Output data folder = {data_output_folder}")
 
     # test activity
-    # rpt_spect_calibration -i spect_8.321mm.nii.gz -o test002/spect_activity_ref.nii.gz -c 0.66
+    print()
+    # rpt_spect_calibration -i data/spect_8.321mm.nii.gz -o data/test002/spect_activity_ref.nii.gz -c 0.666
     spect_input = data_input_folder / "spect_8.321mm.nii.gz"
     spect_output = data_output_folder / "spect_activity.nii.gz"
     cmd = f"rpt_spect_calibration -i {spect_input} -o {spect_output} -c 0.666"
@@ -26,7 +27,8 @@ if __name__ == "__main__":
     is_ok = b and is_ok
 
     # test activity concentration
-    # rpt_spect_calibration -i spect_8.321mm.nii.gz -o test002/spect_activity_conc_ref.nii.gz -c 0.66 --concentration
+    print()
+    # rpt_spect_calibration -i data/spect_8.321mm.nii.gz -o data/test002/spect_activity_conc_ref.nii.gz -c 0.222 --concentration
     spect_input = data_input_folder / "spect_8.321mm.nii.gz"
     spect_output = data_output_folder / "spect_activity_conc.nii.gz"
     cmd = f"rpt_spect_calibration -i {spect_input} -o {spect_output} -c 0.222 --concentration"

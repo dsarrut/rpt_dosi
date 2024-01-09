@@ -45,6 +45,7 @@ setuptools.setup(
         "bs4",
         "selenium",
         "radioactivedecay",
+        "questionary",
     ],
     scripts=[
         "bin/rpt_tests",

@@ -15,6 +15,7 @@ if __name__ == "__main__":
     print(f"Output data folder = {data_output_folder}")
 
     # test activity
+    print()
     # rpt_db_tac_triexpo --db activities.json -c cycle1 --no_plot -o activities_fit.json
     db_input = data_input_folder / "activities.json"
     db_output = data_output_folder / "activities_fit.json"
@@ -24,6 +25,7 @@ if __name__ == "__main__":
     db_ref = data_output_folder / "activities_fit_ref.json"
 
     # compare
+    print()
     db1 = rtpdb.db_load(db_output)
     db2 = rtpdb.db_load(db_ref)
     d1 = db1["cycles"]["cycle1"]["tri_expo_fit"]

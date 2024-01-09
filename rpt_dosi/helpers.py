@@ -5,7 +5,7 @@ import inspect
 import colored
 import Levenshtein
 import pkg_resources
-from path import Path
+from pathlib import Path
 import sys
 
 try:
@@ -94,7 +94,7 @@ def test_ok(is_ok=False):
 def get_subfolders(folder_path, depth=1):
     subfolders = []
     for root, dirs, files in os.walk(folder_path):
-        current_depth = root[len(folder_path) + len(os.path.sep):].count(os.path.sep)
+        current_depth = root[len(folder_path) + len(os.path.sep) :].count(os.path.sep)
         if current_depth == depth:
             for dir in dirs:
                 subfolders.append(os.path.join(root, dir))
@@ -105,7 +105,7 @@ def get_subfolders(folder_path, depth=1):
 
 def escape_special_characters(filename):
     # Add more characters to escape as needed
-    special_characters = ['?', '#', '&', '$', '|', ';', '<', '>', '(', ')']
+    special_characters = ["?", "#", "&", "$", "|", ";", "<", ">", "(", ")"]
     for char in special_characters:
-        filename = filename.replace(char, '\\' + char)
+        filename = filename.replace(char, "\\" + char)
     return filename

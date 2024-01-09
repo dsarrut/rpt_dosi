@@ -21,7 +21,10 @@ def go(db_file):
         print(f"There is {len(db.cycles)} cycle")
     for cycle_id in db.cycles:
         cycle = db.cycles[cycle_id]
-        idate = datetime.strptime(cycle.injection.datetime, "%Y-%m-%d %H:%M:%S")
+        if 'injection' in cycle:
+            idate = datetime.strptime(cycle.injection.datetime, "%Y-%m-%d %H:%M:%S")
+        else:
+            idate = "unknown"
         print(f'Cycle "{cycle_id}" injection time: {idate}')
         for acq_id in cycle.acquisitions:
             acq = cycle.acquisitions[acq_id]

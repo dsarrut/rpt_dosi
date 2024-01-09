@@ -223,9 +223,12 @@ def image_roi_stats(spect_a, roi_a):
 
 
 def compare_images(image1, image2):
+    # print(f"Compare {image1} {image2}")
     img1 = itk.ReadImage(image1)
     img2 = itk.ReadImage(image2)
     if not images_have_same_domain(img1, img2):
+        print(f"Im1: {image1.GetSize()}  {image1.GetSpacing()}   {image1.GetOrigin()}")
+        print(f"Im2: {image2.GetSize()}  {image2.GetSpacing()}   {image2.GetOrigin()}")
         return False
     img1 = itk.GetArrayFromImage(img1)
     img2 = itk.GetArrayFromImage(img2)
