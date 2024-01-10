@@ -8,7 +8,7 @@ import numpy as np
 
 
 def db_update_injection(db, dicom_ds, cycle_id):
-    # extract injeection
+    # extract injection
     rad = dicom_read_injection(dicom_ds)
 
     # create cycle if not exist
@@ -18,7 +18,7 @@ def db_update_injection(db, dicom_ds, cycle_id):
     # update the db: cycle
     # FIXME maybe check already exist ?
     cycle = db["cycles"][cycle_id]
-    cycle['injection'].update(rad)
+    cycle["injection"].update(rad)
 
     return db
 
@@ -30,11 +30,11 @@ def db_update_acquisition(db, dicom_ds, cycle_id, tp_id):
     cycle = db["cycles"][cycle_id]
 
     # create cycle if not exist
-    if tp_id not in cycle['acquisitions']:
-        cycle['acquisitions'][tp_id] = {}
+    if tp_id not in cycle["acquisitions"]:
+        cycle["acquisitions"][tp_id] = {}
 
     # update the db: acquisition
-    acqui = cycle['acquisitions'][tp_id]
+    acqui = cycle["acquisitions"][tp_id]
     acqui.update(dt)
 
     return db
@@ -43,10 +43,10 @@ def db_update_acquisition(db, dicom_ds, cycle_id, tp_id):
 def db_update_cycle_rois_activity(cycle):
     # loop acquisitions
     for acq_id in cycle.acquisitions:
-        print(f'Acquisition {acq_id}')
+        print(f"Acquisition {acq_id}")
         acq = cycle.acquisitions[acq_id]
         s = im.get_stats_in_rois(acq.spect_image, acq.ct_image, acq.rois)
-        acq['activity'] = s
+        acq["activity"] = s
 
 
 def db_load(filename):
@@ -59,7 +59,7 @@ def db_load(filename):
 def db_save(db, output, db_file=None):
     if output is None:
         output = db_file
-        b = db_file.replace('.json', '.json.backup')
+        b = db_file.replace(".json", ".json.backup")
         shutil.copy(db_file, b)
     with open(output, "w") as f:
         json.dump(db, f, indent=2)

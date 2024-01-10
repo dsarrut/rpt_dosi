@@ -21,7 +21,7 @@ if __name__ == "__main__":
     ct_input = data_folder / "ct_8mm.nii.gz"
     oar_json = data_folder / "oar.json"
     output = output_folder / "dose.json"
-    cmd = f"rpt_dose_hanscheid -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m 2017"
+    cmd = f"cd {data_folder}/.. ; rpt_dose_hanscheid -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m 2017"
     print(cmd)
     os.system(cmd)
     dose_ref = ref_folder / "dose_ref_2017.json"
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     ct_input = data_folder / "ct_8mm.nii.gz"
     oar_json = data_folder / "oar.json"
     output = output_folder / "dose.json"
-    cmd = f"rpt_dose_hanscheid -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m 2018"
+    cmd = f"cd {data_folder}/.. ; rpt_dose_hanscheid -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m 2018"
     print(cmd)
     os.system(cmd)
     dose_ref = ref_folder / "dose_ref_2018.json"

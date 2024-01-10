@@ -32,7 +32,7 @@ if __name__ == "__main__":
     d1 = db1["cycles"]["cycle1"]["tri_expo_fit"]
     d2 = db2["cycles"]["cycle1"]["tri_expo_fit"]
     print(json.dumps(d1, indent=2))
-    b = d1 == d2
+    b = he.are_dicts_equal(d1, d2, float_tolerance=1e-9)
     he.print_tests(b, f"Compare tri expo fit")
     is_ok = b and is_ok
 

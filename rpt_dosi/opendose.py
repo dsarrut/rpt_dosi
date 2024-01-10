@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 import json
 from rpt_dosi.helpers import find_closest_match, fatal
 import pkg_resources
-from path import Path
+from pathlib import Path
 import numpy as np
 
 

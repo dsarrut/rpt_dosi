@@ -13,11 +13,14 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option("--dicom_json", "-i", required=True, help="Input DICOM DIR json")
-@click.option(
-    "--output", "-o", required=True, help="Output json file with dicom info"
-)
+@click.option("--output", "-o", required=True, help="Output json file with dicom info")
 @click.option("--filter", "-f", is_flag=True, help="Filter NM only")
-@click.option("--filter_desc", "-d", multiple=True, help="Filter NM description that contains this txt")
+@click.option(
+    "--filter_desc",
+    "-d",
+    multiple=True,
+    help="Filter NM description that contains this txt",
+)
 def go(dicom_json, filter, filter_desc, output):
     # load the dicom info
     with open(dicom_json, "r") as f:
@@ -25,16 +28,16 @@ def go(dicom_json, filter, filter_desc, output):
 
     # filters study with NM only
     if filter:
-        studies = dicom.filter_studies_include_modality(studies, 'NM')
+        studies = dicom.filter_studies_include_modality(studies, "NM")
 
     # filters series: remove OT
     if filter:
-        studies = dicom.filter_series_rm_modality(studies, 'OT')
-        studies = dicom.filter_series_rm_modality(studies, 'PT')
+        studies = dicom.filter_series_rm_modality(studies, "OT")
+        studies = dicom.filter_series_rm_modality(studies, "PT")
 
     # filter on description
     for fd in filter_desc:
-        studies = dicom.filter_series_description(studies, 'NM', fd)
+        studies = dicom.filter_series_description(studies, "NM", fd)
 
     # sort series by date
     series = dicom.sort_series_by_date(studies)
@@ -43,21 +46,23 @@ def go(dicom_json, filter, filter_desc, output):
     series_txt = []
     for s in series:
         t = dicom.print_series(s)
-        series_txt.append({'id': s.series_idx, 'text': t})
+        series_txt.append({"id": s.series_idx, "text": t})
 
     the_cycles = Box({})
-    the_cycles.cycles = Box({'cycle1': {}})
-    the_cycles.cycles.cycle1.acquisitions = Box({'tp1': {}})
+    the_cycles.cycles = Box({"cycle1": {}})
+    the_cycles.cycles.cycle1.acquisitions = Box({"tp1": {}})
 
     choices = ["Continue to next timepoint", "Move to next cycle", "Stop"]
     decision = choices[0]
-    cycle_id = 'cycle1'
-    tp_id = 'tp1'
+    cycle_id = "cycle1"
+    tp_id = "tp1"
     print()
     while decision != choices[2]:
         cycle = the_cycles.cycles[cycle_id]
         dicom.print_current_selection(the_cycles)
-        dicom.print_colored(f'Select CT and SPECT for cycle {cycle_id} and the timepoint {tp_id}')
+        dicom.print_colored(
+            f"Select CT and SPECT for cycle {cycle_id} and the timepoint {tp_id}"
+        )
 
         # select 2 dicoms
         selected_ids = dicom.select_for_cycle(series_txt)
@@ -68,16 +73,18 @@ def go(dicom_json, filter, filter_desc, output):
             continue
 
         # remove selected from the list
-        series_txt = [series for series in series_txt if series["id"] not in selected_ids]
+        series_txt = [
+            series for series in series_txt if series["id"] not in selected_ids
+        ]
 
         # next decision ?
         dicom.print_current_selection(the_cycles)
         for s in series_txt:
-            print(s['text'])
+            print(s["text"])
         dicom.print_colored("Next ?")
 
         # ask next
-        decision = questionary.select('', choices=choices).ask()
+        decision = questionary.select("", choices=choices).ask()
 
         # next tp ?
         if decision == choices[0]:
@@ -86,25 +93,26 @@ def go(dicom_json, filter, filter_desc, output):
 
         # next cycle ?
         if decision == choices[1]:
-            tp_id = 'tp1'
+            tp_id = "tp1"
             cycle_id = dicom.next_cycle_id(cycle_id)
             the_cycles.cycles[cycle_id] = Box()
-            the_cycles.cycles[cycle_id].acquisitions = Box({'tp1': {}})
+            the_cycles.cycles[cycle_id].acquisitions = Box({"tp1": {}})
 
     # print
     dicom.print_current_selection(the_cycles)
 
     # remove unused info
     for cycle_id, cycle in the_cycles.cycles.items():
-        print(f'Cycle {cycle_id}')
+        print(f"Cycle {cycle_id}")
         for tp_id, tp in cycle.acquisitions.items():
-            tp.ct_dicom = os.path.dirname(tp['ct'].filepath)
-            tp.spect_dicom = os.path.dirname(tp['spect'].filepath)
-            del tp['ct']
-            del tp['spect']
+            tp.ct_dicom = os.path.dirname(tp["ct"].filepath)
+            # tp.spect_dicom = os.path.dirname(tp['spect'].filepath)
+            tp.spect_dicom = tp["spect"].filepath
+            del tp["ct"]
+            del tp["spect"]
 
     # save dict
-    with open(output, mode='w') as f:
+    with open(output, mode="w") as f:
         json.dump(the_cycles, f, indent=2)
     print(output)
 

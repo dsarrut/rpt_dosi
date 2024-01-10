@@ -100,6 +100,7 @@ def go(spect, ct, roi, acq_time, phantom, rad, roi_list, verbose, output, method
 
         # dose computation with Hanscheid method
         if method == "2018":
+            results["method"] = 'hanscheid2018'
             dose = dosi.dose_hanscheid2018(spect_a, roi_a, time_sec, svalue, mass_scaling)
         else:
             results["method"] = 'hanscheid2017'

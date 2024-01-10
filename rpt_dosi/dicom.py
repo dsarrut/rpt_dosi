@@ -18,7 +18,7 @@ def dicom_read_acquisition_datetime(ds):
         dt = dicom_date_to_str(date, time)
         return {"datetime": dt}
     except:
-        fatal(f'Cannot read dicom tag Acquisition Date/Time')
+        fatal(f"Cannot read dicom tag Acquisition Date/Time")
 
 
 def dicom_date_to_str(date, time):
@@ -44,7 +44,7 @@ def dicom_read_injection(ds):
         rad_info = ds[(0x0054, 0x0016)].value
 
         if len(rad_info) != 1:
-            fatal(f'The dicom tag Radiopharmaceutical sequence is not equal to 1')
+            fatal(f"The dicom tag Radiopharmaceutical sequence is not equal to 1")
 
         item = rad_info[0]
 
@@ -58,12 +58,13 @@ def dicom_read_injection(ds):
         start_datetime = item[(0x0018, 0x1078)].value
         dt = str(datetime.strptime(start_datetime, "%Y%m%d%H%M%S"))
 
-        return {"radionuclide": radiopharmaceutical,
-                "datetime": dt,
-                "activity_MBq": total_dose
-                }
+        return {
+            "radionuclide": radiopharmaceutical,
+            "datetime": dt,
+            "activity_MBq": total_dose,
+        }
     except:
-        s = f'Cannot read dicom tag Radiopharmaceutical'
+        s = f"Cannot read dicom tag Radiopharmaceutical"
         raise Exception(s)
 
 
@@ -79,7 +80,7 @@ def list_dicom_studies_and_series(directory):
         # Recursively walk through directory
         for dirpath, dirnames, filenames in os.walk(directory):
             for filename in filenames:
-                if filename.endswith('.dcm'):
+                if filename.endswith(".dcm"):
                     filepath = os.path.join(dirpath, filename)
                     try:
                         # read dataset
@@ -88,7 +89,7 @@ def list_dicom_studies_and_series(directory):
                         study_uid = ds.StudyInstanceUID
                         series_uid = ds.SeriesInstanceUID
                         info = store_dicom_information(ds)
-                        info['filepath'] = filepath
+                        info["filepath"] = filepath
                         studies[study_uid][series_uid].append(info)
                     except Exception as e:
                         print(f"Could not read {filepath}: {str(e)}")
@@ -104,22 +105,18 @@ def store_dicom_information(ds):
         modality = "unknown modality"
     try:
         descriptions = ds.StudyDescription
-        descriptions += ' ' + ds.SeriesDescription
+        descriptions += " " + ds.SeriesDescription
     except:
         descriptions = "unknown description"
     try:
         datetime = dicom_date_to_str(ds.AcquisitionDate, ds.AcquisitionTime)
     except:
         datetime = "unknown datetime"
-    info = {
-        'modality': modality,
-        'descriptions': descriptions,
-        "datetime": datetime
-    }
+    info = {"modality": modality, "descriptions": descriptions, "datetime": datetime}
     # special case for injection ?
     if modality == "NM":
         try:
-            info['injection'] = dicom_read_injection(ds)
+            info["injection"] = dicom_read_injection(ds)
         except:
             pass
     return info
@@ -146,16 +143,18 @@ def sort_series_by_date(studies):
 
 
 def print_series(series):
-    s = ''
-    if 'injection' in series:
-        s = f'{series.injection.datetime} - {series.injection.activity_MBq} MBq'
-    t = (f'Series {series.series_idx:<3} '
-         f'Study {series.study_idx:<3} '
-         f'{series.modality:<3} '
-         f'{len(series.filenames):<3} files   '
-         f'{series.datetime}    '
-         f'{series.descriptions:<50} '
-         f'{s}')
+    s = ""
+    if "injection" in series:
+        s = f"{series.injection.datetime} - {series.injection.activity_MBq} MBq"
+    t = (
+        f"Series {series.series_idx:<3} "
+        f"Study {series.study_idx:<3} "
+        f"{series.modality:<3} "
+        f"{len(series.filenames):<3} files   "
+        f"{series.datetime}    "
+        f"{series.descriptions:<50} "
+        f"{s}"
+    )
     return t
 
 
@@ -165,13 +164,15 @@ def filter_studies_include_modality(studies, mod, verbose=True):
         keepit = False
         for series_uid, dicom_files in series.items():
             info = dicom_files[0]
-            if info['modality'] == mod:
+            if info["modality"] == mod:
                 keepit = True
         if keepit:
             filtered_studies[study_uid] = series
     if verbose:
-        print(f'Keep {len(filtered_studies)} / {len(studies)} studies'
-              f' (remove studies without modality == "{mod}")')
+        print(
+            f"Keep {len(filtered_studies)} / {len(studies)} studies"
+            f' (remove studies without modality == "{mod}")'
+        )
     return filtered_studies
 
 
@@ -184,13 +185,15 @@ def filter_series_rm_modality(studies, mod, verbose=True):
         filtered_series = {}
         for series_uid, dicom_files in series.items():
             info = dicom_files[0]
-            if info['modality'] != mod:
+            if info["modality"] != mod:
                 filtered_series[series_uid] = dicom_files
         filtered_studies[study_uid] = filtered_series
         nb_filtered_series += len(filtered_series)
     if verbose:
-        print(f'Keep {nb_filtered_series} / {nb_series} series'
-              f' (remove series when modality is "{mod}")')
+        print(
+            f"Keep {nb_filtered_series} / {nb_series} series"
+            f' (remove series when modality is "{mod}")'
+        )
     return filtered_studies
 
 
@@ -203,13 +206,15 @@ def filter_series_description(studies, modality, desc, verbose=True):
         filtered_series = {}
         for series_uid, dicom_files in series.items():
             info = dicom_files[0]
-            if modality != info['modality'] or desc in info['descriptions']:
+            if modality != info["modality"] or desc in info["descriptions"]:
                 filtered_series[series_uid] = dicom_files
         filtered_studies[study_uid] = filtered_series
         nb_filtered_series += len(filtered_series)
     if verbose:
-        print(f'Keep {nb_filtered_series} / {nb_series} series'
-              f' (remove series when description does not contain "{desc}")')
+        print(
+            f"Keep {nb_filtered_series} / {nb_series} series"
+            f' (remove series when description does not contain "{desc}")'
+        )
     return filtered_studies
 
 
@@ -246,40 +251,42 @@ def select_for_cycle(series_txt):
         print_colored(prompt_text, 33)
         # Use 'checkbox' prompt from questionary
         selected_series = questionary.checkbox(
-            '',
-            choices=[series["text"] for series in series_txt]
+            "", choices=[series["text"] for series in series_txt]
         ).ask()
-    selected_ids = [series["id"] for series in series_txt if series["text"] in selected_series]
+    selected_ids = [
+        series["id"] for series in series_txt if series["text"] in selected_series
+    ]
     return selected_ids
+
 
 def print_colored(text, color_code=33):
     print(f"\033[38;5;{color_code}m{text}\033[0m")
 
 
 def print_current_selection(the_cycles):
-    print('-' * 70)
+    print("-" * 70)
     for cycle_id, cycle in the_cycles.cycles.items():
-        print(f'Cycle {cycle_id}')
+        print(f"Cycle {cycle_id}")
         for tp_id, tp in cycle.acquisitions.items():
             if tp:
-                print(f'  Timepoint {tp_id}')
-                print(f'  CT    = ', print_series(tp['ct']))
-                print(f'  SPECT = ', print_series(tp['spect']))
-    print('-' * 70)
+                print(f"  Timepoint {tp_id}")
+                print(f"  CT    = ", print_series(tp["ct"]))
+                print(f"  SPECT = ", print_series(tp["spect"]))
+    print("-" * 70)
 
 
 def update_selected(cycle, series, tp_id, selected_ids):
     s0 = series[selected_ids[0]]
     s1 = series[selected_ids[1]]
     tp = cycle.acquisitions[tp_id]
-    if s0.modality == 'CT' and s1.modality == 'NM':
-        tp['ct'] = s0
-        tp['spect'] = s1
+    if s0.modality == "CT" and s1.modality == "NM":
+        tp["ct"] = s0
+        tp["spect"] = s1
     else:
-        if s1.modality == 'CT' and s0.modality == 'NM':
-            tp['ct'] = s1
-            tp['spect'] = s0
+        if s1.modality == "CT" and s0.modality == "NM":
+            tp["ct"] = s1
+            tp["spect"] = s0
         else:
-            print('Error ! Must be one CT and one NM')
+            print("Error ! Must be one CT and one NM")
             return False
     return True

@@ -7,6 +7,7 @@ import Levenshtein
 import pkg_resources
 from pathlib import Path
 import sys
+import math
 
 try:
     color_error = colored.fg("red") + colored.attr("bold")
@@ -124,3 +125,26 @@ def escape_special_characters(filename):
     for char in special_characters:
         filename = filename.replace(char, "\\" + char)
     return filename
+
+
+def are_dicts_equal(dict1, dict2, float_tolerance=1e-9):
+    for key, value1 in dict1.items():
+        if key not in dict2:
+            return False
+
+        value2 = dict2[key]
+
+        if isinstance(value1, dict) and isinstance(value2, dict):
+            if not are_dicts_equal(value1, value2, float_tolerance):
+                return False
+        elif isinstance(value1, (int, float)) and isinstance(value2, (int, float)):
+            if not math.isclose(value1, value2, abs_tol=float_tolerance):
+                return False
+        else:
+            return False
+
+    for key in dict2.keys():
+        if key not in dict1:
+            return False
+
+    return True
