@@ -19,10 +19,10 @@ def spect_calibration(spect, calibration_factor, concentration_flag, verbose=Tru
         print(f"Total activity in the image FOV: {total_activity / 1e6:.2f} MBq")
     # calibration
     if concentration_flag:
-        print('Concentration = in Bqml')
+        print("Concentration = in Bqml")
         arr = arr / calibration_factor
     else:
-        print('Activity = in Bq')
+        print("Activity = in Bq")
         arr = arr * volume_voxel_mL / calibration_factor
 
     # create output image
@@ -50,12 +50,7 @@ def dose_hanscheid2018(spect_Bq, roi, time_sec, svalue, mass_scaling):
 
 
 def get_hanscheid2017_Teff(roi_name):
-    Teff = {
-        'kidney': 50,
-        'liver': 67,
-        'spleen': 67,
-        'NET tumors': 77
-    }
+    Teff = {"kidney": 50, "liver": 67, "spleen": 67, "NET tumors": 77}
     a, _ = find_closest_match(roi_name, Teff)
     return Teff[a]
 
@@ -78,7 +73,7 @@ def dose_hanscheid2017(spect_Bq, roi, time_sec, pixel_volume_ml, time_eff_h):
 
 
 def dose_hanscheid2018_from_filenames(
-        spect_file, ct_file, roi_file, phantom, roi_name, rad_name, time_h
+    spect_file, ct_file, roi_file, phantom, roi_name, rad_name, time_h
 ):
     # read spect
     spect = itk.ReadImage(spect_file)
@@ -196,14 +191,7 @@ def triexpo_fit(times, activities, as_dict=True):
             k1 = -1.3
 
     if as_dict:
-        params = {
-            "A1": A1,
-            "k1": k1,
-            "A2": A2,
-            "k2": k2,
-            "A3": A3,
-            "k3": k3
-        }
+        params = {"A1": A1, "k1": k1, "A2": A2, "k2": k2, "A3": A3, "k3": k3}
     else:
         params = np.array([A1, k1, A2, k2, A3, k3])
     return params
@@ -225,7 +213,7 @@ def triexpo_apply_from_dict(x, decay_constant_hours, p):
 
 def triexpo_apply(x, decay_constant_hours, A1, k1, A2, k2, A3, k3):
     return (
-            A1 * np.exp(-(-k1 + decay_constant_hours) * x)
-            + A2 * np.exp(-(-k2 + decay_constant_hours) * x)
-            + A3 * np.exp(-(-k3 + decay_constant_hours) * x)
+        A1 * np.exp(-(-k1 + decay_constant_hours) * x)
+        + A2 * np.exp(-(-k2 + decay_constant_hours) * x)
+        + A3 * np.exp(-(-k3 + decay_constant_hours) * x)
     )

@@ -25,10 +25,11 @@ def go(pname):
             # Check if the directory structure follows the expected pattern
             if len(dir_parts) == 2:
                 cycle, tp = dir_parts
+                cwd = os.getcwd()
                 cmd = f"TotalSegmentator -i ct.nii.gz -bs -o rois -ta body ; TotalSegmentator -i ct.nii.gz -bs -o rois"
 
                 # Execute the TotalSegmentator command in the current directory
-                print(f'cd {root} ; {cmd} ; cd ..')
+                print(f'cd {root} ; {cmd} ; cd {cwd}')
                 #subprocess.run(command, cwd=root)
 
                 # You can print or perform additional actions based on cycle and tp
