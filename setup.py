@@ -36,6 +36,9 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
+        "colored",
+        "tqdm",
+        "pydicom",
         "click",
         "python-box<7.0.0",
         "numpy",
