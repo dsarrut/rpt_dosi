@@ -11,6 +11,7 @@ import pkg_resources
 import SimpleITK as itk
 import numpy as np
 
+
 def read_dose_rate_options(json_file):
     print(json_file)
     if json_file is None:
@@ -36,10 +37,10 @@ def init_dose_rate_options():
 
 def get_timepoint_output_folder(output_folder, cycle, timepoint, name="doserate"):
     folder = (
-            Path(output_folder)
-            / Path(cycle.cycle_id)
-            / Path(timepoint.acquisition_id)
-            / name
+        Path(output_folder)
+        / Path(cycle.cycle_id)
+        / Path(timepoint.acquisition_id)
+        / name
     )
     os.makedirs(folder, exist_ok=True)
     return folder
@@ -101,10 +102,10 @@ def simu_add_ct(sim, ct_filename, density_tolerance_gcm3):
 
 
 def simu_add_activity_source(
-        sim,
-        ct,
-        activity_filename,
-        rad,
+    sim,
+    ct,
+    activity_filename,
+    rad,
 ):
     rad_list = {
         "Lu177": {"Z": 71, "A": 177, "name": "Lutetium 177"},
@@ -152,11 +153,11 @@ def add_dose_actor(sim, ct, source):
 
 
 def scale_to_absorbed_dose_rate(
-        activity,
-        dose_in_gray,
-        simu_activity,
-        calibration_factor,
-        verbose=True,
+    activity,
+    dose_in_gray,
+    simu_activity,
+    calibration_factor,
+    verbose=True,
 ):
     dose_a = itk.GetArrayFromImage(dose_in_gray)
     activity_a = itk.GetArrayFromImage(activity)
@@ -175,5 +176,3 @@ def scale_to_absorbed_dose_rate(
     o = itk.GetImageFromArray(dose_a)
     o.CopyInformation(dose_in_gray)
     return o
-
-

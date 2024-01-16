@@ -24,6 +24,7 @@ def fatal(s):
     print(s)
     raise Exception(s)
 
+
 def read_and_check_input_infos(json_file):
     # read
     print(json_file)
@@ -31,7 +32,7 @@ def read_and_check_input_infos(json_file):
     param = Box(json.loads(f))
 
     # check
-    required_keys = ['cycles']
+    required_keys = ["cycles"]
     check_required_keys(param, required_keys)
 
 
@@ -50,6 +51,7 @@ def read_dose_rate_options(json_file):
         options = Box(json.loads(f))
     check_dose_rate_options(options)
     return options
+
 
 def check_dose_rate_options(options):
     ref = init_dose_rate_options()

@@ -7,14 +7,8 @@ with open("readme1.md", "r") as fh:
 with open("VERSION", "r") as fh:
     version = fh.read()[:-1]
 
-all_packages = find_packages()
-selected_packages = []
-for p in all_packages:
-    if "rpt_dosi" not in p:
-        selected_packages.append(p)
-
 setuptools.setup(
-    name="rpt_dosi",
+    name="rpt-dosi",
     version=version,
     author="David Sarrut",
     author_email="david.sarrut@creatis.insa-lyon.fr",
@@ -22,7 +16,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="todo",
-    packages=selected_packages,
+    packages=find_packages(),
     python_requires=">=3.7",
     include_package_data=True,
     package_data={
