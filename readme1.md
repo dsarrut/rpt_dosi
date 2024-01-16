@@ -6,9 +6,9 @@
     rpt_dose_hanscheid -s spect_Bq.nii.gz  --ct ct_2.5mm.nii.gz -r rois_crop/kidney_left.nii.gz "left kidney" -o a.txt -t 24 -v
     rpt_dose_hanscheid -s spect_Bq.nii.gz  --ct ct_2.5mm.nii.gz  -l oar.json -o a.txt -t 24 -m 2018
     rpt_dose_hanscheid -s spect_Bq.nii.gz  --ct ct_2.5mm.nii.gz  -l oar.json -o a.txt -t 24 -m 2017
-    
 
-# (3) spect and ct pre processing  
+
+# (3) spect and ct pre processing
 
 TODO : Partial Volume Correction
 
@@ -22,8 +22,8 @@ TODO : Partial Volume Correction
 Run TotalSegmentator for all images (the option -fast can be used if too slow). Warning, a GPU is highly advised.
 
     cd cycle1/tp1
-    TotalSegmentator -i ct.nii.gz -bs -o rois -ta body 
-    TotalSegmentator -i ct.nii.gz -bs -o rois 
+    TotalSegmentator -i ct.nii.gz -bs -o rois -ta body
+    TotalSegmentator -i ct.nii.gz -bs -o rois
 
 The output mask images are large (same size than the ct), they can be cropped with the following commands:
 
@@ -32,7 +32,7 @@ The output mask images are large (same size than the ct), they can be cropped wi
 
 # (1) convert DICOM to mhd (manual for the moment)
 
-Exemple of DICOM conversion, adapt the folder/filenames to your own data: 
+Exemple of DICOM conversion, adapt the folder/filenames to your own data:
 
     # CT
     gt_image_convert P1/CT/Other_/19700912/142513.288/1.250000E+00/soft_tissue_H4_C1_/*dcm -o P1_mhd/cycle1/tp1/ct.nii.gz -v
@@ -44,11 +44,11 @@ Exemple of DICOM conversion, adapt the folder/filenames to your own data:
     gt_image_convert P1/NM/Lu177-PSMA/19700913/090544.000/2.46/7_FFS_LU177_OSAC_Recon_Patient1_ScC_/*.dcm -o P1_mhd/cycle1/tp2/spect.nii.gz
     gt_image_convert P1/NM/Lu177-PSMA/19700918/091324.000/2.46/7_FFS_LU177_OSAC_Recon_Patient1_ScC_/*.dcm -o P1_mhd/cycle1/tp3/spect.nii.gz
 
-    # visu 
-    vv P1_mhd/cycle1/tp1/ct.nii.gz --fusion P1_mhd/cycle1/tp1/spect.nii.gz P1_mhd/cycle1/tp2/ct.nii.gz --fusion P1_mhd/cycle1/tp2/spect.nii.gz P1_mhd/cycle1/tp3/ct.nii.gz --fusion P1_mhd/cycle1/tp3/spect.nii.gz 
+    # visu
+    vv P1_mhd/cycle1/tp1/ct.nii.gz --fusion P1_mhd/cycle1/tp1/spect.nii.gz P1_mhd/cycle1/tp2/ct.nii.gz --fusion P1_mhd/cycle1/tp2/spect.nii.gz P1_mhd/cycle1/tp3/ct.nii.gz --fusion P1_mhd/cycle1/tp3/spect.nii.gz
 
 We consider the folder structure as follows:
-  
+
     patient (named P1_mhd here)
     │
     ├── cycle1/
@@ -64,6 +64,3 @@ We consider the folder structure as follows:
     ├── cycle2/
     │   ├── tp1/                   # first timepoint
     │   └── ...
-
-
-

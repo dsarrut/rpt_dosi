@@ -16,7 +16,9 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--cycle_id", "-c", required=True, help="Cycle to plot")
 @click.option("--rad", default="Lu177", help="Radionuclide")
 @click.option("--no_plot", is_flag=True, help="Plot the fit")
-@click.option("--output", "-o", default=None, help="Save the fit parameters in this json db file")
+@click.option(
+    "--output", "-o", default=None, help="Save the fit parameters in this json db file"
+)
 def go(db_file, cycle_id, rad, no_plot, output):
     # open db as a dict
     db = rptdb.db_load(db_file)
@@ -44,16 +46,18 @@ def go(db_file, cycle_id, rad, no_plot, output):
         t, a = rptdb.db_get_tac(cycle, roi)
         a = dosi.decay_corrected_tac(t, a, decay_constant)
         r = dosi.triexpo_fit(t, a)
-        r['rmse'] = dosi.triexpo_rmse(t, a, decay_constant, *dosi.triexpo_param_from_dict(r))
+        r["rmse"] = dosi.triexpo_rmse(
+            t, a, decay_constant, *dosi.triexpo_param_from_dict(r)
+        )
         times[roi] = t
         activities[roi] = a
         params[roi] = r
 
     # store the fit in the db ?
     if output is not None:
-        if 'tri_expo_fit' not in cycle:
-            cycle['tri_expo_fit'] = {}
-        tef = cycle['tri_expo_fit']
+        if "tri_expo_fit" not in cycle:
+            cycle["tri_expo_fit"] = {}
+        tef = cycle["tri_expo_fit"]
         for roi in roi_names:
             tef[roi] = params[roi]
         rptdb.db_save(db, output)
@@ -78,7 +82,7 @@ def go(db_file, cycle_id, rad, no_plot, output):
         x = np.linspace(0, last_timepoint, 100)
         # convert to MBq (/1e6)
         y = dosi.triexpo_apply_from_dict(x, decay_constant, r) / 1e6
-        err = r['rmse'] / 1e6
+        err = r["rmse"] / 1e6
         plt.plot(x, y, "--", label=f"fit {roi}, rmse={err:.3f}", color=c)
         ic = ic + 1
 

@@ -11,7 +11,6 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("pname")
 def go(pname):
-
     # Define the base directory
     base_dir = pname
 
@@ -20,7 +19,7 @@ def go(pname):
         # Check if the current directory contains ct.nii.gz
         if "ct.nii.gz" in files:
             # Extract relevant information from the directory structure
-            dir_parts = root[len(base_dir) + 1:].split(os.path.sep)
+            dir_parts = root[len(base_dir) + 1 :].split(os.path.sep)
 
             # Check if the directory structure follows the expected pattern
             if len(dir_parts) == 2:
@@ -29,11 +28,11 @@ def go(pname):
                 cmd = f"TotalSegmentator -i ct.nii.gz -bs -o rois -ta body ; TotalSegmentator -i ct.nii.gz -bs -o rois"
 
                 # Execute the TotalSegmentator command in the current directory
-                print(f'cd {root} ; {cmd} ; cd {cwd}')
-                #subprocess.run(command, cwd=root)
+                print(f"cd {root} ; {cmd} ; cd {cwd}")
+                # subprocess.run(command, cwd=root)
 
                 # You can print or perform additional actions based on cycle and tp
-                #print(f"Processed cycle: {cycle}, tp: {tp}")
+                # print(f"Processed cycle: {cycle}, tp: {tp}")
 
 
 # --------------------------------------------------------------------------

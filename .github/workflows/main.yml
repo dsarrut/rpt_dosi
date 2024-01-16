@@ -59,7 +59,7 @@ jobs:
       with:
           lfs: True
     - name: Ensure LFS files are pulled
-      run: git lfs pull 
+      run: git lfs pull
     - name: Checkout submodules
       run: git submodule update --init --recursive
     - name: Set up Python ${{ matrix.python-version }}
@@ -81,4 +81,3 @@ jobs:
           else
               exit 0
           fi
-

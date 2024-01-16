@@ -23,8 +23,8 @@ FIXME ==> plot or print or dump as excel ?
 
 # (1) folder structure
 
-We consider the folder structure as follows. The file db.json will contains information about the images, such as the acquisition timing or the activities computed in several ROIs. It is a simple dict structure that can be edited manually or modified by other commands. 
- 
+We consider the folder structure as follows. The file db.json will contains information about the images, such as the acquisition timing or the activities computed in several ROIs. It is a simple dict structure that can be edited manually or modified by other commands.
+
     one patient
     │
     ├── db.json                    # database (json): data, timing and activities
@@ -35,16 +35,13 @@ We consider the folder structure as follows. The file db.json will contains info
     │   │   ├── spect.nii.gz       # Original SPECT image
     │   │   ├── rois/              # Segmented ROIs
     │   │   └── ...                # intermediated images (resampled, etc)
-    │   │ 
+    │   │
     │   ├── tp2/                   # second timepoint
     │   │   ├── ct.nii.gz          # Original CT image
     │   │   ├── spect.nii.gz       # Original SPECT image
     │   │   ├── rois/              # Segmented ROIs
     │   │   └── ...
-    │   
+    │
     ├── cycle2/
     │   ├── tp1/                   # first timepoint
     │   └── ...
-
-
-
