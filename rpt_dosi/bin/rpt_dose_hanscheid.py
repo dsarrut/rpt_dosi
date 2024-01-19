@@ -3,12 +3,8 @@
 
 import json
 import click
-from rpt_dosi import images as im
 from rpt_dosi import dosimetry as dosi
-from rpt_dosi import opendose as od
 import SimpleITK as itk
-import numpy as np
-from datetime import datetime
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -53,67 +49,11 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     help="Which method 2017 or 2018",
 )
 def go(spect, ct, roi, acq_time, phantom, rad, roi_list, verbose, output, method):
-    # read spect image
     spect = itk.ReadImage(spect)
-    spect_a = itk.GetArrayFromImage(spect)
-
-    # read and resample ct like spect
     ct = itk.ReadImage(ct)
-    ct_a = im.resample_ct_like_spect(spect, ct, verbose=verbose)
-    densities = im.convert_ct_to_densities(ct_a)
-
-    # time in sec
-    time_sec = acq_time * 3600
-
-    # pixel volume
-    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
-
-    # Opendose phantom and radionuclide name
-    phantom_name, rad_name = od.guess_phantom_and_isotope(phantom, rad)
-    if verbose:
-        print(f"Phantom = {phantom} and isotope = {rad_name}")
-
-    # consider list of roi/name
-    roi = [(file, name) for file, name in roi]
-    if roi_list is not None:
-        r = dosi.get_roi_list(roi_list)
-        roi = roi + r
-
-    # loop on ROI
-    results = {"method": "hanscheid2018", "date": str(datetime.now())}
-    for roi_file, roi_name in roi:
-        # read roi mask and resample like spect
-        r = itk.ReadImage(roi_file)
-        roi_a = im.resample_roi_like_spect(spect, r, verbose=verbose)
-
-        # get svalues and scaling
-        svalue, mass_scaling, roi_mass, roi_vol = od.get_svalue_and_mass_scaling(
-            phantom,
-            roi_a,
-            roi_name,
-            rad_name,
-            volume_voxel_mL,
-            densities,
-            verbose=verbose,
-        )
-
-        # dose computation with Hanscheid method
-        if method == "2018":
-            results["method"] = "hanscheid2018"
-            dose = dosi.dose_hanscheid2018(
-                spect_a, roi_a, time_sec, svalue, mass_scaling
-            )
-        else:
-            results["method"] = "hanscheid2017"
-            Teff = dosi.get_hanscheid2017_Teff(roi_name)
-            dose = dosi.dose_hanscheid2017(
-                spect_a, roi_a, time_sec, volume_voxel_mL, Teff
-            )
-
-        # results
-        print(f"Dose for {roi_name:<20}: {dose:.4f} Gray")
-        results[roi_name] = {"dose_Gy": dose, "mass_g": roi_mass, "volume_ml": roi_vol}
-
+    results = dosi.rpt_dose_hanscheid(
+        spect, ct, roi, acq_time, roi_list, verbose, phantom, rad, method
+    )
     # save output to json
     with open(output, "w") as f:
         json.dump(results, f, indent=4)

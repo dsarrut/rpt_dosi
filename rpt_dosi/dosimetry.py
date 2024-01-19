@@ -4,10 +4,14 @@ from .images import (
     resample_roi_like_spect,
     convert_ct_to_densities,
 )
-from .opendose import get_svalue_and_mass_scaling
+from .opendose import (
+    get_svalue_and_mass_scaling,
+    guess_phantom_and_isotope,
+)
 from .helpers import find_closest_match
 import SimpleITK as itk
 import numpy as np
+from datetime import datetime
 
 
 def spect_calibration(spect, calibration_factor, concentration_flag, verbose=True):
@@ -99,6 +103,64 @@ def dose_hanscheid2018_from_filenames(
     dose = dose_hanscheid2018(spect_a, roi_a, time_sec, svalue, mass_scaling)
     print(f"Dose for {roi_file}: {dose:.2f} Gray")
     return dose
+
+
+def rpt_dose_hanscheid(spect, ct, roi, acq_time, roi_list, verbose, phantom="ICRP 110 AM", rad="Lu177", method="2018"):
+    # read spect image
+    spect_a = itk.GetArrayFromImage(spect)
+
+    # read and resample ct like spect
+    ct_a = resample_ct_like_spect(spect, ct, verbose=verbose)
+    densities = convert_ct_to_densities(ct_a)
+
+    # time in sec
+    time_sec = acq_time * 3600
+
+    # pixel volume
+    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
+
+    # Opendose phantom and radionuclide name
+    phantom_name, rad_name = guess_phantom_and_isotope(phantom, rad)
+    if verbose:
+        print(f"Phantom = {phantom} and isotope = {rad_name}")
+
+    # consider list of roi/name
+    roi = [(file, name) for file, name in roi]
+    if roi_list is not None:
+        r = get_roi_list(roi_list)
+        roi = roi + r
+
+    # loop on ROI
+    results = {"method": "hanscheid2018", "date": str(datetime.now())}
+    for roi_file, roi_name in roi:
+        # read roi mask and resample like spect
+        r = itk.ReadImage(roi_file)
+        roi_a = resample_roi_like_spect(spect, r, verbose=verbose)
+
+        # get svalues and scaling
+        svalue, mass_scaling, roi_mass, roi_vol = get_svalue_and_mass_scaling(
+            phantom,
+            roi_a,
+            roi_name,
+            rad_name,
+            volume_voxel_mL,
+            densities,
+            verbose=verbose,
+        )
+
+        # dose computation with Hanscheid method
+        if method == "2018":
+            results["method"] = "hanscheid2018"
+            dose = dose_hanscheid2018(spect_a, roi_a, time_sec, svalue, mass_scaling)
+        else:
+            results["method"] = "hanscheid2017"
+            Teff = get_hanscheid2017_Teff(roi_name)
+            dose = dose_hanscheid2017(spect_a, roi_a, time_sec, volume_voxel_mL, Teff)
+
+        # results
+        print(f"Dose for {roi_name:<20}: {dose:.4f} Gray")
+        results[roi_name] = {"dose_Gy": dose, "mass_g": roi_mass, "volume_ml": roi_vol}
+    return(results)
 
 
 def get_roi_list(filename):
