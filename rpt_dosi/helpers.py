@@ -4,7 +4,7 @@ from box import Box
 import inspect
 import colored
 import Levenshtein
-import pkg_resources
+import importlib.resources as resources
 from pathlib import Path
 import sys
 import math
@@ -63,8 +63,18 @@ def find_closest_match(input_string, string_list):
     return closest_match, min_distance
 
 
+def get_tests_folder():
+    folder = Path(str(resources.files("rpt_dosi") / "tests"))
+    return folder
+
+
+def get_data_folder():
+    folder = Path(str(resources.files("rpt_dosi") / "rpt_dosi" / "data"))
+    return folder
+
+
 def get_tests_data_folder(sub_folder=None):
-    folder = pkg_resources.resource_filename("rpt_dosi", f"../tests/data")
+    folder = os.path.join(get_tests_folder(), "data")
     if sub_folder is not None:
         folder = os.path.join(folder, sub_folder)
         os.makedirs(folder, exist_ok=True)
@@ -72,7 +82,7 @@ def get_tests_data_folder(sub_folder=None):
 
 
 def get_tests_output_folder(sub_folder=None):
-    folder = pkg_resources.resource_filename("rpt_dosi", f"../tests/output")
+    folder = os.path.join(get_tests_folder(), "output")
     if sub_folder is not None:
         folder = os.path.join(folder, sub_folder)
         os.makedirs(folder, exist_ok=True)
