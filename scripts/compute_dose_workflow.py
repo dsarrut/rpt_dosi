@@ -22,10 +22,14 @@ def computedose(patient):
     # read the json
     f = open(patient + '.json')
     data = json.load(f)
+    outputResults = {}
+    outputResults["cycle"] = {}
 
     # compute dose for all ct images
     for cycle in data["cycle"].keys():
+        outputResults["cycle"][cycle] = {}
         for acquisition in data["cycle"][cycle]["acquisition"]:
+            outputResults["cycle"][cycle][acquisition["label"]] = []
             path = patient + "/cycle_" + cycle + "/" + acquisition["label"]
             ct = sitk.ReadImage(path + "/ct.nii")
             spect = sitk.ReadImage(path + "/spect.nii")
@@ -54,16 +58,17 @@ def computedose(patient):
                 json.dump(dataJSON, outfile, indent=4)
 
             #compute acquisition time
-            print(acquisition["date"])
-            print(data["cycle"][cycle]["injection"]["injection_datetime"])
             acq_time = datetime.strptime(acquisition["date"], "%d/%m/%Y, %H:%M:%S") - datetime.strptime(data["cycle"][cycle]["injection"]["injection_datetime"], "%d/%m/%Y, %H:%M:%S")
             acq_time = acq_time.total_seconds()/3600.0
-            print(acq_time)
-            results = rd.rpt_dose_hanscheid(spect_calibrated, ct_resampled, (), acq_time, "oar.json", True, phantom="ICRP 110 AM", rad="Lu177", method="2017")
-            print(results)
+            results = rd.rpt_dose_hanscheid(spect_calibrated, ct_resampled, (), acq_time, "oar.json", False, phantom="ICRP 110 AM", rad="Lu177", method="2017")
+            outputResults["cycle"][cycle][acquisition["label"]].append(results)
+            results = rd.rpt_dose_hanscheid(spect_calibrated, ct_resampled, (), acq_time, "oar.json", False, phantom="ICRP 110 AM", rad="Lu177", method="2018")
+            outputResults["cycle"][cycle][acquisition["label"]].append(results)
 
     # print ok
-    print("Dose computed")
+    with open(patient + "_results.json", "w") as outfile:
+        json.dump(outputResults, outfile, indent=4)
+    print("Dose computed, results are in " + patient + "_results.json")
 
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
