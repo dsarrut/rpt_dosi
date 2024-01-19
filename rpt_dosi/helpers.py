@@ -4,7 +4,7 @@ from box import Box
 import inspect
 import colored
 import Levenshtein
-import importlib.resources as resources
+import rpt_dosi
 from pathlib import Path
 import sys
 import math
@@ -64,12 +64,12 @@ def find_closest_match(input_string, string_list):
 
 
 def get_tests_folder():
-    folder = Path(str(resources.files("rpt_dosi") / "tests"))
+    folder = Path(rpt_dosi.__path__[0]) / ".." / "tests"
     return folder
 
 
 def get_data_folder():
-    folder = Path(str(resources.files("rpt_dosi") / "rpt_dosi" / "data"))
+    folder = Path(rpt_dosi.__path__[0]) / "data"
     return folder
 
 

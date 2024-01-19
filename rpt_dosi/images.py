@@ -236,7 +236,7 @@ def compare_images(image1, image2):
 
 
 def test_compare_image_exact(image1, image2):
-    ok = compare_images(image1, image2)
+    ok = compare_images(str(image1), str(image2))
     if not ok:
         try:
             fatal(
