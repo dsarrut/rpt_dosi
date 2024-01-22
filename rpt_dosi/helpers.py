@@ -64,12 +64,12 @@ def find_closest_match(input_string, string_list):
 
 
 def get_tests_folder():
-    folder = Path(rpt_dosi.__path__[0]) / ".." / "tests"
+    folder = Path(rpt_dosi.__path__[0]) / "tests"
     return folder
 
 
 def get_data_folder():
-    folder = Path(rpt_dosi.__path__[0]) / "data"
+    folder = Path(rpt_dosi.__path__[0]) / "rpt_dosi" / "data"
     return folder
 
 
