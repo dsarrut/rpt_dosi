@@ -7,9 +7,9 @@ from selenium.webdriver.support.ui import Select
 from bs4 import BeautifulSoup
 import json
 from rpt_dosi.helpers import find_closest_match, fatal
-import pkg_resources
 from pathlib import Path
 import numpy as np
+from rpt_dosi.helpers import get_data_folder
 
 
 def guess_phantom_id(phantom_name):
@@ -43,7 +43,7 @@ def guess_phantom_and_isotope(phantom_name, isotope_name):
 def get_rpt_data_folder(phantom_name):
     _, phantom_name = guess_phantom_id(phantom_name)
     folder = phantom_name.replace(" ", "_")
-    folder = pkg_resources.resource_filename("rpt_dosi", f"data/{folder}")
+    folder = get_data_folder() / folder
     return Path(folder)
 
 

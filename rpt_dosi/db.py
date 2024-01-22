@@ -1,15 +1,15 @@
-from .dicom import dicom_read_injection, dicom_read_acquisition_datetime
 import rpt_dosi.images as im
 import shutil
 import json
 from box import Box
 from datetime import datetime
 import numpy as np
+import rpt_dosi.dicom as di
 
 
 def db_update_injection(db, dicom_ds, cycle_id):
     # extract injection
-    rad = dicom_read_injection(dicom_ds)
+    rad = di.dicom_read_injection(dicom_ds)
 
     # create cycle if not exist
     if cycle_id not in db["cycles"]:
@@ -25,7 +25,7 @@ def db_update_injection(db, dicom_ds, cycle_id):
 
 def db_update_acquisition(db, dicom_ds, cycle_id, tp_id):
     # extract the date/time
-    dt = dicom_read_acquisition_datetime(dicom_ds)
+    dt = di.dicom_read_acquisition_datetime(dicom_ds)
 
     cycle = db["cycles"][cycle_id]
 
