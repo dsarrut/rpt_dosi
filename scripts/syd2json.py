@@ -62,7 +62,7 @@ def find_for_injection(db, type, patient, dataJSON):
             )
             images_CT = syd.find(db["Image"], injection_id=injection.id, modality="CT")
             for tmp in images_NM:
-                if label in tmp.labels and " reconstruction " in tmp.labels:
+                if label in tmp.labels and "reconstruction" in tmp.labels and "reconstruction_laure" in tmp.labels:
                     image_NM = tmp
             for tmp in images_CT:
                 if label in tmp.labels:
@@ -89,9 +89,16 @@ def find_for_injection(db, type, patient, dataJSON):
                 "injection_activity": injection.activity_in_mbq,
                 "injection_radionuclide": radionuclide_name,
             }
+        tp = label
+        if label == "04h":
+            tp = "tp1"
+        elif label == "24h":
+            tp = "tp2"
+        elif label == "96h":
+            tp = "tp3"
         dataJSON["cycle"][str(type.split("_")[0][-1])]["acquisition"].append(
             {
-                "label": label,
+                "label": tp,
                 "ct": mhd_ct_file,
                 "spect": mhd_spect_file,
                 "roi": "",
