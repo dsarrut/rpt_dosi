@@ -30,6 +30,16 @@ def fatal(s):
     raise Exception(s)
 
 
+def get_roi_list(filename):
+    # open the file
+    with open(filename, "r") as f:
+        data = json.load(f)
+    l = []
+    for item in data:
+        l.append((item["roi_filename"], item["roi_name"]))
+    return l
+
+
 def read_and_check_input_infos(json_file):
     # read
     print(json_file)
@@ -62,10 +72,26 @@ def find_closest_match(input_string, string_list):
 
     return closest_match, min_distance
 
+def create_oar_file(folder):
+    if not os.path.isfile(os.path.join(folder, "data", "oar_realpath.json")):
+        oars = get_roi_list(os.path.join(folder, "data", "oar.json"))
+        output_oars = []
+        for roi_file, roi_name in oars:
+            roi_file = os.path.join(folder, roi_file)
+            output_oars.append({
+                "roi_filename": roi_file,
+                "roi_name": roi_name,
+            })
+        with open(os.path.join(folder, "data", "oar_realpath.json"), 'w') as filehandle:
+            json_object = json.dumps(output_oars, indent=4)
+            filehandle.write(json_object)
+
 
 def get_tests_folder():
     current_dir = Path(os.path.dirname(os.path.realpath(__file__)))
     folder = current_dir / ".." / "tests"
+    # Create oar.json with realpath
+    create_oar_file(folder)
     return folder
 
 

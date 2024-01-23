@@ -19,7 +19,7 @@ if __name__ == "__main__":
     print("Hanscheid 2017 method")
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     ct_input = data_folder / "ct_8mm.nii.gz"
-    oar_json = data_folder / "oar.json"
+    oar_json = data_folder / "oar_realpath.json"
     output = output_folder / "dose.json"
     cmd = f"cd {data_folder}/.. ; rpt_dose_hanscheid -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m 2017"
     print(cmd)
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     print("Hanscheid 2018 method")
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     ct_input = data_folder / "ct_8mm.nii.gz"
-    oar_json = data_folder / "oar.json"
+    oar_json = data_folder / "oar_realpath.json"
     output = output_folder / "dose.json"
     cmd = f"cd {data_folder}/.. ; rpt_dose_hanscheid -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m 2018"
     print(cmd)

@@ -8,7 +8,10 @@ from .opendose import (
     get_svalue_and_mass_scaling,
     guess_phantom_and_isotope,
 )
-from .helpers import find_closest_match
+from .helpers import (
+    find_closest_match,
+    get_roi_list,
+)
 import SimpleITK as itk
 import numpy as np
 from datetime import datetime
@@ -161,16 +164,6 @@ def rpt_dose_hanscheid(spect, ct, roi, acq_time, roi_list, verbose, phantom="ICR
         print(f"Dose for {roi_name:<20}: {dose:.4f} Gray")
         results[roi_name] = {"dose_Gy": dose, "mass_g": roi_mass, "volume_ml": roi_vol}
     return(results)
-
-
-def get_roi_list(filename):
-    # open the file
-    with open(filename, "r") as f:
-        data = json.load(f)
-    l = []
-    for item in data:
-        l.append((item["roi_filename"], item["roi_name"]))
-    return l
 
 
 def fit_exp_linear(x, y):
