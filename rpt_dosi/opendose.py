@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import Select
 from bs4 import BeautifulSoup
 import json
 from rpt_dosi.helpers import find_closest_match, fatal
 from pathlib import Path
 import numpy as np
 from rpt_dosi.helpers import get_data_folder
-
+try:
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.support.ui import Select
+except:
+    print("No selenium imported")
 
 def guess_phantom_id(phantom_name):
     # which phantom ?
