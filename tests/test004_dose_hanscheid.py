@@ -21,10 +21,13 @@ if __name__ == "__main__":
     ct_input = data_folder / "ct_8mm.nii.gz"
     oar_json = data_folder / "oar.json"
     output = output_folder / "dose.json"
-    cmd = f"cd {data_folder}/.. ; rpt_dose_hanscheid -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m 2017"
+    pwd = os.getcwd()
+    os.chdir(str(data_folder / ".."))
+    cmd = f"rpt_dose_hanscheid -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m 2017"
     print(cmd)
     os.system(cmd)
     dose_ref = ref_folder / "dose_ref_2017.json"
+    os.chdir(pwd)
 
     # open the dose files
     with open(output) as f:
@@ -48,9 +51,11 @@ if __name__ == "__main__":
     ct_input = data_folder / "ct_8mm.nii.gz"
     oar_json = data_folder / "oar.json"
     output = output_folder / "dose.json"
-    cmd = f"cd {data_folder}/.. ; rpt_dose_hanscheid -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m 2018"
+    os.chdir(str(data_folder / ".."))
+    cmd = f"rpt_dose_hanscheid -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m 2018"
     print(cmd)
     os.system(cmd)
+    os.chdir(pwd)
     dose_ref = ref_folder / "dose_ref_2018.json"
 
     # open the dose files
