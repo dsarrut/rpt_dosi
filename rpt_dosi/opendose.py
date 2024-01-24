@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import Select
 from bs4 import BeautifulSoup
 import json
 from rpt_dosi.helpers import find_closest_match, fatal
@@ -62,6 +57,12 @@ def get_match_in_list(names_list, name):
 
 
 def web_svalues_get_driver():
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.support.ui import Select
+
     # Define the URL of the form
     url = "https://opendose.org/svalues"
 
@@ -81,6 +82,12 @@ def web_svalues_get_driver():
 
 
 def web_svalues_select_phantom(driver, model_dropdown, phantom_id):
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.support.ui import Select
+
     # which phantom ?
     model_dropdown_select = Select(model_dropdown)
     model_dropdown_select.select_by_value(phantom_id)
@@ -95,6 +102,9 @@ def web_svalues_select_phantom(driver, model_dropdown, phantom_id):
 
 
 def get_all_dropdown_options(driver, name):
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+
     # Find the 'name' dropdown element
     dropdown = driver.find_element(By.ID, name)
 
@@ -112,6 +122,12 @@ def get_all_dropdown_options(driver, name):
 
 
 def web_svalues_query_data(driver, source_id, isotope_id):
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.support.ui import Select
+
     # Select values for source and isotope, then click submit
     source_dropdown = driver.find_element(By.ID, "source")
     source_dropdown_select = Select(source_dropdown)
