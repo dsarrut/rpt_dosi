@@ -76,17 +76,17 @@ def get_data_folder():
 
 
 def get_tests_data_folder(sub_folder=None):
-    folder = os.path.join(get_tests_folder(), "data")
+    folder = get_tests_folder() / "data"
     if sub_folder is not None:
-        folder = os.path.join(folder, sub_folder)
+        folder = folder / sub_folder
         os.makedirs(folder, exist_ok=True)
     return Path(folder)
 
 
 def get_tests_output_folder(sub_folder=None):
-    folder = os.path.join(get_tests_folder(), "output")
+    folder = get_tests_folder() / "output"
     if sub_folder is not None:
-        folder = os.path.join(folder, sub_folder)
+        folder = folder / sub_folder
         os.makedirs(folder, exist_ok=True)
     return Path(folder)
 
