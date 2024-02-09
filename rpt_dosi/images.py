@@ -1,4 +1,4 @@
-import SimpleITK as itk
+import SimpleITK as sitk
 import math
 from .helpers import fatal
 import numpy as np
@@ -9,13 +9,13 @@ def images_have_same_domain(image1, image2, tolerance=1e-5):
     # Check if the sizes and origins of the images are the same,
     # and if the spacing values are close within the given tolerance
     is_same = (
-        len(image1.GetSize()) == len(image2.GetSize())
-        and all(i == j for i, j in zip(image1.GetSize(), image2.GetSize()))
-        and images_have_same_spacing(image1, image2, tolerance)
-        and all(
-            math.isclose(i, j, rel_tol=tolerance)
-            for i, j in zip(image1.GetOrigin(), image2.GetOrigin())
-        )
+            len(image1.GetSize()) == len(image2.GetSize())
+            and all(i == j for i, j in zip(image1.GetSize(), image2.GetSize()))
+            and images_have_same_spacing(image1, image2, tolerance)
+            and all(
+        math.isclose(i, j, rel_tol=tolerance)
+        for i, j in zip(image1.GetOrigin(), image2.GetOrigin())
+    )
     )
     return is_same
 
@@ -31,7 +31,7 @@ def images_have_same_spacing(image1, image2, tolerance=1e-5):
 
 def resample_image_like(img, like_img, default_pixel_value=-1000, linear=True):
     # Create a resampler object
-    resampler = itk.ResampleImageFilter()
+    resampler = sitk.ResampleImageFilter()
 
     # Set the resampler parameters from img1
     resampler.SetSize(like_img.GetSize())
@@ -41,11 +41,11 @@ def resample_image_like(img, like_img, default_pixel_value=-1000, linear=True):
     resampler.SetDefaultPixelValue(default_pixel_value)
 
     # Use the identity transform - we only resample in place
-    resampler.SetTransform(itk.Transform())
+    resampler.SetTransform(sitk.Transform())
 
     # Set the interpolation method to Linear
     if linear:
-        resampler.SetInterpolator(itk.sitkLinear)
+        resampler.SetInterpolator(sitk.sitkLinear)
 
     # Execute the resampling
     resampled_img = resampler.Execute(img)
@@ -54,7 +54,7 @@ def resample_image_like(img, like_img, default_pixel_value=-1000, linear=True):
 
 
 def apply_gauss_smoothing(img, sigma):
-    gauss_filter = itk.SmoothingRecursiveGaussianImageFilter()
+    gauss_filter = sitk.SmoothingRecursiveGaussianImageFilter()
     gauss_filter.SetSigma(sigma)
     gauss_filter.SetNormalizeAcrossScale(True)
     return gauss_filter.Execute(img)
@@ -62,7 +62,7 @@ def apply_gauss_smoothing(img, sigma):
 
 def resample_image(img, spacing, default_pixel_value=-1000, linear=True):
     # Create a resampler object
-    resampler = itk.ResampleImageFilter()
+    resampler = sitk.ResampleImageFilter()
 
     # new size
     dim = img.GetDimension()
@@ -82,11 +82,11 @@ def resample_image(img, spacing, default_pixel_value=-1000, linear=True):
     resampler.SetDefaultPixelValue(default_pixel_value)
 
     # Use the identity transform - we only resample in place
-    resampler.SetTransform(itk.Transform())
+    resampler.SetTransform(sitk.Transform())
 
     # Set the interpolation method to Linear
     if linear:
-        resampler.SetInterpolator(itk.sitkLinear)
+        resampler.SetInterpolator(sitk.sitkLinear)
 
     # Execute the resampling
     resampled_img = resampler.Execute(img)
@@ -101,12 +101,12 @@ def image_set_background(ct, roi, bg_value=-1000, roi_bg_value=0):
             f" : {ct.GetSize()} {ct.GetSpacing()} vs {roi.GetSize()} {roi.GetSpacing()}"
         )
     # get as array
-    cta = itk.GetArrayFromImage(ct)
-    bga = itk.GetArrayFromImage(roi)
+    cta = sitk.GetArrayFromImage(ct)
+    bga = sitk.GetArrayFromImage(roi)
     # set bg
     cta[bga == roi_bg_value] = bg_value
     # back to itk image
-    cto = itk.GetImageFromArray(cta)
+    cto = sitk.GetImageFromArray(cta)
     cto.CopyInformation(ct)
     return cto
 
@@ -114,7 +114,7 @@ def image_set_background(ct, roi, bg_value=-1000, roi_bg_value=0):
 def crop_to_bounding_box(img, bg_value=-1000):
     # Create a binary version of the image (1 where img is not 0, else 0)
     tiny = 1
-    binary = itk.BinaryThreshold(
+    binary = sitk.BinaryThreshold(
         img,
         lowerThreshold=bg_value + tiny,
         upperThreshold=1e10,
@@ -123,14 +123,14 @@ def crop_to_bounding_box(img, bg_value=-1000):
     )
 
     # Create a shape statistics object and execute it on the binary image
-    shape_stats = itk.LabelShapeStatisticsImageFilter()
+    shape_stats = sitk.LabelShapeStatisticsImageFilter()
     shape_stats.Execute(binary)
 
     # Get bounding box (you can also add checks here to make sure there is only one label)
     bounding_box = shape_stats.GetBoundingBox(1)
 
     # Create a region of interest filter and set its region to the bounding box
-    roi_filter = itk.RegionOfInterestImageFilter()
+    roi_filter = sitk.RegionOfInterestImageFilter()
     roi_filter.SetRegionOfInterest(bounding_box)
 
     # Execute filter on original image
@@ -140,7 +140,7 @@ def crop_to_bounding_box(img, bg_value=-1000):
 
 
 def spect_calibration(img, calibration_factor, verbose):
-    imga = itk.GetArrayFromImage(img)
+    imga = sitk.GetArrayFromImage(img)
     volume_voxel_mL = np.prod(img.GetSpacing()) / 1000
     imga = imga * volume_voxel_mL / calibration_factor
     total_activity = np.sum(imga)
@@ -166,28 +166,29 @@ def resample_ct_like_spect(spect, ct, verbose=True):
             )
         ct = apply_gauss_smoothing(ct, sigma)
         ct = resample_image_like(ct, spect, -1000, linear=True)
-    ct_a = itk.GetArrayFromImage(ct)
+    ct_a = sitk.GetArrayFromImage(ct)
     return ct_a
 
 
-def resample_roi_like_spect(spect, roi, verbose=True):
+def resample_roi_like_spect(spect, roi, convert_to_np=True, verbose=True):
     if not images_have_same_domain(spect, roi):
         if verbose:
             print(
                 f"Resample roi mask ({roi.GetSize()}) to spacing={spect.GetSpacing()} size={spect.GetSize()}"
             )
         roi = resample_image_like(roi, spect, 0, linear=False)
-    roi_a = itk.GetArrayFromImage(roi)
-    return roi_a
+    if convert_to_np:
+        roi = sitk.GetArrayFromImage(roi)
+    return roi
 
 
 def get_stats_in_rois(spect, ct, rois_list):
     # load spect
-    spect = itk.ReadImage(spect)
+    spect = sitk.ReadImage(spect)
     volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
-    spect_a = itk.GetArrayFromImage(spect)
+    spect_a = sitk.GetArrayFromImage(spect)
     # load ct
-    ct = itk.ReadImage(ct)
+    ct = sitk.ReadImage(ct)
     ct_a = resample_ct_like_spect(spect, ct, verbose=False)
     densities = convert_ct_to_densities(ct_a)
     # prepare key
@@ -196,7 +197,7 @@ def get_stats_in_rois(spect, ct, rois_list):
     for roi_name in rois_list:
         filename = rois_list[roi_name]
         # read roi mask and resample like spect
-        r = itk.ReadImage(filename)
+        r = sitk.ReadImage(filename)
         roi_a = resample_roi_like_spect(spect, r, verbose=False)
         # compute stats
         s = image_roi_stats(spect_a, roi_a)
@@ -224,14 +225,14 @@ def image_roi_stats(spect_a, roi_a):
 
 def compare_images(image1, image2):
     # print(f"Compare {image1} {image2}")
-    img1 = itk.ReadImage(image1)
-    img2 = itk.ReadImage(image2)
+    img1 = sitk.ReadImage(image1)
+    img2 = sitk.ReadImage(image2)
     if not images_have_same_domain(img1, img2):
         print(f"Im1: {image1.GetSize()}  {image1.GetSpacing()}   {image1.GetOrigin()}")
         print(f"Im2: {image2.GetSize()}  {image2.GetSpacing()}   {image2.GetOrigin()}")
         return False
-    img1 = itk.GetArrayFromImage(img1)
-    img2 = itk.GetArrayFromImage(img2)
+    img1 = sitk.GetArrayFromImage(img1)
+    img2 = sitk.GetArrayFromImage(img2)
     return np.all(img1 == img2)
 
 
@@ -246,3 +247,88 @@ def test_compare_image_exact(image1, image2):
         except:
             pass
     return ok
+
+
+def dilate_mask(img, dilatation_mm):
+    # convert radius in vox
+    radius = [int(round(dilatation_mm / img.GetSpacing()[0])),
+              int(round(dilatation_mm / img.GetSpacing()[1])),
+              int(round(dilatation_mm / img.GetSpacing()[2]))]
+    # Set the kernel element
+    dilate_filter = sitk.BinaryDilateImageFilter()
+    dilate_filter.SetKernelRadius(radius)
+    dilate_filter.SetKernelType(sitk.sitkBall)
+    dilate_filter.SetForegroundValue(1)
+    output = dilate_filter.Execute(img)
+    return output
+
+
+def tmtv_mask_cut_the_head(image: object, mask: object, skull_filename: object, margin_mm: object) -> object:
+    roi = sitk.ReadImage(skull_filename)
+    roi_arr = resample_roi_like_spect(image, roi, convert_to_np=True, verbose=False)
+    indices = np.argwhere(roi_arr == 1)
+    most_inferior_pixel = indices[np.argmin(indices[:, 0])]
+    margin_pix = int(round(margin_mm / image.GetSpacing()[0]))
+    most_inferior_pixel[0] -= margin_pix
+    mask[most_inferior_pixel[0]:-1, :, :] = 0
+
+
+def tmtv_apply_mask(image, mask):
+    # convert img in nparray
+    img_np = sitk.GetArrayFromImage(image)
+
+    # apply the mask
+    img_np[mask == 0] = 0
+
+    # back to itk images
+    img = sitk.GetImageFromArray(img_np)
+    img.CopyInformation(image)
+    return img
+
+
+def tmtv_mask_threshold(image, mask, threshold):
+    # convert img in nparray
+    img_np = sitk.GetArrayFromImage(image)
+
+    # threshold the mask
+    mask[img_np < threshold] = 0
+
+
+def tmtv_mask_remove_rois(image, mask, roi_list):
+    # loop on the roi
+    for roi in roi_list:
+        # read image
+        roi_img = sitk.ReadImage(roi['filename'])
+        # check size and resample if needed
+        roi_img = resample_roi_like_spect(image, roi_img, convert_to_np=False, verbose=False)
+        # dilatation ?
+        roi_img = dilate_mask(roi_img, roi['dilatation'])
+        # update the mask
+        roi_np = sitk.GetArrayViewFromImage(roi_img)
+        mask[roi_np == 1] = 0
+
+
+def tmtv_compute_mask(image, skull_filename, head_margin_mm, roi_list, threshold, verbose=False):
+    # initialize the mask
+    mask = np.ones_like(sitk.GetArrayViewFromImage(image))
+
+    # cut the head
+    verbose and print(f'Cut the head with {head_margin_mm}mm margin')
+    tmtv_mask_cut_the_head(image, mask, skull_filename, margin_mm=head_margin_mm)
+
+    # remove the rois
+    verbose and print(f'Remove the {len(roi_list)} ROIs')
+    tmtv_mask_remove_rois(image, mask, roi_list)
+
+    # threshold
+    verbose and print(f'Thresholding with {threshold}')
+    tmtv_mask_threshold(image, mask, threshold)
+
+    # apply the mask
+    tmtv = tmtv_apply_mask(image, mask)
+
+    # convert mask to itk image
+    mask = sitk.GetImageFromArray(mask)
+    mask.CopyInformation(image)
+
+    return tmtv, mask
