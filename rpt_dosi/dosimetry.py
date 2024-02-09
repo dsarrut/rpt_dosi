@@ -105,7 +105,17 @@ def dose_hanscheid2018_from_filenames(
     return dose
 
 
-def rpt_dose_hanscheid(spect, ct, roi, acq_time, roi_list, verbose, phantom="ICRP 110 AM", rad="Lu177", method="2018"):
+def rpt_dose_hanscheid(
+    spect,
+    ct,
+    roi,
+    acq_time,
+    roi_list,
+    verbose,
+    phantom="ICRP 110 AM",
+    rad="Lu177",
+    method="2018",
+):
     # read spect image
     spect_a = itk.GetArrayFromImage(spect)
 
@@ -160,7 +170,7 @@ def rpt_dose_hanscheid(spect, ct, roi, acq_time, roi_list, verbose, phantom="ICR
         # results
         print(f"Dose for {roi_name:<20}: {dose:.4f} Gray")
         results[roi_name] = {"dose_Gy": dose, "mass_g": roi_mass, "volume_ml": roi_vol}
-    return(results)
+    return results
 
 
 def get_roi_list(filename):
