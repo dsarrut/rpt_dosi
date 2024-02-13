@@ -194,10 +194,9 @@ def get_stats_in_rois(spect, ct, rois_list):
     # prepare key
     res = {}
     # loop on rois
-    for roi_name in rois_list:
-        filename = rois_list[roi_name]
+    for roi in rois_list:
         # read roi mask and resample like spect
-        r = sitk.ReadImage(filename)
+        r = sitk.ReadImage(roi.roi_filename)
         roi_a = resample_roi_like_spect(spect, r, verbose=False)
         # compute stats
         s = image_roi_stats(spect_a, roi_a)
@@ -206,7 +205,7 @@ def get_stats_in_rois(spect, ct, rois_list):
         mass = np.sum(d) * volume_voxel_mL
         s["mass_g"] = mass
         # set in the db
-        res[roi_name] = s
+        res[roi.roi_name] = s
     return res
 
 

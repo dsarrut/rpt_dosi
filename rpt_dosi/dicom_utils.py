@@ -1,4 +1,3 @@
-from .helpers import fatal
 from datetime import datetime
 import os
 import pydicom
@@ -6,7 +5,6 @@ from collections import defaultdict
 from tqdm import tqdm
 from box import Box
 import questionary
-
 
 def dicom_read_acquisition_datetime(ds):
     try:

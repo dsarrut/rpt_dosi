@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import click
-import rpt_dosi.dicom as dicom
+import rpt_dosi.dicom_utils as dicom
 import json
 import questionary
 from box import Box

@@ -17,7 +17,6 @@ def go(db_file, cycle_id):
 
     # get cycle
     cycle = db.cycles[cycle_id]
-    # injected_activity = cycle.injection.activity_MBq
 
     # get all roi names with activity
     roi_names = set()

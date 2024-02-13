@@ -1,10 +1,11 @@
+import rpt_dosi.dicom_utils as di
 import rpt_dosi.images as im
 import shutil
 import json
 from box import Box
 from datetime import datetime
 import numpy as np
-import rpt_dosi.dicom as di
+from .helpers import fatal
 
 
 def db_update_injection(db, dicom_ds, cycle_id):
@@ -45,7 +46,13 @@ def db_update_cycle_rois_activity(cycle):
     for acq_id in cycle.acquisitions:
         print(f"Acquisition {acq_id}")
         acq = cycle.acquisitions[acq_id]
-        s = im.get_stats_in_rois(acq.spect_image, acq.ct_image, acq.rois)
+        if 'rois' not in acq:
+            fatal(f"Acquisition {acq_id} has no rois")
+        image_filename = acq.spect_image
+        if "calibrated_spect_image" in acq:
+            image_filename = acq.calibrated_spect_image
+            print(f"Using calibrated spect image {image_filename}")
+        s = im.get_stats_in_rois(image_filename, acq.ct_image, acq.rois)
         acq["activity"] = s
 
 

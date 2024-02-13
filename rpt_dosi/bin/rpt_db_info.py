@@ -30,9 +30,9 @@ def go(db_file):
             try:
                 adate = datetime.strptime(acq.datetime, "%Y-%m-%d %H:%M:%S")
                 hours_diff = (adate - idate).total_seconds() / 3600
-                print(f"Acquisition {acq_id} : {hours_diff:.3f} hours")
+                print(f"\tAcquisition {acq_id} : {hours_diff:.3f} hours")
             except:
-                print(f"Acquisition {acq_id} : unknown datetime")
+                print(f"\tAcquisition {acq_id} : unknown datetime")
 
 
 # --------------------------------------------------------------------------
