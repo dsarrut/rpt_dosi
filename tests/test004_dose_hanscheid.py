@@ -3,6 +3,7 @@
 
 import json
 import rpt_dosi.helpers as he
+import rpt_dosi.dosimetry as rd
 import os
 
 if __name__ == "__main__":
@@ -15,36 +16,41 @@ if __name__ == "__main__":
     print()
 
     # test
-    # rpt_dose_hanscheid -s data/spect_8.321mm.nii.gz  --ct data/ct_8mm.nii.gz  -l data/oar.json -o a.txt -t 24 -m 2017
-    print("Hanscheid 2017 method")
+    print("Hanscheid 2017 method with default Teff")
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     ct_input = data_folder / "ct_8mm.nii.gz"
     oar_json = data_folder / "oar.json"
     output = output_folder / "dose.json"
     pwd = os.getcwd()
     os.chdir(str(data_folder / ".."))
-    cmd = f"rpt_dose_hanscheid -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m 2017"
+    cmd = f"rpt_dose -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m hanscheid2017"
     print(cmd)
     os.system(cmd)
     dose_ref = ref_folder / "dose_ref_2017.json"
     os.chdir(pwd)
 
     # open the dose files
-    with open(output) as f:
-        dose = json.load(f)
-    with open(dose_ref) as f:
-        dose_ref = json.load(f)
-    print(dose)
-    # remove date key
-    del dose["date"]
-    del dose_ref["date"]
-    # compare
-    b = dose == dose_ref
-    he.print_tests(b, f"Compare doses")
-    is_ok = b and is_ok
+    is_ok = rd.test_compare_json_doses(dose_ref, output)  and is_ok
 
     # test
-    # rpt_dose_hanscheid -s data/spect_8.321mm.nii.gz  --ct data/ct_8mm.nii.gz  -l data/oar.json -o a.txt -t 24 -m 2018
+    print()
+    print("Hanscheid 2017 method with Teff in oar.json file")
+    spect_input = data_folder / "spect_8.321mm.nii.gz"
+    ct_input = data_folder / "ct_8mm.nii.gz"
+    oar_json = data_folder / "oar_teff.json"
+    output = output_folder / "dose.json"
+    pwd = os.getcwd()
+    os.chdir(str(data_folder / ".."))
+    cmd = f"rpt_dose -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m hanscheid2017"
+    print(cmd)
+    os.system(cmd)
+    dose_ref = ref_folder / "dose_ref_2017.json"
+    os.chdir(pwd)
+
+    # compare the dose files
+    is_ok = rd.test_compare_json_doses(dose_ref, output)  and is_ok
+
+    # test
     print()
     print("Hanscheid 2018 method")
     spect_input = data_folder / "spect_8.321mm.nii.gz"
@@ -52,25 +58,14 @@ if __name__ == "__main__":
     oar_json = data_folder / "oar.json"
     output = output_folder / "dose.json"
     os.chdir(str(data_folder / ".."))
-    cmd = f"rpt_dose_hanscheid -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m 2018"
+    cmd = f"rpt_dose -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m hanscheid2018"
     print(cmd)
     os.system(cmd)
     os.chdir(pwd)
     dose_ref = ref_folder / "dose_ref_2018.json"
 
-    # open the dose files
-    with open(output) as f:
-        dose = json.load(f)
-    with open(dose_ref) as f:
-        dose_ref = json.load(f)
-    print(dose)
-    # remove date key
-    del dose["date"]
-    del dose_ref["date"]
-    # compare
-    b = dose == dose_ref
-    he.print_tests(b, f"Compare doses")
-    is_ok = b and is_ok
+    # compare the dose files
+    is_ok = rd.test_compare_json_doses(dose_ref, output)  and is_ok
 
     # end
     he.test_ok(is_ok)

@@ -2,8 +2,10 @@
 
 # (4) perform the SPECT calibration and add the ROIs in the db
 
-
-  
+    rpt_db_spect_calibration --db p1/db.json -c 0.176906614
+    rpt_db_add_rois --db p1/db.json -l oar.json -n p1
+    rpt_db_rois_activity --db p1/db.json
+    rpt_db_info --db BC4/db.json
 
 
 # (3) update the dates (injection and spect) in the json
