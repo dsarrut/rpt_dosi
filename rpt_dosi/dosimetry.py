@@ -8,10 +8,11 @@ from .opendose import (
     get_svalue_and_mass_scaling,
     guess_phantom_and_isotope,
 )
-from .helpers import find_closest_match
+from .helpers import find_closest_match, print_tests
 import SimpleITK as itk
 import numpy as np
 from datetime import datetime
+from box import Box, BoxList
 
 
 def spect_calibration(spect, calibration_factor, concentration_flag, verbose=True):
@@ -46,7 +47,176 @@ def spect_Bq_to_SUV(spect, injected_activity_MBq, body_weight_kg):
     return o
 
 
-def dose_hanscheid2018(spect_Bq, roi, time_sec, svalue, mass_scaling):
+def dose_method_hanscheid2017_get_time_eff_h(roi_name):
+    # these are some default values
+    time_eff_h = {
+        "kidney": 50,
+        "left kidney": 50,
+        "right kidney": 50,
+        "liver": 67,
+        "spleen": 67,
+        "NET tumors": 77
+    }
+    a, _ = find_closest_match(roi_name, time_eff_h)
+    return time_eff_h[a]
+
+
+def dose_method_hanscheid2017(spect_a, roi_a, acq_time_h, options):
+    roi = options.roi
+    if "time_eff_h" not in roi:
+        if options.radionuclide != "Lu177":
+            fatal(f'Radionuclide {options.radionuclide} : unknown time_eff_h, please provide a valid time_eff_h.')
+        roi.time_eff_h = dose_method_hanscheid2017_get_time_eff_h(roi.roi_name)
+    if options.verbose:
+        print(f'Time_eff_h for {roi.roi_name} = {roi.time_eff_h:.3f} h')
+    return dose_method_hanscheid2017_equation(spect_a,
+                                              roi_a,
+                                              acq_time_h,
+                                              options.volume_voxel_mL,
+                                              roi.time_eff_h)
+
+
+def dose_method_hanscheid2017_equation(spect_Bq, roi, acq_time_h, volume_voxel_mL, time_eff_h):
+    """
+    Input img and ROI must be numpy arrays
+    """
+
+    # compute mean activity concentration in the ROI
+    v = spect_Bq[roi == 1] / volume_voxel_mL
+    Ct = np.mean(v) / 1e6
+
+    # compute dose
+    dose = 0.125 * Ct * np.power(2, acq_time_h / time_eff_h) * time_eff_h
+
+    return dose
+
+
+def dose_for_each_rois(
+        spect,
+        ct,
+        rois,
+        acq_time_h,
+        method,
+        options
+):
+    # options and rois as Box
+    options = Box(options)
+    rois = BoxList(rois)
+
+    # read spect image from itk to np array
+    spect_a = itk.GetArrayFromImage(spect)
+
+    # read and resample ct like spect
+    ct_a = resample_ct_like_spect(spect, ct, verbose=options.verbose)
+    densities = convert_ct_to_densities(ct_a)
+
+    # pixel volume
+    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
+
+    # Opendose phantom and radionuclide name
+    # (this is not used by all methods)
+    if method == "hanscheid2018":
+        options.phantom_name, options.rad_name = (
+            guess_phantom_and_isotope(options.phantom, options.radionuclide))
+        if options.verbose:
+            print(f"Phantom = {options.phantom} and isotope = {options.rad_name}")
+
+    # prepare parameters that are used by some methods
+    options.densities = densities
+    options.volume_voxel_mL = volume_voxel_mL
+
+    # loop on ROI
+    results = {"method": method, "date": str(datetime.now())}
+    for roi in rois:
+        # read roi mask and resample like spect
+        r = itk.ReadImage(roi.roi_filename)
+        roi_a = resample_roi_like_spect(spect, r, verbose=options.verbose)
+
+        # set options for the current roi
+        options.roi = roi
+
+        # go
+        dose = None
+        if method == "hanscheid2018":
+            dose = dose_method_hanscheid2018(spect_a, roi_a, acq_time_h, options)
+        if method == "hanscheid2017":
+            dose = dose_method_hanscheid2017(spect_a, roi_a, acq_time_h, options)
+        if method == "madsen2018":
+            dose = dose_method_madsen2018(spect_a, roi_a, acq_time_h, options)
+
+        if dose is None:
+            fatal(f"Dosimetry method {method} not known")
+
+        # compute mass of the current ROI
+        roi = options.roi
+        if "roi_mass" not in roi or "roi_vol" not in roi:
+            d = densities[roi_a == 1]
+            roi.roi_mass = np.sum(d) * volume_voxel_mL
+            roi.roi_vol = len(d) * volume_voxel_mL
+
+        # results
+        results[roi.roi_name] = {"dose_Gy": dose, "mass_g": roi.roi_mass, "volume_ml": roi.roi_vol}
+    return results
+
+
+def dose_method_hanscheid2018(spect_a, roi_a, acq_time_h, options):
+    # get roi name
+    phantom_name, rad_name = guess_phantom_and_isotope(options.phantom, options.radionuclide)
+    # get svalues and scaling
+    svalue, mass_scaling, roi_mass, roi_vol = get_svalue_and_mass_scaling(
+        phantom_name,
+        roi_a,
+        options.roi.roi_name,
+        rad_name,
+        options.volume_voxel_mL,
+        options.densities,
+        verbose=options.verbose,
+    )
+    options.roi.roi_mass = roi_mass
+    options.roi.roi_vol = roi_vol
+    # compute the dose
+    return dose_method_hanscheid2018_equation(spect_a, roi_a, acq_time_h, svalue, mass_scaling)
+
+
+def dose_method_hanscheid2018_equation(spect_Bq, roi, acq_time_h, svalue, mass_scaling):
+    """
+    Input image and ROI must be numpy arrays
+    - spect must be in Bq (not concentration)
+    - acquisition time in hours
+    - output is in Gray
+    """
+    # compute mean activity in the ROI, in MBq
+    v = spect_Bq[roi == 1]
+    At = np.sum(v) / 1e6
+
+    # S is in (mGy/MBq/s), so we get dose in mGy
+    dose = mass_scaling * At * svalue * (2 * acq_time_h * 3600.0) / np.log(2) / 1000.0
+
+    return dose
+
+
+def dose_method_madsen2018(spect_a, roi_a, acq_time_h, options):
+    roi = options.roi
+    # compute mass
+    d = options.densities[roi_a == 1]
+    roi.roi_mass = np.sum(d) * options.volume_voxel_mL
+    roi.roi_vol = len(d) * options.volume_voxel_mL
+    # time effective
+    if "time_eff_h" not in roi:
+        roi.time_eff_h = dose_method_hanscheid2017_get_time_eff_h(options.roi.roi_name)
+    if options.verbose:
+        print(f'time_eff_h for {roi.roi_name} = {roi.time_eff_h:.3f} h')
+    # Delta in mJ MBq-1 h-1 [OpenDose] = mass x Svalue
+    if "delta_lu_e" not in options:
+        options.delta_lu_e = 0.08532
+    if options.verbose:
+        print(f'delta_lu_e = {options.delta_lu_e:.3f} mJ MBq-1 h-1')
+    # go
+    return dose_method_madsen2018_equation(spect_a, roi_a, acq_time_h,
+                                           options.delta_lu_e, roi.roi_mass, roi.time_eff_h)
+
+
+def dose_method_madsen2018_equation(spect_Bq, roi, acq_time_h, delta_lu_e, roi_mass_g, roi_time_eff_h):
     """
     Input image and ROI must be numpy arrays
     - spect must be in Bq (not concentration)
@@ -58,140 +228,17 @@ def dose_hanscheid2018(spect_Bq, roi, time_sec, svalue, mass_scaling):
     v = spect_Bq[roi == 1]
     At = np.sum(v) / 1e6
 
-    # S is in (mGy/MBq/s), so we get dose in mGy
-    dose = mass_scaling * At * svalue * (2 * time_sec) / np.log(2) / 1000
+    # Svalue in mGy MBq-1 h-1
+    svalue = delta_lu_e / roi_mass_g * 1000
+
+    # effective clearance rate
+    k = np.log(2) / roi_time_eff_h
+
+    # 1Gy = 1J/kg
+    integrated_activity = At * np.exp(k * acq_time_h) / k
+    dose = integrated_activity * svalue / 1000
 
     return dose
-
-
-def get_hanscheid2017_Teff(roi_name):
-    Teff = {"kidney": 50, "liver": 67, "spleen": 67, "NET tumors": 77}
-    a, _ = find_closest_match(roi_name, Teff)
-    return Teff[a]
-
-
-def dose_hanscheid2017(spect_Bq, roi, time_sec, pixel_volume_ml, time_eff_h):
-    """
-    Input img and ROI must be numpy arrays
-    """
-
-    time_h = time_sec / 3600
-
-    # compute mean activity concentration in the ROI
-    v = spect_Bq[roi == 1] / pixel_volume_ml
-    Ct = np.mean(v) / 1e6
-
-    # compute dose
-    dose = 0.125 * Ct * np.power(2, time_h / time_eff_h) * time_eff_h
-
-    return dose
-
-
-def dose_hanscheid2018_from_filenames(
-        spect_file, ct_file, roi_file, phantom, roi_name, rad_name, time_h
-):
-    # read spect
-    spect = itk.ReadImage(spect_file)
-    spect_a = itk.GetArrayFromImage(spect)
-
-    # prepare ct : resample and densities
-    ct = itk.ReadImage(ct_file)
-    ct_a = resample_ct_like_spect(spect, ct)
-    densities = convert_ct_to_densities(ct_a)
-    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
-
-    # prepare roi : resample
-    roi = itk.ReadImage(roi_file)
-    roi_a = resample_roi_like_spect(spect, roi)
-
-    # get svalues and scaling
-    svalue, mass_scaling = get_svalue_and_mass_scaling(
-        phantom, roi_a, roi_name, rad_name, volume_voxel_mL, densities
-    )
-
-    # compute dose
-    time_sec = time_h * 3600
-    dose = dose_hanscheid2018(spect_a, roi_a, time_sec, svalue, mass_scaling)
-    print(f"Dose for {roi_file}: {dose:.2f} Gray")
-    return dose
-
-
-def rpt_dose_hanscheid(
-        spect,
-        ct,
-        roi,
-        acq_time,
-        roi_list,
-        verbose,
-        phantom="ICRP 110 AM",
-        rad="Lu177",
-        method="2018",
-):
-    # read spect image
-    spect_a = itk.GetArrayFromImage(spect)
-
-    # read and resample ct like spect
-    ct_a = resample_ct_like_spect(spect, ct, verbose=verbose)
-    densities = convert_ct_to_densities(ct_a)
-
-    # time in sec
-    time_sec = acq_time * 3600
-
-    # pixel volume
-    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
-
-    # Opendose phantom and radionuclide name
-    phantom_name, rad_name = guess_phantom_and_isotope(phantom, rad)
-    if verbose:
-        print(f"Phantom = {phantom} and isotope = {rad_name}")
-
-    # consider list of roi/name
-    roi = [(file, name) for file, name in roi]
-    if roi_list is not None:
-        r = get_roi_list(roi_list)
-        roi = roi + r
-
-    # loop on ROI
-    results = {"method": "hanscheid2018", "date": str(datetime.now())}
-    for roi_file, roi_name in roi:
-        # read roi mask and resample like spect
-        r = itk.ReadImage(roi_file)
-        roi_a = resample_roi_like_spect(spect, r, verbose=verbose)
-
-        # get svalues and scaling
-        svalue, mass_scaling, roi_mass, roi_vol = get_svalue_and_mass_scaling(
-            phantom,
-            roi_a,
-            roi_name,
-            rad_name,
-            volume_voxel_mL,
-            densities,
-            verbose=verbose,
-        )
-
-        # dose computation with Hanscheid method
-        if method == "2018":
-            results["method"] = "hanscheid2018"
-            dose = dose_hanscheid2018(spect_a, roi_a, time_sec, svalue, mass_scaling)
-        else:
-            results["method"] = "hanscheid2017"
-            Teff = get_hanscheid2017_Teff(roi_name)
-            dose = dose_hanscheid2017(spect_a, roi_a, time_sec, volume_voxel_mL, Teff)
-
-        # results
-        print(f"Dose for {roi_name:<20}: {dose:.4f} Gray")
-        results[roi_name] = {"dose_Gy": dose, "mass_g": roi_mass, "volume_ml": roi_vol}
-    return results
-
-
-def get_roi_list(filename):
-    # open the file
-    with open(filename, "r") as f:
-        data = json.load(f)
-    l = []
-    for item in data:
-        l.append((item["roi_filename"], item["roi_name"]))
-    return l
 
 
 def fit_exp_linear(x, y):
@@ -300,3 +347,17 @@ def triexpo_apply(x, decay_constant_hours, A1, k1, A2, k2, A3, k3):
             + A2 * np.exp(-(-k2 + decay_constant_hours) * x)
             + A3 * np.exp(-(-k3 + decay_constant_hours) * x)
     )
+
+
+def test_compare_json_doses(json_ref, json_test):
+    with open(json_test) as f:
+        dose = json.load(f)
+    with open(json_ref) as f:
+        dose_ref = json.load(f)
+    # remove date key
+    del dose["date"]
+    del dose_ref["date"]
+    # compare
+    b = dose == dose_ref
+    print_tests(b, f"Compare doses")
+    return b

@@ -54,8 +54,7 @@ rpt_roi_crop = "rpt_dosi.bin.rpt_roi_crop:go"
 rpt_resample_ct = "rpt_dosi.bin.rpt_resample_ct:go"
 rpt_resample_spect = "rpt_dosi.bin.rpt_resample_spect:go"
 rpt_resample_roi = "rpt_dosi.bin.rpt_resample_roi:go"
-rpt_dose_hanscheid = "rpt_dosi.bin.rpt_dose_hanscheid:go"
-
+rpt_dose = "rpt_dosi.bin.rpt_dose:go"
 rpt_tmtv = "rpt_dosi.bin.rpt_tmtv:go"
 
 rpt_spect_calibration = "rpt_dosi.bin.rpt_spect_calibration:go"

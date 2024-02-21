@@ -60,9 +60,9 @@ def computedose(patient):
             #compute acquisition time
             acq_time = datetime.strptime(acquisition["date"], "%d/%m/%Y, %H:%M:%S") - datetime.strptime(data["cycle"][cycle]["injection"]["injection_datetime"], "%d/%m/%Y, %H:%M:%S")
             acq_time = acq_time.total_seconds()/3600.0
-            results = rd.rpt_dose_hanscheid(spect_calibrated, ct_resampled, (), acq_time, "oar.json", False, phantom="ICRP 110 AM", rad="Lu177", method="2017")
+            results = rd.dose_hanscheid(spect_calibrated, ct_resampled, (), acq_time, "oar.json", False, phantom="ICRP 110 AM", rad="Lu177", method="2017")
             outputResults["cycle"][cycle][acquisition["label"]].append(results)
-            results = rd.rpt_dose_hanscheid(spect_calibrated, ct_resampled, (), acq_time, "oar.json", False, phantom="ICRP 110 AM", rad="Lu177", method="2018")
+            results = rd.dose_hanscheid(spect_calibrated, ct_resampled, (), acq_time, "oar.json", False, phantom="ICRP 110 AM", rad="Lu177", method="2018")
             outputResults["cycle"][cycle][acquisition["label"]].append(results)
 
     # print ok
