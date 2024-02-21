@@ -4,12 +4,10 @@
 import json
 import rpt_dosi.helpers as he
 import rpt_dosi.db as rtpdb
-import os
 
 if __name__ == "__main__":
     # folders
     data_folder, ref_folder, output_folder = he.get_tests_folders("test003")
-    is_ok = True
     print(f"Input data folder = {data_folder}")
     print(f"Ref data folder = {ref_folder}")
     print(f"Output data folder = {output_folder}")
@@ -21,12 +19,11 @@ if __name__ == "__main__":
     db_input = data_folder / "activities.json"
     db_output = output_folder / "activities_fit.json"
     cmd = f"rpt_db_tac_triexpo --db {db_input} -o {db_output} -c cycle1 --no_plot"
-    print(cmd)
-    os.system(cmd)
-    db_ref = ref_folder / "activities_fit_ref.json"
+    is_ok = he.run_cmd(cmd, data_folder / "..")
 
     # compare
     print()
+    db_ref = ref_folder / "activities_fit_ref.json"
     db1 = rtpdb.db_load(db_output)
     db2 = rtpdb.db_load(db_ref)
     d1 = db1["cycles"]["cycle1"]["tri_expo_fit"]

@@ -17,7 +17,9 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     help="Input SPECT or PET image",
 )
 @click.option("--threshold", "-t", default=17000, help="Threshold")
-def go(input_filename, threshold):
+@click.option("--output", "-o", required=True, help="output filename TMTV")
+@click.option("--output_mask", "-m", required=True, help="output filename TMTV mask")
+def go(input_filename, threshold, output, output_mask):
     """
     input:
     - spect or pet image
@@ -53,8 +55,8 @@ def go(input_filename, threshold):
                                       verbose=True)
 
     # write
-    sitk.WriteImage(tmtv, 'tmtv.nii.gz')
-    sitk.WriteImage(mask, 'tmtv_mask.nii.gz')
+    sitk.WriteImage(tmtv, output)
+    sitk.WriteImage(mask, output_mask)
 
 
 # --------------------------------------------------------------------------

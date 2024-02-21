@@ -223,12 +223,11 @@ def image_roi_stats(spect_a, roi_a):
 
 
 def compare_images(image1, image2):
-    # print(f"Compare {image1} {image2}")
     img1 = sitk.ReadImage(image1)
     img2 = sitk.ReadImage(image2)
     if not images_have_same_domain(img1, img2):
-        print(f"Im1: {image1.GetSize()}  {image1.GetSpacing()}   {image1.GetOrigin()}")
-        print(f"Im2: {image2.GetSize()}  {image2.GetSpacing()}   {image2.GetOrigin()}")
+        print(f"Im1: {img1.GetSize()}  {img1.GetSpacing()}   {img1.GetOrigin()}")
+        print(f"Im2: {img2.GetSize()}  {img2.GetSpacing()}   {img2.GetOrigin()}")
         return False
     img1 = sitk.GetArrayFromImage(img1)
     img2 = sitk.GetArrayFromImage(img2)
@@ -238,13 +237,10 @@ def compare_images(image1, image2):
 def test_compare_image_exact(image1, image2):
     ok = compare_images(str(image1), str(image2))
     if not ok:
-        try:
-            fatal(
-                f"Images {os.path.basename(image1)} "
-                f"and {os.path.basename(image2)} do not match"
-            )
-        except:
-            pass
+        fatal(
+            f"Images {os.path.basename(image1)} "
+            f"and {os.path.basename(image2)} do not match"
+        )
     return ok
 
 
