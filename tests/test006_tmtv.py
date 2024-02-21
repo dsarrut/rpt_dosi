@@ -19,7 +19,7 @@ if __name__ == "__main__":
     output = output_folder / "tmtv.nii.gz"
     output_mask = output_folder / "tmtv_mask.nii.gz"
     cmd = f"rpt_tmtv -i {spect_input} -o {output} -m {output_mask} -t 100000"
-    is_ok = he.run_cmd(cmd, data_folder / "..")
+    is_ok = he.run_cmd(cmd, data_folder)
 
     # compare
     tmtv_ref = ref_folder / "tmtv_ref.nii.gz"
