@@ -3,8 +3,7 @@
 
 import click
 import rpt_dosi.images as im
-import SimpleITK as itk
-import numpy as np
+import SimpleITK as sitk
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -17,7 +16,8 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     type=click.Path(exists=True),
     help="Input SPECT or PET image",
 )
-def go(input_filename):
+@click.option("--threshold", "-t", default=17000, help="Threshold")
+def go(input_filename, threshold):
     """
     input:
     - spect or pet image
@@ -27,8 +27,10 @@ def go(input_filename):
     output: new roi
     """
 
-    spect_image = itk.ReadImage(input_filename)
+    # read image
+    spect_image = sitk.ReadImage(input_filename)
 
+    # default list of roi and associated dilatation in mm
     roi_list = [
         {'filename': "rois/liver.nii.gz", 'dilatation': 10},
         {'filename': "rois/kidney_left.nii.gz", 'dilatation': 10},
@@ -42,7 +44,6 @@ def go(input_filename):
         {'filename': "rois/duodenum.nii.gz", 'dilatation': 5},
         {'filename': "rois/urinary_bladder.nii.gz", 'dilatation': 5}
     ]
-    threshold = 17000
 
     tmtv, mask = im.tmtv_compute_mask(spect_image,
                                       "rois/skull.nii.gz",
@@ -52,8 +53,8 @@ def go(input_filename):
                                       verbose=True)
 
     # write
-    itk.WriteImage(tmtv, 'tmtv.nii.gz')
-    itk.WriteImage(mask, 'tmtv_mask.nii.gz')
+    sitk.WriteImage(tmtv, 'tmtv.nii.gz')
+    sitk.WriteImage(mask, 'tmtv_mask.nii.gz')
 
 
 # --------------------------------------------------------------------------
