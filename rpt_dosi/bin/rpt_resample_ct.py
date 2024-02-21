@@ -3,7 +3,7 @@
 
 import click
 import rpt_dosi.images as rpt
-import SimpleITK as itk
+import SimpleITK as sitk
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -33,7 +33,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 )
 def go(input_image, spacing, output, no_gauss, sigma, like, def_pixel):
     # read image
-    ct = itk.ReadImage(input_image)
+    ct = sitk.ReadImage(input_image)
 
     # gauss ?
     if not no_gauss:
@@ -43,13 +43,13 @@ def go(input_image, spacing, output, no_gauss, sigma, like, def_pixel):
 
     # resample
     if like is not None:
-        like = itk.ReadImage(like)
+        like = sitk.ReadImage(like)
         ct = rpt.resample_image_like(ct, like, default_pixel_value=def_pixel)
     else:
         ct = rpt.resample_image(ct, spacing, default_pixel_value=def_pixel)
 
     # write
-    itk.WriteImage(ct, output)
+    sitk.WriteImage(ct, output)
 
 
 # --------------------------------------------------------------------------

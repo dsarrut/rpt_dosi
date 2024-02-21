@@ -36,6 +36,17 @@ def spect_calibration(spect, calibration_factor, concentration_flag, verbose=Tru
     return o
 
 
+def spect_Bq_to_SUV(spect, injected_activity_MBq, body_weight_kg):
+    # get voxel volume
+    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
+    arr = itk.GetArrayFromImage(spect)
+    arr = arr / volume_voxel_mL / (injected_activity_MBq * body_weight_kg)
+    # create output image
+    o = itk.GetImageFromArray(arr)
+    o.CopyInformation(spect)
+    return o
+
+
 def dose_method_hanscheid2017_get_time_eff_h(roi_name):
     # these are some default values
     time_eff_h = {
@@ -336,6 +347,7 @@ def triexpo_apply(x, decay_constant_hours, A1, k1, A2, k2, A3, k3):
             + A2 * np.exp(-(-k2 + decay_constant_hours) * x)
             + A3 * np.exp(-(-k3 + decay_constant_hours) * x)
     )
+
 
 def test_compare_json_doses(json_ref, json_test):
     with open(json_test) as f:
