@@ -35,6 +35,17 @@ def spect_calibration(spect, calibration_factor, concentration_flag, verbose=Tru
     return o
 
 
+def spect_Bq_to_SUV(spect, injected_activity_MBq, body_weight_kg):
+    # get voxel volume
+    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
+    arr = itk.GetArrayFromImage(spect)
+    arr = arr / volume_voxel_mL / (injected_activity_MBq * body_weight_kg)
+    # create output image
+    o = itk.GetImageFromArray(arr)
+    o.CopyInformation(spect)
+    return o
+
+
 def dose_hanscheid2018(spect_Bq, roi, time_sec, svalue, mass_scaling):
     """
     Input image and ROI must be numpy arrays
@@ -77,7 +88,7 @@ def dose_hanscheid2017(spect_Bq, roi, time_sec, pixel_volume_ml, time_eff_h):
 
 
 def dose_hanscheid2018_from_filenames(
-    spect_file, ct_file, roi_file, phantom, roi_name, rad_name, time_h
+        spect_file, ct_file, roi_file, phantom, roi_name, rad_name, time_h
 ):
     # read spect
     spect = itk.ReadImage(spect_file)
@@ -106,15 +117,15 @@ def dose_hanscheid2018_from_filenames(
 
 
 def rpt_dose_hanscheid(
-    spect,
-    ct,
-    roi,
-    acq_time,
-    roi_list,
-    verbose,
-    phantom="ICRP 110 AM",
-    rad="Lu177",
-    method="2018",
+        spect,
+        ct,
+        roi,
+        acq_time,
+        roi_list,
+        verbose,
+        phantom="ICRP 110 AM",
+        rad="Lu177",
+        method="2018",
 ):
     # read spect image
     spect_a = itk.GetArrayFromImage(spect)
@@ -285,7 +296,7 @@ def triexpo_apply_from_dict(x, decay_constant_hours, p):
 
 def triexpo_apply(x, decay_constant_hours, A1, k1, A2, k2, A3, k3):
     return (
-        A1 * np.exp(-(-k1 + decay_constant_hours) * x)
-        + A2 * np.exp(-(-k2 + decay_constant_hours) * x)
-        + A3 * np.exp(-(-k3 + decay_constant_hours) * x)
+            A1 * np.exp(-(-k1 + decay_constant_hours) * x)
+            + A2 * np.exp(-(-k2 + decay_constant_hours) * x)
+            + A3 * np.exp(-(-k3 + decay_constant_hours) * x)
     )

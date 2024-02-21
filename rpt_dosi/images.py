@@ -331,3 +331,27 @@ def tmtv_compute_mask(image, skull_filename, head_margin_mm, roi_list, threshold
     mask.CopyInformation(image)
 
     return tmtv, mask
+
+
+def mip(img, dim3=False):
+    f = sitk.MaximumProjectionImageFilter()
+    f.SetProjectionDimension(1)
+
+    # Compute the MIP along dimension 1
+    mip_slice = f.Execute(img)
+
+    if dim3:
+        # Convert the MIP slice to a NumPy array
+        mip_array = sitk.GetArrayFromImage(mip_slice)
+
+        # Duplicate the MIP slice along dimension 1
+        num_slices = img.GetSize()[1]
+        mip_stack = np.tile(mip_array, (1, num_slices, 1))
+
+        # Convert the NumPy array back to a SimpleITK image
+        mip_image = sitk.GetImageFromArray(mip_stack)
+        mip_image.CopyInformation(img)
+    else:
+        mip_image = mip_slice
+
+    return mip_image
