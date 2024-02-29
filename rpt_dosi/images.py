@@ -327,6 +327,8 @@ def tmtv_compute_mask(image, skull_filename, head_margin_mm, roi_list, threshold
     # threshold
     if threshold == 'auto':
         threshold = mean_value
+    else:
+        threshold = float(threshold)
     verbose and print(f'Thresholding with {threshold}')
     tmtv_mask_threshold(image, mask, threshold)
 
