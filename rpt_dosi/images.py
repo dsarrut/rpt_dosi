@@ -290,6 +290,9 @@ def tmtv_mask_threshold(image, mask, threshold):
 
 
 def tmtv_mask_remove_rois(image, mask, roi_list):
+    mean_value = 0
+    n = 0
+    img_np = sitk.GetArrayViewFromImage(image)
     # loop on the roi
     for roi in roi_list:
         # read image
@@ -301,6 +304,12 @@ def tmtv_mask_remove_rois(image, mask, roi_list):
         # update the mask
         roi_np = sitk.GetArrayViewFromImage(roi_img)
         mask[roi_np == 1] = 0
+        # mean value in the roi
+        v = img_np[roi_np == 1]
+        mean_value += np.sum(v)
+        n += len(v)
+    mean_value /= n
+    return mean_value
 
 
 def tmtv_compute_mask(image, skull_filename, head_margin_mm, roi_list, threshold, verbose=False):
@@ -313,9 +322,11 @@ def tmtv_compute_mask(image, skull_filename, head_margin_mm, roi_list, threshold
 
     # remove the rois
     verbose and print(f'Remove the {len(roi_list)} ROIs')
-    tmtv_mask_remove_rois(image, mask, roi_list)
+    mean_value = tmtv_mask_remove_rois(image, mask, roi_list)
 
     # threshold
+    if threshold == 'auto':
+        threshold = mean_value
     verbose and print(f'Thresholding with {threshold}')
     tmtv_mask_threshold(image, mask, threshold)
 

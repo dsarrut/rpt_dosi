@@ -16,7 +16,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     type=click.Path(exists=True),
     help="Input SPECT or PET image",
 )
-@click.option("--threshold", "-t", default=17000, help="Threshold")
+@click.option("--threshold", "-t", default='auto', help="Threshold")
 @click.option("--output", "-o", required=True, help="output filename TMTV")
 @click.option("--output_mask", "-m", required=True, help="output filename TMTV mask")
 def go(input_filename, threshold, output, output_mask):
