@@ -143,9 +143,14 @@ def dose_for_each_rois(
             dose = dose_method_hanscheid2017(spect_a, roi_a, acq_time_h, options)
         if method == "madsen2018":
             dose = dose_method_madsen2018(spect_a, roi_a, acq_time_h, options)
+        if method == "madsen2018_dose_rate":
+            dose = dose_method_madsen2018_dose_rate(spect_a, roi_a, acq_time_h, options)
 
         if dose is None:
             fatal(f"Dosimetry method {method} not known")
+
+        # scaling factor
+        dose *= options.scaling
 
         # compute mass of the current ROI
         roi = options.roi
@@ -216,6 +221,28 @@ def dose_method_madsen2018(spect_a, roi_a, acq_time_h, options):
                                            options.delta_lu_e, roi.roi_mass, roi.time_eff_h)
 
 
+def dose_method_madsen2018_dose_rate(dose_rate_a, roi_a, acq_time_h, options):
+    roi = options.roi
+    # time effective
+    if "time_eff_h" not in roi:
+        roi.time_eff_h = dose_method_hanscheid2017_get_time_eff_h(options.roi.roi_name)
+    if options.verbose:
+        print(f'time_eff_h for {roi.roi_name} = {roi.time_eff_h:.3f} h')
+
+    # compute mean dose rate in the ROI in Gy/s
+    # convert to hours
+    v = dose_rate_a[roi_a == 1]
+    dr = np.mean(v) * 3600
+    print(f'dr = {dr:.3f} Gy/h')
+
+    # effective clearance rate
+    k = np.log(2) / roi.time_eff_h
+    print(f'k = {k:.3f} ')
+
+    dose = dr * np.exp(k * acq_time_h) / k
+    return dose
+
+
 def dose_method_madsen2018_equation(spect_Bq, roi, acq_time_h, delta_lu_e, roi_mass_g, roi_time_eff_h):
     """
     Input image and ROI must be numpy arrays
@@ -227,15 +254,21 @@ def dose_method_madsen2018_equation(spect_Bq, roi, acq_time_h, delta_lu_e, roi_m
     # compute mean activity in the ROI, in MBq
     v = spect_Bq[roi == 1]
     At = np.sum(v) / 1e6
+    print(f'At = {At*1e6:.3f} Bq')
 
     # Svalue in mGy MBq-1 h-1
     svalue = delta_lu_e / roi_mass_g * 1000
+    print(f'delta_lu_e = {delta_lu_e:}')
+    print(f'roi_mass_g = {roi_mass_g:}')
+    print(f'svalue = {svalue:}')
 
     # effective clearance rate
     k = np.log(2) / roi_time_eff_h
+    print(f'k = {k:.3f} ')
 
     # 1Gy = 1J/kg
     integrated_activity = At * np.exp(k * acq_time_h) / k
+    print(f'ia*svalue = {At*svalue:}')
     dose = integrated_activity * svalue / 1000
 
     return dose

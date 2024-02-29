@@ -16,7 +16,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     "-s",
     required=True,
     type=click.Path(exists=True),
-    help="Input SPECT image",
+    help="Input SPECT or dose_rate image",
 )
 @click.option(
     "--ct",
@@ -38,11 +38,15 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option(
     "--method",
     "-m",
-    default="hanscheid2018",
-    type=click.Choice(["hanscheid2017", "hanscheid2018", "madsen2018"]),
+    default="hanscheid2017",
+    type=click.Choice(["hanscheid2017",
+                       "hanscheid2018",
+                       "madsen2018",
+                       "madsen2018_dose_rate"]),
     help="Which method to use",
 )
-def go(spect, ct, acq_time, phantom, rad, roi_list, verbose, output, method):
+@click.option("--scaling", default=1.0, help="Scaling factor (for dose rate)")
+def go(spect, ct, acq_time, phantom, rad, roi_list, verbose, output, method, scaling):
     # Reading images as itk image
     spect = sitk.ReadImage(spect)
     ct = sitk.ReadImage(ct)
@@ -56,7 +60,8 @@ def go(spect, ct, acq_time, phantom, rad, roi_list, verbose, output, method):
     options = {
         "radionuclide": rad,
         "phantom": phantom,
-        "verbose": verbose
+        "verbose": verbose,
+        "scaling": scaling
     }
 
     # compute dose for all roi
