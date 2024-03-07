@@ -17,7 +17,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     "--output", "-o", default=None, help="Output json (same as input if None)"
 )
 @click.option(
-    "--roi_list", "-l", type=str, help="Filename json : list of ROI filename and name"
+    "--roi_list", "-l", required=True, type=str, help="Filename json : list of ROI filename and name"
 )
 @click.option("--name", "-n", required=True, help="Patient initials (folder)")
 def go(db_file, roi_list, name, output):
