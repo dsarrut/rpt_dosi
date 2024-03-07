@@ -8,6 +8,7 @@ import rpt_dosi
 from pathlib import Path
 import sys
 import math
+import collections.abc
 
 try:
     color_error = colored.fg("red") + colored.attr("bold")
@@ -142,6 +143,7 @@ def escape_special_characters(filename):
 def are_dicts_equal(dict1, dict2, float_tolerance=1e-9):
     for key, value1 in dict1.items():
         if key not in dict2:
+            print(key + " is not in dict2")
             return False
 
         value2 = dict2[key]
@@ -151,12 +153,27 @@ def are_dicts_equal(dict1, dict2, float_tolerance=1e-9):
                 return False
         elif isinstance(value1, (int, float)) and isinstance(value2, (int, float)):
             if not math.isclose(value1, value2, abs_tol=float_tolerance):
+                print("The number values are not equals: " + str(value1) + " vs. " + str(value2) + " tol= " + str(float_tolerance))
                 return False
+        elif isinstance(value1, str) and isinstance(value2, str):
+            if not value1 == value2:
+                print("The strings values are not equals: " + str(value1) + " vs. " + str(value2))
+                return False
+        elif isinstance(value1, collections.abc.Sequence) and isinstance(value2, collections.abc.Sequence):
+            nbElement = len(value1)
+            if not nbElement == len(value2):
+                print("The array lengths are not equals: " + str(value1) + " vs. " + str(value2))
+                return False
+            for i in range(0, nbElement):
+                if not are_dicts_equal(value1[i], value2[i], float_tolerance):
+                    return False
         else:
+            print("The values are not int/float/dict/str, cannot be compared: " + str(value1) + " vs. " + str(value2))
             return False
 
     for key in dict2.keys():
         if key not in dict1:
+            print(key + " is not in dict1")
             return False
 
     return True
