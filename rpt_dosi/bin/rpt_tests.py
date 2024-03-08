@@ -48,7 +48,8 @@ def go():
             else:
                 print(he.colored.stylize(" FAILED !", he.color_error), end="")
                 failure = True
-                os.system("cat " + log)
+                with open(log, 'r') as f:
+                    print(f.read())
         end = time.time()
         print(f"   {end - start:5.1f} s     {log:<65}")
 
