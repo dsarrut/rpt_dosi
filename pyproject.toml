@@ -9,7 +9,7 @@ zip-safe = false
 
 [tool.setuptools.dynamic]
 version = {file = "VERSION"}
-readme = {file = ["readme0.md", "readme1.md", "readme2.md", "readme3.md"]}
+readme = {file = ["README.md"]}
 
 [project]
 name = "rpt-dosi"
