@@ -28,6 +28,9 @@ def read_roi(filename, name, effective_time_h=None):
 
 
 class ImageBase:
+    authorized_units = []
+    default_values = {}
+
     def __init__(self):
         self.image = None
         self.filename = None
@@ -37,8 +40,6 @@ class ImageBase:
         # internal parameters
         self._unit = None
         self._default_value = 0
-        self.authorized_units = []
-        self.default_values = {}
 
     @property
     def unit(self):
@@ -75,37 +76,52 @@ class ImageBase:
             # FIXME open + unit ?
         # FIXME error detection
 
+    def __str__(self):
+        return f"Image: filename={self.filename} unit={self.unit}"
+
 
 class ImageCT(ImageBase):
+    authorized_units = ['HU', 'gcm3']  # FIXME add attenuation
+    default_values = {'HU': -1000, 'gcm3': 0}
+
     def __init__(self):
         super().__init__()
-        self.authorized_units = ['HU', 'gcm3']  # FIXME add attenuation
-        self.default_values = {'HU': -1000, 'gcm3': 0}
         self.unit = 'HU'
 
     def read(self, filename):
         super().read(filename)
         self.unit = 'HU'
 
+    def __str__(self):
+        return f"CT: filename={self.filename} unit={self.unit} vox_vol={self.voxel_volume_ml} ml"
+
 
 class ImageSPECT(ImageBase):
+    authorized_units = ['Bq', 'BqmL', "counts"]
+    default_values = {'Bq': 0, 'BqmL': 0, "counts": 0}
+
     def __init__(self):
         super().__init__()
         self.injection_datetime = None
         self.injection_activity_Bq = None
         self.time_from_injection_h = 0  # FIXME computed ?
-        self.authorized_units = ['Bq', 'BqmL', "counts"]
-        self.default_values = {'Bq': 0, 'BqmL': 0, "counts": 0}
+
+    def __str__(self):
+        return f"SPECT: filename={self.filename} unit={self.unit} vox_vol={self.voxel_volume_ml} ml"
 
 
 class ImageROI(ImageBase):
+    authorized_units = ['label']
+    default_values = {'label': 0}
+
     def __init__(self, name):
         super().__init__()
         self.name = name
         self.unit = 'label'
         self.effective_time_h = 0
-        self.authorized_units = ['label']
-        self.default_values = {'label': 0}
+
+    def __str__(self):
+        return f"ROI: filename={self.filename} unit={self.unit} vox_vol={self.voxel_volume_ml} ml"
 
 
 def images_have_same_domain(image1, image2, tolerance=1e-5):
@@ -315,15 +331,29 @@ def resample_ct_spacing(ct: ImageCT, spacing: list[float], gaussian_sigma=None):
     return o
 
 
-def resample_spect_like(spect: ImageSPECT, like: ImageBase):
+def resample_spect_like(spect: ImageSPECT, like: ImageBase, gaussian_sigma=None):
     if images_have_same_domain(spect.image, like.image):
         return spect
-    # resample the image
     o = copy.copy(spect)
-    o.image = resample_itk_image_like(spect.image, like.image, o.default_value, linear=True)
-    # warning, take the volume into account if needed
-    if spect.unit == 'Bq' or spect.unit == 'counts':
+    o.image = apply_itk_gauss_smoothing(spect.image, gaussian_sigma)
+    o.image = resample_itk_image_like(o.image, like.image, o.default_value, linear=True)
+    # take the volume into account if needed
+    if o.unit == 'Bq' or o.unit == 'counts':
         scaling = spect.voxel_volume_ml / like.voxel_volume_ml
+        o.image = o.image * scaling
+    return o
+
+
+def resample_spect_spacing(spect: ImageSPECT, spacing: list[float], gaussian_sigma=None):
+    if image_have_same_spacing(spect.image, spacing):
+        return
+    o = copy.copy(spect)
+    o.image = apply_itk_gauss_smoothing(spect.image, gaussian_sigma)
+    o.image = resample_itk_image_spacing(o.image, spacing, o.default_value, linear=True)
+    # take the volume into account if needed
+    if o.unit == 'Bq' or o.unit == 'counts':
+        v = np.prod(spacing) / 1000
+        scaling = v / spect.voxel_volume_ml
         o.image = o.image * scaling
     return o
 

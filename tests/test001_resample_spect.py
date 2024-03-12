@@ -17,7 +17,7 @@ if __name__ == "__main__":
     # test resample
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_test.nii.gz"
-    cmd = f"rpt_resample_spect -i {spect_input} -o {spect_output} -s 12 --bq"
+    cmd = f"rpt_resample_spect -i {spect_input} -o {spect_output} -s 12 --unit Bq --sigma auto"
     is_ok = he.run_cmd(cmd, data_folder / "..")
 
     # compare
