@@ -8,7 +8,7 @@ from .opendose import (
     get_svalue_and_mass_scaling,
     guess_phantom_and_isotope,
 )
-from .helpers import find_closest_match, print_tests
+from .helpers import find_closest_match, print_tests, fatal
 import SimpleITK as itk
 import numpy as np
 from datetime import datetime

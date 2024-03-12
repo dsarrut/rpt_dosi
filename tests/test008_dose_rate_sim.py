@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import rpt_dosi.helpers as he
-import rpt_dosi.images as im
 from opengate.contrib.dose.doserate import create_simulation
 from opengate.contrib.phantoms.nemaiec import create_material
 from box import Box
@@ -12,7 +11,7 @@ import json
 
 if __name__ == "__main__":
     # folders
-    data_folder, ref_folder, output_folder = he.get_tests_folders("test007")
+    data_folder, ref_folder, output_folder = he.get_tests_folders("test008")
     print(f"Input data folder = {data_folder}")
     print(f"Ref data folder = {ref_folder}")
     print(f"Output data folder = {output_folder}")
@@ -29,11 +28,14 @@ if __name__ == "__main__":
     param.number_of_threads = 4
     param.verbose = True
     param.radionuclide = "Lu177"
-    param.activity_bq = 1e6
+    param.activity_bq = 1e4
     param.ct_image = data_folder / "iec_5mm.mhd"
     param.activity_image = data_folder / "iec_5mm_one_source.mhd"
     param.activity_image = data_folder / "iec_5mm_six_sources.mhd"
     param.output_folder = output_folder
+    param.density_tolerance_gcm3 = 0.2
+    param.table_mat = he.get_data_folder() / "Schneider2000MaterialsTable.txt"
+    param.table_density = he.get_data_folder() / "Schneider2000DensitiesTable.txt"
 
     # set activity as int (to deal with 1e4 notation)
     param.activity_bq = int(float(param.activity_bq))
@@ -70,7 +72,7 @@ if __name__ == "__main__":
     # param
     dose = sim.actor_manager.get_actor_user_info("dose")
     dose.uncertainty = True
-    dose.gray = True
+    dose.dose = True
     if "six" in str(param.activity_image):
         dose.output = param.output_folder / "iec_six_output.mhd"
     else:
@@ -92,4 +94,5 @@ if __name__ == "__main__":
     print(f"Output in {param.output_folder}")
 
     # end
-    # he.test_ok(is_ok)
+    is_ok = False
+    he.test_ok(is_ok)
