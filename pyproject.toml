@@ -9,7 +9,7 @@ zip-safe = false
 
 [tool.setuptools.dynamic]
 version = {file = "VERSION"}
-readme = {file = ["readme0.md", "readme1.md", "readme2.md", "readme3.md"]}
+readme = {file = ["readme.md", "readme1.md", "readme2.md", "readme3.md"]}
 
 [project]
 name = "rpt-dosi"
@@ -48,30 +48,30 @@ requires-python = ">=3.8"
 
 [project.scripts]
 
-rpt_tests = "rpt_dosi.bin.rpt_tests:go"
-rpt_crop_bg = "rpt_dosi.bin.rpt_crop_bg:go"
-rpt_roi_crop = "rpt_dosi.bin.rpt_roi_crop:go"
-rpt_resample_ct = "rpt_dosi.bin.rpt_resample_ct:go"
-rpt_resample_spect = "rpt_dosi.bin.rpt_resample_spect:go"
-rpt_resample_roi = "rpt_dosi.bin.rpt_resample_roi:go"
-rpt_dose = "rpt_dosi.bin.rpt_dose:go"
-rpt_tmtv = "rpt_dosi.bin.rpt_tmtv:go"
+rpt_tests = "src/scripts.rpt_tests:go"
+rpt_crop_bg = "src/scripts.rpt_crop_bg:go"
+rpt_roi_crop = "src/scripts.rpt_roi_crop:go"
+rpt_resample_ct = "src/scripts.rpt_resample_ct:go"
+rpt_resample_spect = "src/scripts.rpt_resample_spect:go"
+rpt_resample_roi = "src/scripts.rpt_resample_roi:go"
+rpt_dose = "src/scripts.rpt_dose:go"
+rpt_tmtv = "src/scripts.rpt_tmtv:go"
 
-rpt_spect_calibration = "rpt_dosi.bin.rpt_spect_calibration:go"
-rpt_spect_Bq_to_SUV = "rpt_dosi.bin.rpt_spect_Bq_to_SUV:go"
+rpt_spect_calibration = "src/scripts.rpt_spect_calibration:go"
+rpt_spect_Bq_to_SUV = "src/scripts.rpt_spect_Bq_to_SUV:go"
 
-opendose_web_get_isotopes_list = "rpt_dosi.bin.opendose_web_get_isotopes_list:go"
-opendose_web_get_sources_list = "rpt_dosi.bin.opendose_web_get_sources_list:go"
-opendose_web_get_svalues = "rpt_dosi.bin.opendose_web_get_svalues:go"
+opendose_web_get_isotopes_list = "src/scripts.opendose_web_get_isotopes_list:go"
+opendose_web_get_sources_list = "src/scripts.opendose_web_get_sources_list:go"
+opendose_web_get_svalues = "src/scripts.opendose_web_get_svalues:go"
 
-rpt_db_rois_activity = "rpt_dosi.bin.rpt_db_rois_activity:go"
-rpt_db_info = "rpt_dosi.bin.rpt_db_info:go"
-rpt_db_add_rois = "rpt_dosi.bin.rpt_db_add_rois:go"
-rpt_db_tac_plot = "rpt_dosi.bin.rpt_db_tac_plot:go"
-rpt_db_tac_triexpo = "rpt_dosi.bin.rpt_db_tac_triexpo:go"
-rpt_db_set_spect_datetime_from_dicom = "rpt_dosi.bin.rpt_db_set_spect_datetime_from_dicom:go"
-rpt_db_spect_calibration = "rpt_dosi.bin.rpt_db_spect_calibration:go"
+rpt_db_rois_activity = "src/scripts.rpt_db_rois_activity:go"
+rpt_db_info = "src/scripts.rpt_db_info:go"
+rpt_db_add_rois = "src/scripts.rpt_db_add_rois:go"
+rpt_db_tac_plot = "src/scripts.rpt_db_tac_plot:go"
+rpt_db_tac_triexpo = "src/scripts.rpt_db_tac_triexpo:go"
+rpt_db_set_spect_datetime_from_dicom = "src/scripts.rpt_db_set_spect_datetime_from_dicom:go"
+rpt_db_spect_calibration = "src/scripts.rpt_db_spect_calibration:go"
 
-rpt_dicom_browse = "rpt_dosi.bin.rpt_dicom_browse:go"
-rpt_dicom_select = "rpt_dosi.bin.rpt_dicom_select:go"
-rpt_dicom_db = "rpt_dosi.bin.rpt_dicom_db:go"
+rpt_dicom_browse = "src/scripts.rpt_dicom_browse:go"
+rpt_dicom_select = "src/scripts.rpt_dicom_select:go"
+rpt_dicom_db = "src/scripts.rpt_dicom_db:go"
