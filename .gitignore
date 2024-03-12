@@ -4,7 +4,7 @@
 rpt_dosi.egg-info
 __pycache__
 
-log/*
+tests/log/*log
 dicom/
 db_clb/B*
 db_clb/C*

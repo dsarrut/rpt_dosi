@@ -5,14 +5,16 @@ import os
 import time
 import click
 import rpt_dosi.helpers as he
+from pathlib import Path
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 def go():
-    tests_folder = he.get_tests_folder()
+    tests_folder = Path(he.get_tests_folder())
     print("Look for tests in: ", tests_folder)
+    log_folder = tests_folder / "log"
 
     tests_files = [
         f
@@ -35,8 +37,8 @@ def go():
     for f in files:
         start = time.time()
         print(f"Running: {f:<46}  ", end="")
-        cmd = "python " + os.path.join(tests_folder, f"{f}")
-        log = os.path.join(os.path.dirname(tests_folder), f"log/{f}.log")
+        cmd = "python " + str(tests_folder / f)
+        log = str(log_folder / f"{f}.log")
         r = os.system(f"{cmd} > {log} 2>&1")
         # subprocess.run(cmd, stdout=f, shell=True, check=True)
         if r == 0:
