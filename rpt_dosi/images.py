@@ -3,6 +3,109 @@ import math
 from .helpers import fatal
 import numpy as np
 import os
+import click
+import copy
+
+
+def read_ct(filename):
+    ct = ImageCT()
+    ct.read(filename)
+    return ct
+
+
+def read_spect(filename, unit):
+    spect = ImageSPECT()
+    spect.read(filename)
+    spect.unit = unit
+    return spect
+
+
+def read_roi(filename, name, effective_time_h=None):
+    roi = ImageROI(name)
+    roi.read(filename)
+    roi.effective_time_h = effective_time_h
+    return roi
+
+
+class ImageBase:
+    def __init__(self):
+        self.image = None
+        self.filename = None
+        self.dicom_folder = None
+        self.dicom_filename = None
+        self.acquisition_datetime = None
+        # internal parameters
+        self._unit = None
+        self._default_value = 0
+        self.authorized_units = []
+        self.default_values = {}
+
+    @property
+    def unit(self):
+        return self._unit
+
+    @property
+    def voxel_volume_ml(self):
+        v = np.prod(self.image.GetSpacing()) / 1000
+        return v
+
+    @property
+    def default_value(self):
+        return self._default_value
+
+    @unit.setter
+    def unit(self, value):
+        if value not in self.authorized_units:
+            raise ValueError(f"Unauthorized unit {value}. Must be one of {self.authorized_units}")
+        self._unit = value
+        if value not in self.default_values:
+            raise ValueError(f'Undefined default value for unit {value}. Must be one of {self.default_values}')
+        self._default_value = self.default_values[value]
+
+    def read(self, filename):
+        self.filename = filename
+        self.image = sitk.ReadImage(filename)
+
+    def read_dicom(self, filename):
+        if os.path.isdir(filename):
+            self.dicom_folder = filename
+            # FIXME open + unit ?
+        if os.path.isfile(filename):
+            self.dicom_filename = filename
+            # FIXME open + unit ?
+        # FIXME error detection
+
+
+class ImageCT(ImageBase):
+    def __init__(self):
+        super().__init__()
+        self.authorized_units = ['HU', 'gcm3']  # FIXME add attenuation
+        self.default_values = {'HU': -1000, 'gcm3': 0}
+        self.unit = 'HU'
+
+    def read(self, filename):
+        super().read(filename)
+        self.unit = 'HU'
+
+
+class ImageSPECT(ImageBase):
+    def __init__(self):
+        super().__init__()
+        self.injection_datetime = None
+        self.injection_activity_Bq = None
+        self.time_from_injection_h = 0  # FIXME computed ?
+        self.authorized_units = ['Bq', 'BqmL', "counts"]
+        self.default_values = {'Bq': 0, 'BqmL': 0, "counts": 0}
+
+
+class ImageROI(ImageBase):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+        self.unit = 'label'
+        self.effective_time_h = 0
+        self.authorized_units = ['label']
+        self.default_values = {'label': 0}
 
 
 def images_have_same_domain(image1, image2, tolerance=1e-5):
@@ -20,6 +123,18 @@ def images_have_same_domain(image1, image2, tolerance=1e-5):
     return is_same
 
 
+def validate_spacing(ctx, param, value):
+    if len(value) == 1:
+        # If only one value is provided, duplicate it three times
+        return value[0], value[0], value[0]
+    elif len(value) == 3:
+        # If three values are provided, use them as-is
+        return value
+    else:
+        # Raise an error if any number of values other than 1 or 3 are provided
+        raise click.BadParameter('Spacing must be either one or three values')
+
+
 def images_have_same_spacing(image1, image2, tolerance=1e-5):
     # Check if the spacing values are close within the given tolerance
     is_same = all(
@@ -29,7 +144,16 @@ def images_have_same_spacing(image1, image2, tolerance=1e-5):
     return is_same
 
 
-def resample_image_like(img, like_img, default_pixel_value=-1000, linear=True):
+def image_have_same_spacing(image1, spacing, tolerance=1e-5):
+    # Check if the spacing values are close within the given tolerance
+    is_same = all(
+        math.isclose(i, j, rel_tol=tolerance)
+        for i, j in zip(image1.GetSpacing(), spacing)
+    )
+    return is_same
+
+
+def resample_itk_image_like(img, like_img, default_pixel_value, linear):
     # Create a resampler object
     resampler = sitk.ResampleImageFilter()
 
@@ -53,20 +177,12 @@ def resample_image_like(img, like_img, default_pixel_value=-1000, linear=True):
     return resampled_img
 
 
-def apply_gauss_smoothing(img, sigma):
-    gauss_filter = sitk.SmoothingRecursiveGaussianImageFilter()
-    gauss_filter.SetSigma(sigma)
-    gauss_filter.SetNormalizeAcrossScale(True)
-    return gauss_filter.Execute(img)
-
-
-def resample_image(img, spacing, default_pixel_value=-1000, linear=True):
+def resample_itk_image_spacing(img, new_spacing, default_pixel_value, linear):
     # Create a resampler object
     resampler = sitk.ResampleImageFilter()
 
     # new size
     dim = img.GetDimension()
-    new_spacing = [spacing] * dim
     original_size = img.GetSize()
     original_spacing = img.GetSpacing()
     new_size = [
@@ -164,10 +280,61 @@ def resample_ct_like_spect(spect, ct, verbose=True):
             print(
                 f"Resample ct image ({ct.GetSize()}) to spacing={spect.GetSpacing()} size={spect.GetSize()}"
             )
-        ct = apply_gauss_smoothing(ct, sigma)
-        ct = resample_image_like(ct, spect, -1000, linear=True)
+        ct = apply_itk_gauss_smoothing(ct, sigma)
+        ct = resample_itk_image_like(ct, spect, -1000, linear=True)
     ct_a = sitk.GetArrayFromImage(ct)
     return ct_a
+
+
+def apply_itk_gauss_smoothing(img, sigma):
+    if sigma is None:
+        return img
+    if sigma == "auto" or sigma == 0:
+        sigma = [0.5 * sp for sp in img.GetSpacing()]
+    gauss_filter = sitk.SmoothingRecursiveGaussianImageFilter()
+    gauss_filter.SetSigma(sigma)
+    gauss_filter.SetNormalizeAcrossScale(True)
+    return gauss_filter.Execute(img)
+
+
+def resample_ct_like(ct: ImageCT, like: ImageBase, gaussian_sigma=None):
+    if images_have_same_domain(ct.image, like.image):
+        return ct
+    o = copy.copy(ct)
+    o.image = apply_itk_gauss_smoothing(ct.image, gaussian_sigma)
+    o.image = resample_itk_image_like(o.image, like.image, o.default_value, linear=True)
+    return o
+
+
+def resample_ct_spacing(ct: ImageCT, spacing: list[float], gaussian_sigma=None):
+    if image_have_same_spacing(ct.image, spacing):
+        return
+    o = copy.copy(ct)
+    o.image = apply_itk_gauss_smoothing(ct.image, gaussian_sigma)
+    o.image = resample_itk_image_spacing(o.image, spacing, o.default_value, linear=True)
+    return o
+
+
+def resample_spect_like(spect: ImageSPECT, like: ImageBase):
+    if images_have_same_domain(spect.image, like.image):
+        return spect
+    # resample the image
+    o = copy.copy(spect)
+    o.image = resample_itk_image_like(spect.image, like.image, o.default_value, linear=True)
+    # warning, take the volume into account if needed
+    if spect.unit == 'Bq' or spect.unit == 'counts':
+        scaling = spect.voxel_volume_ml / like.voxel_volume_ml
+        o.image = o.image * scaling
+    return o
+
+
+def resample_roi_like(roi: ImageROI, like: ImageBase):
+    if images_have_same_domain(roi.image, like.image):
+        return roi
+    # resample the image
+    default_value = roi.default_value
+    g = resample_itk_image_like(roi, like.image, default_value, linear=False)
+    return g
 
 
 def resample_roi_like_spect(spect, roi, convert_to_np=True, verbose=True):
@@ -176,7 +343,7 @@ def resample_roi_like_spect(spect, roi, convert_to_np=True, verbose=True):
             print(
                 f"Resample roi mask ({roi.GetSize()}) to spacing={spect.GetSpacing()} size={spect.GetSize()}"
             )
-        roi = resample_image_like(roi, spect, 0, linear=False)
+        roi = resample_itk_image_like(roi, spect, 0, linear=False)
     if convert_to_np:
         roi = sitk.GetArrayFromImage(roi)
     return roi
@@ -238,8 +405,8 @@ def test_compare_image_exact(image1, image2):
     ok = compare_images(str(image1), str(image2))
     if not ok:
         fatal(
-            f"Images {os.path.basename(image1)} "
-            f"and {os.path.basename(image2)} do not match"
+            f"Images {image1} "
+            f"and {image2} do not match"
         )
     return ok
 
