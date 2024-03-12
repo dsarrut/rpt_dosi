@@ -361,10 +361,17 @@ def resample_spect_spacing(spect: ImageSPECT, spacing: list[float], gaussian_sig
 def resample_roi_like(roi: ImageROI, like: ImageBase):
     if images_have_same_domain(roi.image, like.image):
         return roi
-    # resample the image
-    default_value = roi.default_value
-    g = resample_itk_image_like(roi, like.image, default_value, linear=False)
-    return g
+    o = copy.copy(roi)
+    o.image = resample_itk_image_like(roi, like.image, o.default_value, linear=False)
+    return o
+
+
+def resample_roi_spacing(roi: ImageROI, spacing: list[float]):
+    if image_have_same_spacing(roi.image, spacing):
+        return
+    o = copy.copy(roi)
+    o.image = resample_itk_image_spacing(o.image, spacing, o.default_value, linear=False)
+    return o
 
 
 def resample_roi_like_spect(spect, roi, convert_to_np=True, verbose=True):
