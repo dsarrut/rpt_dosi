@@ -1,8 +1,12 @@
 import json
 from .images import (
-    resample_ct_like_spect,
-    resample_roi_like_spect,
+    OLD_resample_ct_like_spect,
+    OLD_resample_roi_like_spect,
     convert_ct_to_densities,
+    ImageCT, ImageSPECT, ImageROI,
+    resample_ct_like,
+    resample_spect_like,
+    resample_roi_like
 )
 from .opendose import (
     get_svalue_and_mass_scaling,
@@ -13,6 +17,7 @@ import SimpleITK as itk
 import numpy as np
 from datetime import datetime
 from box import Box, BoxList
+import SimpleITK as sitk
 
 
 def spect_calibration(spect, calibration_factor, concentration_flag, verbose=True):
@@ -107,7 +112,7 @@ def dose_for_each_rois(
     spect_a = itk.GetArrayFromImage(spect)
 
     # read and resample ct like spect
-    ct_a = resample_ct_like_spect(spect, ct, verbose=options.verbose)
+    ct_a = OLD_resample_ct_like_spect(spect, ct, verbose=options.verbose)
     densities = convert_ct_to_densities(ct_a)
 
     # pixel volume
@@ -130,7 +135,7 @@ def dose_for_each_rois(
     for roi in rois:
         # read roi mask and resample like spect
         r = itk.ReadImage(roi.roi_filename)
-        roi_a = resample_roi_like_spect(spect, r, verbose=options.verbose)
+        roi_a = OLD_resample_roi_like_spect(spect, r, verbose=options.verbose)
 
         # set options for the current roi
         options.roi = roi
@@ -254,21 +259,21 @@ def dose_method_madsen2018_equation(spect_Bq, roi, acq_time_h, delta_lu_e, roi_m
     # compute mean activity in the ROI, in MBq
     v = spect_Bq[roi == 1]
     At = np.sum(v) / 1e6
-    print(f'At = {At*1e6:.3f} Bq')
+    # print(f'At = {At * 1e6:.3f} Bq')
 
     # Svalue in mGy MBq-1 h-1
     svalue = delta_lu_e / roi_mass_g * 1000
-    print(f'delta_lu_e = {delta_lu_e:}')
-    print(f'roi_mass_g = {roi_mass_g:}')
-    print(f'svalue = {svalue:}')
+    # print(f'delta_lu_e = {delta_lu_e:}')
+    # print(f'roi_mass_g = {roi_mass_g:}')
+    # print(f'svalue = {svalue:}')
 
     # effective clearance rate
     k = np.log(2) / roi_time_eff_h
-    print(f'k = {k:.3f} ')
+    # print(f'k = {k:.3f} ')
 
     # 1Gy = 1J/kg
     integrated_activity = At * np.exp(k * acq_time_h) / k
-    print(f'ia*svalue = {At*svalue:}')
+    # print(f'ia*svalue = {At * svalue:}')
     dose = integrated_activity * svalue / 1000
 
     return dose
@@ -382,15 +387,98 @@ def triexpo_apply(x, decay_constant_hours, A1, k1, A2, k2, A3, k3):
     )
 
 
-def test_compare_json_doses(json_ref, json_test):
+def test_compare_json_doses(json_ref, json_test, tol=0.001):
     with open(json_test) as f:
         dose = json.load(f)
     with open(json_ref) as f:
         dose_ref = json.load(f)
     # remove date key
-    del dose["date"]
-    del dose_ref["date"]
+    k = ['dose_Gy', 'mass_g', 'volume_ml']
     # compare
-    b = dose == dose_ref
-    print_tests(b, f"Compare doses")
-    return b
+    is_ok = True
+    for roi in dose:
+        if not isinstance(dose[roi], dict):
+            continue
+        roi_ref = dose_ref[roi]
+        for v in dose[roi]:
+            v1 = float(dose[roi][v])
+            v2 = float(roi_ref[v])
+            diff = (v1 - v2) / v2
+            b = True
+            if diff>tol:
+                b = False
+                is_ok = False
+            print_tests(b, f"{roi:<15} {v:<10} : {v1:10.2f} vs {v2:10.2f}  -> {diff:5.2f} % {b}")
+    print_tests(is_ok, f"Compare doses (tol={tol})")
+    return is_ok
+
+
+class DoseComputation:
+
+    def __init__(self, ct: ImageCT, spect: ImageSPECT):
+        self.ct = ct
+        self.spect = spect
+        self.resample_like = "ct"
+        self.radionuclide = '177lu'
+        self.gaussian_sigma = None
+
+    def check_options(self):
+        if self.resample_like != "ct" and self.resample_like != "spect":
+            fatal(f"resample_like must be 'ct' or 'spect', while it is '{self.resample_like}'")
+        if self.radionuclide != '177lu':
+            fatal(f"radionuclide must be 177lu, while it is '{self.radionuclide}")
+
+    def run(self, rois: list[ImageROI]):
+        fatal(f'RoiDoseComputation: run must be overwritten')
+
+    def init_resampling(self):
+        # resampling (according to the option)
+        like = self.spect
+        if self.resample_like == "ct":
+            like = self.ct
+        ct = resample_ct_like(self.ct, like, self.gaussian_sigma)
+        spect = resample_spect_like(self.spect, like, self.gaussian_sigma)
+
+        # check spect : must be in Bq
+        if spect.unit == "BqmL":
+            spect = spect.copy()
+            spect.image = spect.image * spect.voxel_volume_ml
+            spect.unit = "Bq"
+        if spect.unit != "Bq":
+            fatal(f'The SPECT unit must be Bq while it is {spect.unit}, cannot compute dose with Madsen2018')
+
+        return ct, spect, like
+
+
+class DoseMadsen2018(DoseComputation):
+
+    def __init__(self, ct, spect):
+        super().__init__(ct, spect)
+        self.delta_lu_e = 0.08532
+
+    def run(self, rois: list[ImageROI]):
+        self.check_options()
+        ct, spect, like = self.init_resampling()
+        density_ct = ct.get_densities()
+
+        # compute dose for each roi
+        results = {"method": "madsen2018",
+                   "delta_e": self.delta_lu_e,
+                   "resampled_like": self.resample_like,
+                   "date": str(datetime.now())}
+        for roi in rois:
+            if roi.effective_time_h is None:
+                raise ValueError(f'Effective time must be provided for ROI {roi}.')
+            roi = resample_roi_like(roi, like)
+            roi.update_mass_and_volume(density_ct)
+            dose = dose_method_madsen2018_equation(sitk.GetArrayViewFromImage(spect.image),
+                                                   sitk.GetArrayViewFromImage(roi.image),
+                                                   spect.time_from_injection_h,
+                                                   self.delta_lu_e,
+                                                   roi.mass_g,
+                                                   roi.effective_time_h)
+            results[roi.name] = {"dose_Gy": dose,
+                                 "mass_g": roi.mass_g,
+                                 "volume_ml": roi.volume_ml}
+
+        return results

@@ -5,6 +5,8 @@ import numpy as np
 import os
 import click
 import copy
+import json
+from box import BoxList
 
 
 def read_ct(filename):
@@ -27,11 +29,21 @@ def read_roi(filename, name, effective_time_h=None):
     return roi
 
 
+def read_list_of_rois(filename):
+    rois = []
+    with open(filename, "r") as f:
+        rois_file = BoxList(json.load(f))
+        for roi in rois_file:
+            r = read_roi(roi.roi_filename, roi.roi_name, roi.time_eff_h)
+            rois.append(r)
+    return rois
+
 class ImageBase:
     authorized_units = []
     default_values = {}
 
-    def __init__(self):
+    def __init__(self, name=None):
+        self.name = name
         self.image = None
         self.filename = None
         self.dicom_folder = None
@@ -66,6 +78,8 @@ class ImageBase:
     def read(self, filename):
         self.filename = filename
         self.image = sitk.ReadImage(filename)
+        if self.name is None:
+            self.name = os.path.basename(self.filename)
 
     def read_dicom(self, filename):
         if os.path.isdir(filename):
@@ -77,7 +91,7 @@ class ImageBase:
         # FIXME error detection
 
     def __str__(self):
-        return f"Image: filename={self.filename} unit={self.unit}"
+        return f"Image: {self.name} unit={self.unit}"
 
 
 class ImageCT(ImageBase):
@@ -93,7 +107,22 @@ class ImageCT(ImageBase):
         self.unit = 'HU'
 
     def __str__(self):
-        return f"CT: filename={self.filename} unit={self.unit} vox_vol={self.voxel_volume_ml} ml"
+        return f"CT: {self.name} unit={self.unit}, vox_vol={self.voxel_volume_ml} ml"
+
+    def get_densities(self):
+        if self.unit != 'HU':
+            raise ValueError(f'Unit {self.unit} is not HU, cannot compute density CT')
+        density_ct = copy.copy(self)
+        density_ct.unit = 'gcm3'
+        # Simple conversion from HU to g/cm^3
+        density_ct.image = self.image / 1000 + 1
+        print(density_ct)
+        # the density of air is near 0, not negative
+        a = sitk.GetArrayFromImage(density_ct.image)
+        a[a < 0] = 0
+        density_ct.image = sitk.GetImageFromArray(a)
+        print(density_ct)
+        return density_ct
 
 
 class ImageSPECT(ImageBase):
@@ -107,7 +136,7 @@ class ImageSPECT(ImageBase):
         self.time_from_injection_h = 0  # FIXME computed ?
 
     def __str__(self):
-        return f"SPECT: filename={self.filename} unit={self.unit} vox_vol={self.voxel_volume_ml} ml"
+        return f"SPECT: {self.name} unit={self.unit}, vox_vol={self.voxel_volume_ml} ml"
 
 
 class ImageROI(ImageBase):
@@ -118,10 +147,26 @@ class ImageROI(ImageBase):
         super().__init__()
         self.name = name
         self.unit = 'label'
-        self.effective_time_h = 0
+        self.effective_time_h = None
+        self.mass_g = None
+        self.volume_ml = None
 
     def __str__(self):
-        return f"ROI: filename={self.filename} unit={self.unit} vox_vol={self.voxel_volume_ml} ml"
+        s = f"ROI: {self.name} unit={self.unit}, vox_vol={self.voxel_volume_ml} ml"
+        s += f", Teff = {self.effective_time_h} h"
+        if self.mass_g is not None:
+            s += f", mass={self.mass_g} g"
+        if self.volume_ml is not None:
+            s += f", volume={self.volume_ml} ml"
+        return s
+
+    def update_mass_and_volume(self, density_ct):
+        # compute mass
+        a = sitk.GetArrayViewFromImage(self.image)
+        da = sitk.GetArrayViewFromImage(density_ct.image)
+        d = da[a == 1]
+        self.mass_g = np.sum(d) * self.voxel_volume_ml
+        self.volume_ml = len(d) * self.voxel_volume_ml
 
 
 def images_have_same_domain(image1, image2, tolerance=1e-5):
@@ -271,7 +316,7 @@ def crop_to_bounding_box(img, bg_value=-1000):
     return cropped_img
 
 
-def spect_calibration(img, calibration_factor, verbose):
+def REWRITE_spect_calibration(img, calibration_factor, verbose):
     imga = sitk.GetArrayFromImage(img)
     volume_voxel_mL = np.prod(img.GetSpacing()) / 1000
     imga = imga * volume_voxel_mL / calibration_factor
@@ -289,7 +334,7 @@ def convert_ct_to_densities(ct):
     return densities
 
 
-def resample_ct_like_spect(spect, ct, verbose=True):
+def OLD_resample_ct_like_spect(spect, ct, verbose=True):
     if not images_have_same_domain(spect, ct):
         sigma = [0.5 * sp for sp in ct.GetSpacing()]
         if verbose:
@@ -362,7 +407,7 @@ def resample_roi_like(roi: ImageROI, like: ImageBase):
     if images_have_same_domain(roi.image, like.image):
         return roi
     o = copy.copy(roi)
-    o.image = resample_itk_image_like(roi, like.image, o.default_value, linear=False)
+    o.image = resample_itk_image_like(roi.image, like.image, o.default_value, linear=False)
     return o
 
 
@@ -374,7 +419,7 @@ def resample_roi_spacing(roi: ImageROI, spacing: list[float]):
     return o
 
 
-def resample_roi_like_spect(spect, roi, convert_to_np=True, verbose=True):
+def OLD_resample_roi_like_spect(spect, roi, convert_to_np=True, verbose=True):
     if not images_have_same_domain(spect, roi):
         if verbose:
             print(
@@ -393,7 +438,7 @@ def get_stats_in_rois(spect, ct, rois_list):
     spect_a = sitk.GetArrayFromImage(spect)
     # load ct
     ct = sitk.ReadImage(ct)
-    ct_a = resample_ct_like_spect(spect, ct, verbose=False)
+    ct_a = OLD_resample_ct_like_spect(spect, ct, verbose=False)
     densities = convert_ct_to_densities(ct_a)
     # prepare key
     res = {}
@@ -401,7 +446,7 @@ def get_stats_in_rois(spect, ct, rois_list):
     for roi in rois_list:
         # read roi mask and resample like spect
         r = sitk.ReadImage(roi.roi_filename)
-        roi_a = resample_roi_like_spect(spect, r, verbose=False)
+        roi_a = OLD_resample_roi_like_spect(spect, r, verbose=False)
         # compute stats
         s = image_roi_stats(spect_a, roi_a)
         # compute mass
@@ -464,7 +509,7 @@ def dilate_mask(img, dilatation_mm):
 
 def tmtv_mask_cut_the_head(image: object, mask: object, skull_filename: object, margin_mm: object) -> object:
     roi = sitk.ReadImage(skull_filename)
-    roi_arr = resample_roi_like_spect(image, roi, convert_to_np=True, verbose=False)
+    roi_arr = OLD_resample_roi_like_spect(image, roi, convert_to_np=True, verbose=False)
     indices = np.argwhere(roi_arr == 1)
     most_inferior_pixel = indices[np.argmin(indices[:, 0])]
     margin_pix = int(round(margin_mm / image.GetSpacing()[0]))
@@ -502,7 +547,7 @@ def tmtv_mask_remove_rois(image, mask, roi_list):
         # read image
         roi_img = sitk.ReadImage(roi['filename'])
         # check size and resample if needed
-        roi_img = resample_roi_like_spect(image, roi_img, convert_to_np=False, verbose=False)
+        roi_img = OLD_resample_roi_like_spect(image, roi_img, convert_to_np=False, verbose=False)
         # dilatation ?
         roi_img = dilate_mask(roi_img, roi['dilatation'])
         # update the mask
