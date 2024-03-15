@@ -42,10 +42,6 @@ if __name__ == "__main__":
     for d in doses:
         print(f'{d} = {doses[d]}')
 
-    # doses = rd.dose_hanscheid2017(ct, spect, rois, options)  # Teffectif needed
-    # doses = rd.dose_hanscheid2018(ct, spect, rois, options)  # MIRD phantom needed
-    # doses = rd.dose_vergnaud2022(ct, spect, rois, options)  # dose rate sim (to split)
-
     # compare the dose files
     dose_ref = ref_folder / "dose_ref_madsen2018.json"
     is_ok = rd.test_compare_json_doses(dose_ref, output)
