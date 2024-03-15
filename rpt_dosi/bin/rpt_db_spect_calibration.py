@@ -3,7 +3,6 @@
 
 import click
 import rpt_dosi.db as rdb
-import rpt_dosi.dosimetry as rdose
 import rpt_dosi.images as rim
 import SimpleITK as itk
 
@@ -23,7 +22,6 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     help="SPECT calibration factor",
 )
 def go(db_file, output, calibration_factor):
-
     # FIXME : the way the db is managed will be changed with classes instead of dic
 
     # open db as a dict
@@ -43,8 +41,6 @@ def go(db_file, output, calibration_factor):
             spect = rim.read_spect(input_image, "Bq")
             print(spect)
             # apply calibration
-            #img = rdose.spect_calibration(img, calibration_factor, concentration, verbose=True)
-            #spect.image
             spect.image = spect.image * calibration_factor
             # write
             output_image = input_image.replace(".nii.gz", "_calibrated.nii.gz")
@@ -54,6 +50,7 @@ def go(db_file, output, calibration_factor):
 
     # save
     rdb.db_save(db, output, db_file)
+
 
 # --------------------------------------------------------------------------
 if __name__ == "__main__":
