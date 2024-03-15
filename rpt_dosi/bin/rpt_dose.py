@@ -4,23 +4,21 @@
 import json
 import click
 from rpt_dosi import dosimetry as rd
-import SimpleITK as sitk
 import rpt_dosi.images as rim
-from box import Box
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
-    "--spect",
+    "--input_image",
     "-s",
     required=True,
     type=click.Path(exists=True),
-    help="Input SPECT or dose_rate image",
+    help="Input SPECT or dose_rate image (use --unit to specify the image)",
 )
 @click.option("--input_unit", "-u",
-              type=click.Choice(rim.ImageSPECT.authorized_units),
+              type=click.Choice(rim.ImageSPECT.authorized_units + ['Gy_sec']),
               required=True,
               help=f"SPECT unit: {rim.ImageSPECT.authorized_units}")
 @click.option(
@@ -36,7 +34,6 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 )
 @click.option("--time_from_injection_h", "-t", type=float, required=True, help="Time in h")
 @click.option("--rad", default="lu177", help="Radionuclide")
-# @click.option("--verbose", "-v", default=False, is_flag=True, help="Verbose")
 @click.option(
     "--method",
     "-m",
@@ -50,7 +47,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--resample_like", "-r",
               type=click.Choice(["spect", "ct"]),
               default="spect",
-              help="Resample image like spect or ct")
+              help="Resample image like spect, dose_rate or ct")
 @click.option("--sigma", default="auto",
               help="specify sigma for gauss filter (None=no gauss, 0 = auto)",
               )
@@ -58,20 +55,23 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     "--phantom", "-p", default="ICRP 110 AM", help="Phantom ICRP 110 AF or AM (only used by some methods)"
 )
 @click.option("--scaling", default=1.0, help="Scaling factor (for dose rate)")
-def go(spect, ct, input_unit, time_from_injection_h,
+def go(input_image, ct, input_unit, time_from_injection_h,
        phantom, rad, resample_like,
        roi_list, sigma, output, method, scaling):
     # reading images
     ct = rim.read_ct(ct)
-    spect = rim.read_spect(spect, input_unit)
-    spect.time_from_injection_h = time_from_injection_h
+    if input_unit == "Gy_sec":
+        input_image = rim.read_dose(input_image, input_unit)
+    else:
+        input_image = rim.read_spect(input_image, input_unit)
+    input_image.time_from_injection_h = time_from_injection_h
 
     # read rois
     rois = rim.read_list_of_rois(roi_list)
 
     # create the dose method
     the_method = rd.get_dose_computation_method(method)
-    d = the_method(ct, spect)
+    d = the_method(ct, input_image)
 
     # common options
     d.resample_like = resample_like
@@ -80,6 +80,7 @@ def go(spect, ct, input_unit, time_from_injection_h,
 
     # specific options (only used by some methods)
     d.phantom = phantom
+    d.scaling = scaling
 
     # compute dose for all roi
     doses = d.run(rois)

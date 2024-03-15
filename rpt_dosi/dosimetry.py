@@ -6,7 +6,8 @@ from .images import (
     ImageCT, ImageSPECT, ImageROI,
     resample_ct_like,
     resample_spect_like,
-    resample_roi_like
+    resample_roi_like,
+    resample_dose_like
 )
 from .opendose import (
     get_svalue_and_mass_scaling,
@@ -226,14 +227,7 @@ def OLD_dose_method_madsen2018(spect_a, roi_a, acq_time_h, options):
                                            options.delta_lu_e, roi.roi_mass, roi.time_eff_h)
 
 
-def dose_method_madsen2018_dose_rate(dose_rate_a, roi_a, acq_time_h, options):
-    roi = options.roi
-    # time effective
-    if "time_eff_h" not in roi:
-        roi.time_eff_h = dose_method_hanscheid2017_get_time_eff_h(options.roi.roi_name)
-    if options.verbose:
-        print(f'time_eff_h for {roi.roi_name} = {roi.time_eff_h:.3f} h')
-
+def dose_method_madsen2018_dose_rate(dose_rate_a, roi_a, time_from_injection_h, effective_time_h):
     # compute mean dose rate in the ROI in Gy/s
     # convert to hours
     v = dose_rate_a[roi_a == 1]
@@ -241,10 +235,10 @@ def dose_method_madsen2018_dose_rate(dose_rate_a, roi_a, acq_time_h, options):
     print(f'dr = {dr:.3f} Gy/h')
 
     # effective clearance rate
-    k = np.log(2) / roi.time_eff_h
+    k = np.log(2) / effective_time_h
     print(f'k = {k:.3f} ')
 
-    dose = dr * np.exp(k * acq_time_h) / k
+    dose = dr * np.exp(k * time_from_injection_h) / k
     return dose
 
 
@@ -408,7 +402,7 @@ def test_compare_json_doses(json_ref, json_test, tol=0.001):
             if diff > tol:
                 b = False
                 is_ok = False
-            print_tests(b, f"{roi:<15} {v:<10} : {v1:10.2f} vs {v2:10.2f}  -> {diff:5.2f} % {b}")
+            print_tests(b, f"{roi:<15} {v:<10} : {v1:10.2f} vs {v2:10.2f}  -> {diff*100:5.2f} % {b}")
     print_tests(is_ok, f"Compare doses (tol={tol})")
     return is_ok
 
@@ -578,8 +572,50 @@ class DoseHanscheid2018(DoseComputation):
         return results
 
 
+class DoseMadsen2018DoseRate(DoseComputation):
+    name = "madsen2018_dose_rate"
+
+    def __init__(self, ct, dose_rate):
+        super().__init__(ct, dose_rate)
+        self.dose_rate = dose_rate
+        self.scaling = 1.0
+
+    def init_resampling(self):
+        like = self.dose_rate
+        if self.resample_like == 'ct':
+            like = self.ct
+        ct = resample_ct_like(self.ct, like, self.gaussian_sigma)
+        dose_rate = resample_dose_like(self.dose_rate, like, self.gaussian_sigma)
+        return ct, dose_rate, like
+
+    def run(self, rois: list[ImageROI]):
+        self.check_options()
+        ct, dose_rate, like = self.init_resampling()
+        density_ct = ct.get_densities()
+        dose_rate_arr = sitk.GetArrayViewFromImage(dose_rate.image)
+
+        # compute dose for each roi
+        results = self.init_results()
+
+        for roi in rois:
+            if roi.effective_time_h is None:
+                raise ValueError(f'Effective time must be provided for ROI {roi}.')
+            roi = resample_roi_like(roi, like)
+            roi.update_mass_and_volume(density_ct)
+            dose = dose_method_madsen2018_dose_rate(dose_rate_arr,
+                                                    sitk.GetArrayViewFromImage(roi.image),
+                                                    dose_rate.time_from_injection_h,
+                                                    roi.effective_time_h)
+            dose = dose * self.scaling
+            results[roi.name] = {"dose_Gy": dose,
+                                 "mass_g": roi.mass_g,
+                                 "volume_ml": roi.volume_ml}
+
+        return results
+
+
 def get_dose_computation_method(name):
-    methods = [DoseMadsen2018, DoseHanscheid2017, DoseHanscheid2018]
+    methods = [DoseMadsen2018, DoseHanscheid2017, DoseHanscheid2018, DoseMadsen2018DoseRate]
     for d in methods:
         if d.name.lower() == name.lower():
             return d

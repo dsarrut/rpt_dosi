@@ -29,6 +29,12 @@ def read_roi(filename, name, effective_time_h=None):
     return roi
 
 
+def read_dose(filename, unit):
+    d = ImageDose(unit)
+    d.read(filename)
+    return d
+
+
 def read_list_of_rois(filename):
     rois = []
     with open(filename, "r") as f:
@@ -226,6 +232,19 @@ class ImageROI(ImageBase):
         d = da[a == 1]
         self.mass_g = np.sum(d) * self.voxel_volume_ml
         self.volume_ml = len(d) * self.voxel_volume_ml
+
+
+class ImageDose(ImageBase):
+    authorized_units = ['Gy', 'Gy_sec']
+    default_values = {'Gy': 0, 'Gy_sec': 0}
+
+    def __init__(self, unit):
+        super().__init__()
+        self.unit = unit
+
+    def __str__(self):
+        s = f"Dose: {self.name} unit={self.unit}, vox_vol={self.voxel_volume_ml} ml"
+        return s
 
 
 def images_have_same_domain(image1, image2, tolerance=1e-5):
@@ -426,6 +445,15 @@ def resample_ct_like(ct: ImageCT, like: ImageBase, gaussian_sigma=None):
     return o
 
 
+def resample_dose_like(ct: ImageDose, like: ImageBase, gaussian_sigma=None):
+    if images_have_same_domain(ct.image, like.image):
+        return ct
+    o = copy.copy(ct)
+    o.image = apply_itk_gauss_smoothing(ct.image, gaussian_sigma)
+    o.image = resample_itk_image_like(o.image, like.image, o.default_value, linear=True)
+    return o
+
+
 def resample_ct_spacing(ct: ImageCT, spacing: list[float], gaussian_sigma=None):
     if image_have_same_spacing(ct.image, spacing):
         return
@@ -445,6 +473,7 @@ def resample_spect_like(spect: ImageSPECT, like: ImageBase, gaussian_sigma=None)
     if o.unit == 'Bq' or o.unit == 'counts':
         scaling = spect.voxel_volume_ml / like.voxel_volume_ml
         o.image = o.image * scaling
+    print(o.image)
     return o
 
 
