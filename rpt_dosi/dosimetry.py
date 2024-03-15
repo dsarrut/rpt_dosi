@@ -20,7 +20,8 @@ from box import Box, BoxList
 import SimpleITK as sitk
 
 
-def spect_calibration(spect, calibration_factor, concentration_flag, verbose=True):
+
+def OLD_spect_calibration(spect, calibration_factor, concentration_flag, verbose=True):
     # get voxel volume
     volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
     arr = itk.GetArrayFromImage(spect)
@@ -41,7 +42,7 @@ def spect_calibration(spect, calibration_factor, concentration_flag, verbose=Tru
     return o
 
 
-def spect_Bq_to_SUV(spect, injected_activity_MBq, body_weight_kg):
+def OLD_spect_Bq_to_SUV(spect, injected_activity_MBq, body_weight_kg):
     # get voxel volume
     volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
     arr = itk.GetArrayFromImage(spect)

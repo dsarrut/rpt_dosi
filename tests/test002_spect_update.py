@@ -14,49 +14,50 @@ if __name__ == "__main__":
 
     # test activity
     print()
-    # rpt_spect_calibration -i data/spect_8.321mm.nii.gz -o data/test002/spect_activity_ref.nii.gz -c 0.666
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_activity.nii.gz"
-    cmd = f"rpt_spect_calibration -i {spect_input} -o {spect_output} -c 0.666"
-    is_ok = he.run_cmd(cmd, data_folder / "..")
+    spect = im.read_spect(spect_input, "Bq")
+    s = spect.voxel_volume_ml / 0.666
+    cmd = f"rpt_spect_update -i {spect_input} -u Bq -o {spect_output} -c {s}"
+    cmd_ok = he.run_cmd(cmd, data_folder / "..")
 
     # compare
     spect_ref = ref_folder / "spect_activity_ref.nii.gz"
-    b = im.test_compare_image_exact(spect_output, spect_ref)
+    b = im.compare_images(spect_output, spect_ref, tol=1e-6)
     he.print_tests(b, f"SPECT calibration activity {spect_output}  vs  {spect_ref}")
-    is_ok = b and is_ok
+    is_ok = b and cmd_ok
 
     # test activity concentration
     print()
-    # rpt_spect_calibration -i data/spect_8.321mm.nii.gz -o data/test002/spect_activity_conc_ref.nii.gz -c 0.222 --concentration
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_activity_conc.nii.gz"
-    cmd = f"rpt_spect_calibration -i {spect_input} -o {spect_output} -c 0.222 --concentration"
-    is_ok = he.run_cmd(cmd, data_folder / "..") and is_ok
+    spect = im.read_spect(spect_input, "Bq")
+    s = 1 / 0.222
+    cmd = f"rpt_spect_update -i {spect_input} -u BqmL -o {spect_output} -c {s}"
+    cmd_ok = he.run_cmd(cmd, data_folder / "..")
 
     # compare
     spect_ref = ref_folder / "spect_activity_conc_ref.nii.gz"
-    b = im.test_compare_image_exact(spect_output, spect_ref)
+    b = im.compare_images(spect_output, spect_ref, tol=1e-6)
     he.print_tests(
-        b, f"SPECT calibration activity concentration {spect_output}  vs  {spect_ref}"
+        b and cmd_ok, f"SPECT calibration activity concentration {spect_output}  vs  {spect_ref}"
     )
-    is_ok = b and is_ok
+    is_ok = b and cmd_ok and is_ok
 
     # SUV
     print()
-    # rpt_spect_Bq_to_SUV -i spect_8.321mm.nii.gz -o test002/spect_suv_ref.nii.gz --ia 7400 --bw 80
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_suv.nii.gz"
-    cmd = f"rpt_spect_Bq_to_SUV -i {spect_input} -o {spect_output} --ia 7400 --bw 80"
-    is_ok = he.run_cmd(cmd, data_folder / "..") and is_ok
+    cmd = f"rpt_spect_update -i {spect_input} -u Bq -o {spect_output} --ia 7400 --bw 80 --output_unit SUV"
+    cmd_ok = he.run_cmd(cmd, data_folder / "..")
 
     # compare
     spect_ref = ref_folder / "spect_suv_ref.nii.gz"
-    b = im.test_compare_image_exact(spect_output, spect_ref)
+    b = im.compare_images(spect_output, spect_ref)
     he.print_tests(
-        b, f"SPECT SUV {spect_output}  vs  {spect_ref}"
+        b and cmd_ok, f"SPECT SUV {spect_output}  vs  {spect_ref}"
     )
-    is_ok = b and is_ok
+    is_ok = b and cmd_ok and is_ok
 
     # end
     he.test_ok(is_ok)

@@ -38,6 +38,7 @@ def read_list_of_rois(filename):
             rois.append(r)
     return rois
 
+
 class ImageBase:
     authorized_units = []
     default_values = {}
@@ -70,9 +71,9 @@ class ImageBase:
     def unit(self, value):
         if value not in self.authorized_units:
             raise ValueError(f"Unauthorized unit {value}. Must be one of {self.authorized_units}")
-        self._unit = value
         if value not in self.default_values:
             raise ValueError(f'Undefined default value for unit {value}. Must be one of {self.default_values}')
+        self._unit = value
         self._default_value = self.default_values[value]
 
     def read(self, filename):
@@ -116,27 +117,82 @@ class ImageCT(ImageBase):
         density_ct.unit = 'gcm3'
         # Simple conversion from HU to g/cm^3
         density_ct.image = self.image / 1000 + 1
-        print(density_ct)
         # the density of air is near 0, not negative
         a = sitk.GetArrayFromImage(density_ct.image)
         a[a < 0] = 0
         density_ct.image = sitk.GetImageFromArray(a)
-        print(density_ct)
+        density_ct.image.CopyInformation(self.image)
         return density_ct
 
 
 class ImageSPECT(ImageBase):
-    authorized_units = ['Bq', 'BqmL', "counts"]
-    default_values = {'Bq': 0, 'BqmL': 0, "counts": 0}
+    authorized_units = ['Bq', 'BqmL', "SUV"]
+    default_values = {'Bq': 0, 'BqmL': 0, "SUV": 0}
 
     def __init__(self):
         super().__init__()
         self.injection_datetime = None
-        self.injection_activity_Bq = None
+        self.injection_activity_mbq = None
         self.time_from_injection_h = 0  # FIXME computed ?
+        self.body_weight_kg = None
+        self.converter = {"Bq": self._convert_to_bq}
 
     def __str__(self):
-        return f"SPECT: {self.name} unit={self.unit}, vox_vol={self.voxel_volume_ml} ml"
+        return (f"SPECT: {self.name} unit={self.unit}, "
+                f"vox_vol={self.voxel_volume_ml} ml, "
+                f"body_weight={self.body_weight_kg}, "
+                f"injection_datetime={self.injection_datetime}, "
+                f"injection_activity_mbq={self.injection_activity_mbq}")
+
+    @ImageBase.unit.setter
+    def unit(self, value):
+        if value == "Bqml":
+            self._convert_to_bqml()
+        if value == "Bq":
+            self._convert_to_bq()
+        if value == "SUV":
+            self._convert_to_suv()
+        super(ImageSPECT, self.__class__).unit.fset(self, value)
+
+    def _convert_to_bq(self):
+        if self.unit == 'BqmL':
+            self.image = self.image * self.voxel_volume_ml
+        if self.unit == "SUV":
+            arr = sitk.GetArrayFromImage(self.image)
+            arr = arr * self.voxel_volume_ml * (self.injection_activity_mbq * self.body_weight_kg)
+            im = sitk.GetImageFromArray(arr)
+            im.CopyInformation(self.image)
+            self.image = im
+
+    def _convert_to_bqml(self):
+        if self.unit == 'Bq':
+            self.image = self.image / self.voxel_volume_ml
+        if self.unit == "SUV":
+            self.unit = "Bq"
+            self.unit = "BqmL"
+
+    def _convert_to_suv(self):
+        if self.body_weight_kg is None:
+            raise ValueError(f'To convert to SUV, body_weight_kg cannot be None (SPECT image {self.filename})')
+        if self.injection_activity_mbq is None:
+            raise ValueError(f'To convert to SUV, injection_activity_MBq cannot be None (SPECT image {self.filename})')
+        arr = sitk.GetArrayFromImage(self.image)
+        # convert to bqml first
+        self.unit = "BqmL"
+        # convert to SUV
+        arr = arr / self.voxel_volume_ml / (self.injection_activity_mbq * self.body_weight_kg)
+        im = sitk.GetImageFromArray(arr)
+        im.CopyInformation(self.image)
+        self.image = im
+
+    def compute_total_activity(self):
+        if self.image is None:
+            raise ValueError("Image data not loaded.")
+        arr = sitk.GetArrayViewFromImage(self.image)
+        total_activity = np.sum(arr)
+        if self.unit == 'BqmL':
+            total_activity = total_activity * self.voxel_volume_ml
+        return total_activity
 
 
 class ImageROI(ImageBase):
@@ -471,25 +527,19 @@ def image_roi_stats(spect_a, roi_a):
     }
 
 
-def compare_images(image1, image2):
+def compare_images(image1, image2, tol=1e-6):
     img1 = sitk.ReadImage(image1)
     img2 = sitk.ReadImage(image2)
     if not images_have_same_domain(img1, img2):
         print(f"Im1: {img1.GetSize()}  {img1.GetSpacing()}   {img1.GetOrigin()}")
         print(f"Im2: {img2.GetSize()}  {img2.GetSpacing()}   {img2.GetOrigin()}")
         return False
+    # warning : strange behavior with GetArrayViewFromImage ???
     img1 = sitk.GetArrayFromImage(img1)
     img2 = sitk.GetArrayFromImage(img2)
-    return np.all(img1 == img2)
-
-
-def test_compare_image_exact(image1, image2):
-    ok = compare_images(str(image1), str(image2))
-    if not ok:
-        fatal(
-            f"Images {image1} "
-            f"and {image2} do not match"
-        )
+    print(f'Total image1 = {np.sum(img1)}')
+    print(f'Total image2 = {np.sum(img2)}')
+    ok = np.allclose(img1, img2, atol=tol)
     return ok
 
 

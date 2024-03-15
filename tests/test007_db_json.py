@@ -41,12 +41,12 @@ if __name__ == "__main__":
     db_output = output_folder / "db_datetime.json"
     db_ref = ref_folder / "db_datetime.json"
     cmd = f"rpt_db_set_spect_datetime_from_dicom --db {db_input} -o {db_output}"
-    is_ok = he.run_cmd(cmd, data_folder)
+    cmd_ok = he.run_cmd(cmd, data_folder)
 
     # compare
     db1 = rtpdb.db_load(db_output)
     db2 = rtpdb.db_load(db_ref)
-    b = he.are_dicts_equal(db1, db2)
+    b = he.are_dicts_equal(db1, db2) and cmd_ok
     he.print_tests(b, f"Compare JSON {db_output} vs {db_ref}")
     is_ok = b and is_ok
 
@@ -56,13 +56,14 @@ if __name__ == "__main__":
     db_input = data_folder / "db.json"
     db_output = output_folder / "db_calib.json"
     db_ref = ref_folder / "db_calib.json"
+    s = 1/0.176906614
     cmd = f"rpt_db_spect_calibration --db {db_input} -c 0.176906614 -o {db_output}"
-    is_ok = he.run_cmd(cmd, data_folder)
+    cmd_ok = he.run_cmd(cmd, data_folder)
 
     # compare
     db1 = rtpdb.db_load(db_output)
     db2 = rtpdb.db_load(db_ref)
-    b = he.are_dicts_equal(db1, db2)
+    b = he.are_dicts_equal(db1, db2) and cmd_ok
     he.print_tests(b, f"Compare JSON {db_output} vs {db_ref}")
     is_ok = b and is_ok
 

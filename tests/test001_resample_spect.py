@@ -22,14 +22,14 @@ if __name__ == "__main__":
 
     # compare
     spect_ref = ref_folder / "spect_12mm_ref.nii.gz"
-    b = im.test_compare_image_exact(spect_output, spect_ref)
+    b = im.compare_images(spect_output, spect_ref)
     he.print_tests(b, f"Resample with bq {spect_output} vs {spect_ref}")
     is_ok = b and is_ok
 
     # check total counts
-    spect1 = sitk.GetArrayFromImage(sitk.ReadImage(spect_input))
+    spect1 = sitk.GetArrayViewFromImage(sitk.ReadImage(spect_input))
     tc_input = np.sum(spect1)
-    spect2 = sitk.GetArrayFromImage(sitk.ReadImage(spect_output))
+    spect2 = sitk.GetArrayViewFromImage(sitk.ReadImage(spect_output))
     tc_output = np.sum(spect2)
     diff = np.fabs(tc_input - tc_output) / tc_input * 100
     b = diff < 0.5

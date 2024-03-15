@@ -24,7 +24,8 @@ if __name__ == "__main__":
     # read images
     ct = rim.read_ct(ct_input)
     spect = rim.read_spect(spect_input, 'Bq')
-    spect.time_from_injection_h = 24.0  # warning coherence with injection time + acquisition time
+    spect.time_from_injection_h = 24.0
+    # warning how to keep coherence with injection time + acquisition time?
 
     # read rois
     rois = rim.read_list_of_rois(oar_json)

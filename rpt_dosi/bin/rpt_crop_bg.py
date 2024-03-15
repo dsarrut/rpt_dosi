@@ -25,7 +25,7 @@ def go(input_image, roi, output, bg_value):
     roi = itk.ReadImage(roi)
     # check images spacing
     if not rpt.images.images_have_same_domain(img, roi):
-        roi = rpt.images.resample_image_like(
+        roi = rpt.images.resample_itk_image_like(
             roi, img, default_pixel_value=0, linear=False
         )
 
