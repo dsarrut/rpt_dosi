@@ -20,7 +20,6 @@ from box import Box, BoxList
 import SimpleITK as sitk
 
 
-
 def OLD_spect_calibration(spect, calibration_factor, concentration_flag, verbose=True):
     # get voxel volume
     volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
@@ -67,7 +66,7 @@ def dose_method_hanscheid2017_get_time_eff_h(roi_name):
     return time_eff_h[a]
 
 
-def dose_method_hanscheid2017(spect_a, roi_a, acq_time_h, options):
+def OLD_dose_method_hanscheid2017(spect_a, roi_a, acq_time_h, options):
     roi = options.roi
     if "time_eff_h" not in roi:
         if options.radionuclide != "Lu177":
@@ -97,7 +96,7 @@ def dose_method_hanscheid2017_equation(spect_Bq, roi, acq_time_h, volume_voxel_m
     return dose
 
 
-def dose_for_each_rois(
+def OLD_dose_for_each_rois(
         spect,
         ct,
         rois,
@@ -144,11 +143,11 @@ def dose_for_each_rois(
         # go
         dose = None
         if method == "hanscheid2018":
-            dose = dose_method_hanscheid2018(spect_a, roi_a, acq_time_h, options)
+            dose = OLD_dose_method_hanscheid2018(spect_a, roi_a, acq_time_h, options)
         if method == "hanscheid2017":
-            dose = dose_method_hanscheid2017(spect_a, roi_a, acq_time_h, options)
+            dose = OLD_dose_method_hanscheid2017(spect_a, roi_a, acq_time_h, options)
         if method == "madsen2018":
-            dose = dose_method_madsen2018(spect_a, roi_a, acq_time_h, options)
+            dose = OLD_dose_method_madsen2018(spect_a, roi_a, acq_time_h, options)
         if method == "madsen2018_dose_rate":
             dose = dose_method_madsen2018_dose_rate(spect_a, roi_a, acq_time_h, options)
 
@@ -170,7 +169,7 @@ def dose_for_each_rois(
     return results
 
 
-def dose_method_hanscheid2018(spect_a, roi_a, acq_time_h, options):
+def OLD_dose_method_hanscheid2018(spect_a, roi_a, acq_time_h, options):
     # get roi name
     phantom_name, rad_name = guess_phantom_and_isotope(options.phantom, options.radionuclide)
     # get svalues and scaling
@@ -206,7 +205,7 @@ def dose_method_hanscheid2018_equation(spect_Bq, roi, acq_time_h, svalue, mass_s
     return dose
 
 
-def dose_method_madsen2018(spect_a, roi_a, acq_time_h, options):
+def OLD_dose_method_madsen2018(spect_a, roi_a, acq_time_h, options):
     roi = options.roi
     # compute mass
     d = options.densities[roi_a == 1]
@@ -406,7 +405,7 @@ def test_compare_json_doses(json_ref, json_test, tol=0.001):
             v2 = float(roi_ref[v])
             diff = (v1 - v2) / v2
             b = True
-            if diff>tol:
+            if diff > tol:
                 b = False
                 is_ok = False
             print_tests(b, f"{roi:<15} {v:<10} : {v1:10.2f} vs {v2:10.2f}  -> {diff:5.2f} % {b}")
@@ -415,19 +414,23 @@ def test_compare_json_doses(json_ref, json_test, tol=0.001):
 
 
 class DoseComputation:
+    # name of the method
+    name = None
 
     def __init__(self, ct: ImageCT, spect: ImageSPECT):
         self.ct = ct
         self.spect = spect
         self.resample_like = "ct"
-        self.radionuclide = '177lu'
+        self.radionuclide = 'lu177'
         self.gaussian_sigma = None
 
     def check_options(self):
         if self.resample_like != "ct" and self.resample_like != "spect":
             fatal(f"resample_like must be 'ct' or 'spect', while it is '{self.resample_like}'")
-        if self.radionuclide != '177lu':
-            fatal(f"radionuclide must be 177lu, while it is '{self.radionuclide}")
+        if self.radionuclide != 'lu177':
+            fatal(f"radionuclide must be lu177, while it is '{self.radionuclide}")
+        if self.spect.time_from_injection_h is None:
+            fatal(f"SPECT image must have time_from_injection_h while it is None. {self.spect}")
 
     def run(self, rois: list[ImageROI]):
         fatal(f'RoiDoseComputation: run must be overwritten')
@@ -450,8 +453,16 @@ class DoseComputation:
 
         return ct, spect, like
 
+    def init_results(self):
+        results = {"method": self.name,
+                   "resampled_like": self.resample_like,
+                   "radionuclide": self.radionuclide,
+                   "date": str(datetime.now())}
+        return Box(results)
+
 
 class DoseMadsen2018(DoseComputation):
+    name = "madsen2018"
 
     def __init__(self, ct, spect):
         super().__init__(ct, spect)
@@ -463,10 +474,9 @@ class DoseMadsen2018(DoseComputation):
         density_ct = ct.get_densities()
 
         # compute dose for each roi
-        results = {"method": "madsen2018",
-                   "delta_e": self.delta_lu_e,
-                   "resampled_like": self.resample_like,
-                   "date": str(datetime.now())}
+        results = self.init_results()
+        results["delta_e"] = self.delta_lu_e
+
         for roi in rois:
             if roi.effective_time_h is None:
                 raise ValueError(f'Effective time must be provided for ROI {roi}.')
@@ -483,3 +493,95 @@ class DoseMadsen2018(DoseComputation):
                                  "volume_ml": roi.volume_ml}
 
         return results
+
+
+class DoseHanscheid2017(DoseComputation):
+    name = "hanscheid2017"
+
+    def __init__(self, ct, spect):
+        super().__init__(ct, spect)
+
+    def run(self, rois: list[ImageROI]):
+        self.check_options()
+        ct, spect, like = self.init_resampling()
+        density_ct = ct.get_densities()
+
+        # compute dose for each roi
+        results = self.init_results()
+
+        for roi in rois:
+            if roi.effective_time_h is None:
+                raise ValueError(f'Effective time must be provided for ROI {roi}.')
+            roi = resample_roi_like(roi, like)
+            roi.update_mass_and_volume(density_ct)
+            dose = dose_method_hanscheid2017_equation(sitk.GetArrayViewFromImage(spect.image),
+                                                      sitk.GetArrayViewFromImage(roi.image),
+                                                      spect.time_from_injection_h,
+                                                      spect.voxel_volume_ml,
+                                                      roi.effective_time_h)
+
+            results[roi.name] = {"dose_Gy": dose,
+                                 "mass_g": roi.mass_g,
+                                 "volume_ml": roi.volume_ml}
+
+        return results
+
+
+class DoseHanscheid2018(DoseComputation):
+    name = "hanscheid2018"
+
+    def __init__(self, ct, spect):
+        super().__init__(ct, spect)
+        self.phantom = None
+
+    def check_options(self):
+        super().check_options()
+        if self.phantom is None:
+            raise ValueError(f'For {self.name}, you need to provide a MIRD phantom')
+
+    def run(self, rois: list[ImageROI]):
+        self.check_options()
+        ct, spect, like = self.init_resampling()
+        density_ct = ct.get_densities()
+
+        # compute dose for each roi
+        results = self.init_results()
+
+        # MIRD phantom
+        phantom_name, rad_name = guess_phantom_and_isotope(self.phantom, self.radionuclide)
+        print(phantom_name, rad_name)
+
+        # loop on roi
+        spect_arr = sitk.GetArrayViewFromImage(spect.image)
+        for roi in rois:
+            roi = resample_roi_like(roi, like)
+            roi_arr = sitk.GetArrayViewFromImage(roi.image)
+            svalue, mass_scaling, roi.mass_g, roi.volume_ml = get_svalue_and_mass_scaling(
+                phantom_name,
+                roi_arr,
+                roi.name,
+                rad_name,
+                spect.voxel_volume_ml,
+                sitk.GetArrayViewFromImage(density_ct.image),
+                verbose=True,
+            )
+            dose = dose_method_hanscheid2018_equation(spect_arr,
+                                                      roi_arr,
+                                                      spect.time_from_injection_h,
+                                                      svalue,
+                                                      mass_scaling)
+
+            results[roi.name] = {"dose_Gy": dose,
+                                 "mass_g": roi.mass_g,
+                                 "volume_ml": roi.volume_ml}
+
+        return results
+
+
+def get_dose_computation_method(name):
+    methods = [DoseMadsen2018, DoseHanscheid2017, DoseHanscheid2018]
+    for d in methods:
+        if d.name.lower() == name.lower():
+            return d
+    fatal(f'Dose computation method "{name}" not found. '
+          f'List of available methods: {[m.name for m in methods]}')

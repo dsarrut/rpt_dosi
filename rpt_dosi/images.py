@@ -34,7 +34,10 @@ def read_list_of_rois(filename):
     with open(filename, "r") as f:
         rois_file = BoxList(json.load(f))
         for roi in rois_file:
-            r = read_roi(roi.roi_filename, roi.roi_name, roi.time_eff_h)
+            Teff = None
+            if "time_eff_h" in roi:
+                Teff = roi["time_eff_h"]
+            r = read_roi(roi.roi_filename, roi.roi_name, Teff)
             rois.append(r)
     return rois
 
@@ -133,7 +136,7 @@ class ImageSPECT(ImageBase):
         super().__init__()
         self.injection_datetime = None
         self.injection_activity_mbq = None
-        self.time_from_injection_h = 0  # FIXME computed ?
+        self.time_from_injection_h = None
         self.body_weight_kg = None
         self.converter = {"Bq": self._convert_to_bq}
 
