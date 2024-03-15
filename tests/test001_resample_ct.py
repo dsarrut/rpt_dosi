@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     # compare
     ct_ref = ref_folder / "ct_9mm_ref.nii.gz"
-    b = im.compare_images(ct_output, ct_ref)
+    b = im.test_compare_images(ct_output, ct_ref)
     he.print_tests(b, f"Resample with gauss 001-1 {ct_output} vs {ct_ref}")
     is_ok = b and is_ok
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     ct_ref = ref_folder / "ct_9mm_ng_ref.nii.gz"
 
     # compare
-    b = im.compare_images(ct_output, ct_ref)
+    b = im.test_compare_images(ct_output, ct_ref)
     he.print_tests(b, f"Resample with gauss 001-2 {ct_output} vs {ct_ref}")
     is_ok = b and is_ok
 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     # compare
     ct_ref = ref_folder / "ct_8.321mm_ref.nii.gz"
-    b = im.compare_images(ct_output, ct_ref)
+    b = im.test_compare_images(ct_output, ct_ref)
     he.print_tests(b, f"Resample with gauss 001-3 {ct_output} vs {ct_ref}")
     is_ok = b and is_ok
 

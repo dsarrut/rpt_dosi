@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     # compare
     spect_ref = ref_folder / "spect_activity_ref.nii.gz"
-    b = im.compare_images(spect_output, spect_ref, tol=1e-6)
+    b = im.test_compare_images(spect_output, spect_ref, tol=1e-6)
     he.print_tests(b, f"SPECT calibration activity {spect_output}  vs  {spect_ref}")
     is_ok = b and cmd_ok
 
@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
     # compare
     spect_ref = ref_folder / "spect_activity_conc_ref.nii.gz"
-    b = im.compare_images(spect_output, spect_ref, tol=1e-6)
+    b = im.test_compare_images(spect_output, spect_ref, tol=1e-6)
     he.print_tests(
         b and cmd_ok, f"SPECT calibration activity concentration {spect_output}  vs  {spect_ref}"
     )
@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     # compare
     spect_ref = ref_folder / "spect_suv_ref.nii.gz"
-    b = im.compare_images(spect_output, spect_ref)
+    b = im.test_compare_images(spect_output, spect_ref)
     he.print_tests(
         b and cmd_ok, f"SPECT SUV {spect_output}  vs  {spect_ref}"
     )

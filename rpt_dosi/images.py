@@ -394,16 +394,6 @@ def crop_to_bounding_box(img, bg_value=-1000):
     return cropped_img
 
 
-def REWRITE_spect_calibration(img, calibration_factor, verbose):
-    imga = sitk.GetArrayFromImage(img)
-    volume_voxel_mL = np.prod(img.GetSpacing()) / 1000
-    imga = imga * volume_voxel_mL / calibration_factor
-    total_activity = np.sum(imga)
-    if verbose:
-        print(f"Total activity in the image FOV: {total_activity / 1e6:.2f} MBq")
-    return imga, total_activity
-
-
 def convert_ct_to_densities(ct):
     # Simple conversion from HU to g/cm^3
     densities = ct / 1000 + 1
@@ -559,7 +549,7 @@ def image_roi_stats(spect_a, roi_a):
     }
 
 
-def compare_images(image1, image2, tol=1e-6):
+def test_compare_images(image1, image2, tol=1e-6):
     img1 = sitk.ReadImage(image1)
     img2 = sitk.ReadImage(image2)
     if not images_have_same_domain(img1, img2):

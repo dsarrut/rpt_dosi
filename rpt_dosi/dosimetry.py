@@ -1,8 +1,5 @@
 import json
 from .images import (
-    OLD_resample_ct_like_spect,
-    OLD_resample_roi_like_spect,
-    convert_ct_to_densities,
     ImageCT, ImageSPECT, ImageROI,
     resample_ct_like,
     resample_spect_like,
@@ -21,68 +18,7 @@ from box import Box, BoxList
 import SimpleITK as sitk
 
 
-def OLD_spect_calibration(spect, calibration_factor, concentration_flag, verbose=True):
-    # get voxel volume
-    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
-    arr = itk.GetArrayFromImage(spect)
-    total_activity = np.sum(arr) * volume_voxel_mL / calibration_factor
-    if verbose:
-        print(f"Total activity in the image FOV: {total_activity / 1e6:.2f} MBq")
-    # calibration
-    if concentration_flag:
-        print("Concentration = in Bqml")
-        arr = arr / calibration_factor
-    else:
-        print("Activity = in Bq")
-        arr = arr * volume_voxel_mL / calibration_factor
-
-    # create output image
-    o = itk.GetImageFromArray(arr)
-    o.CopyInformation(spect)
-    return o
-
-
-def OLD_spect_Bq_to_SUV(spect, injected_activity_MBq, body_weight_kg):
-    # get voxel volume
-    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
-    arr = itk.GetArrayFromImage(spect)
-    arr = arr / volume_voxel_mL / (injected_activity_MBq * body_weight_kg)
-    # create output image
-    o = itk.GetImageFromArray(arr)
-    o.CopyInformation(spect)
-    return o
-
-
-def dose_method_hanscheid2017_get_time_eff_h(roi_name):
-    # these are some default values
-    time_eff_h = {
-        "kidney": 50,
-        "left kidney": 50,
-        "right kidney": 50,
-        "liver": 67,
-        "spleen": 67,
-        "NET tumors": 77
-    }
-    a, _ = find_closest_match(roi_name, time_eff_h)
-    return time_eff_h[a]
-
-
-def OLD_dose_method_hanscheid2017(spect_a, roi_a, acq_time_h, options):
-    roi = options.roi
-    if "time_eff_h" not in roi:
-        if options.radionuclide != "Lu177":
-            fatal(f'Radionuclide {options.radionuclide} : unknown time_eff_h, please provide a valid time_eff_h.')
-        roi.time_eff_h = dose_method_hanscheid2017_get_time_eff_h(roi.roi_name)
-    if options.verbose:
-        print(f'Time_eff_h for {roi.roi_name} = {roi.time_eff_h:.3f} h')
-    return dose_method_hanscheid2017_equation(spect_a,
-                                              roi_a,
-                                              acq_time_h,
-                                              options.volume_voxel_mL,
-                                              roi.time_eff_h)
-
-
-def dose_method_hanscheid2017_equation(spect_Bq, roi, acq_time_h, volume_voxel_mL, time_eff_h):
+def dose_hanscheid2017(spect_Bq, roi, acq_time_h, volume_voxel_mL, time_eff_h):
     """
     Input img and ROI must be numpy arrays
     """
@@ -97,99 +33,7 @@ def dose_method_hanscheid2017_equation(spect_Bq, roi, acq_time_h, volume_voxel_m
     return dose
 
 
-def OLD_dose_for_each_rois(
-        spect,
-        ct,
-        rois,
-        acq_time_h,
-        method,
-        options
-):
-    # options and rois as Box
-    options = Box(options)
-    rois = BoxList(rois)
-
-    # read spect image from itk to np array
-    spect_a = itk.GetArrayFromImage(spect)
-
-    # read and resample ct like spect
-    ct_a = OLD_resample_ct_like_spect(spect, ct, verbose=options.verbose)
-    densities = convert_ct_to_densities(ct_a)
-
-    # pixel volume
-    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
-
-    # Opendose phantom and radionuclide name
-    # (this is not used by all methods)
-    if method == "hanscheid2018":
-        options.phantom_name, options.rad_name = (
-            guess_phantom_and_isotope(options.phantom, options.radionuclide))
-        if options.verbose:
-            print(f"Phantom = {options.phantom} and isotope = {options.rad_name}")
-
-    # prepare parameters that are used by some methods
-    options.densities = densities
-    options.volume_voxel_mL = volume_voxel_mL
-
-    # loop on ROI
-    results = {"method": method, "date": str(datetime.now())}
-    for roi in rois:
-        # read roi mask and resample like spect
-        r = itk.ReadImage(roi.roi_filename)
-        roi_a = OLD_resample_roi_like_spect(spect, r, verbose=options.verbose)
-
-        # set options for the current roi
-        options.roi = roi
-
-        # go
-        dose = None
-        if method == "hanscheid2018":
-            dose = OLD_dose_method_hanscheid2018(spect_a, roi_a, acq_time_h, options)
-        if method == "hanscheid2017":
-            dose = OLD_dose_method_hanscheid2017(spect_a, roi_a, acq_time_h, options)
-        if method == "madsen2018":
-            dose = OLD_dose_method_madsen2018(spect_a, roi_a, acq_time_h, options)
-        if method == "madsen2018_dose_rate":
-            dose = dose_method_madsen2018_dose_rate(spect_a, roi_a, acq_time_h, options)
-
-        if dose is None:
-            fatal(f"Dosimetry method {method} not known")
-
-        # scaling factor
-        dose *= options.scaling
-
-        # compute mass of the current ROI
-        roi = options.roi
-        if "roi_mass" not in roi or "roi_vol" not in roi:
-            d = densities[roi_a == 1]
-            roi.roi_mass = np.sum(d) * volume_voxel_mL
-            roi.roi_vol = len(d) * volume_voxel_mL
-
-        # results
-        results[roi.roi_name] = {"dose_Gy": dose, "mass_g": roi.roi_mass, "volume_ml": roi.roi_vol}
-    return results
-
-
-def OLD_dose_method_hanscheid2018(spect_a, roi_a, acq_time_h, options):
-    # get roi name
-    phantom_name, rad_name = guess_phantom_and_isotope(options.phantom, options.radionuclide)
-    # get svalues and scaling
-    svalue, mass_scaling, roi_mass, roi_vol = get_svalue_and_mass_scaling(
-        phantom_name,
-        roi_a,
-        options.roi.roi_name,
-        rad_name,
-        options.volume_voxel_mL,
-        options.densities,
-        verbose=options.verbose,
-    )
-    options.roi.roi_mass = roi_mass
-    options.roi.roi_vol = roi_vol
-    # compute the dose
-    return dose_method_hanscheid2018_equation(spect_a, roi_a, acq_time_h, svalue, mass_scaling)
-
-
-def dose_method_hanscheid2018_equation(spect_Bq, roi, acq_time_h, svalue, mass_scaling):
+def dose_hanscheid2018(spect_Bq, roi, acq_time_h, svalue, mass_scaling):
     """
     Input image and ROI must be numpy arrays
     - spect must be in Bq (not concentration)
@@ -206,28 +50,7 @@ def dose_method_hanscheid2018_equation(spect_Bq, roi, acq_time_h, svalue, mass_s
     return dose
 
 
-def OLD_dose_method_madsen2018(spect_a, roi_a, acq_time_h, options):
-    roi = options.roi
-    # compute mass
-    d = options.densities[roi_a == 1]
-    roi.roi_mass = np.sum(d) * options.volume_voxel_mL
-    roi.roi_vol = len(d) * options.volume_voxel_mL
-    # time effective
-    if "time_eff_h" not in roi:
-        roi.time_eff_h = dose_method_hanscheid2017_get_time_eff_h(options.roi.roi_name)
-    if options.verbose:
-        print(f'time_eff_h for {roi.roi_name} = {roi.time_eff_h:.3f} h')
-    # Delta in mJ MBq-1 h-1 [OpenDose] = mass x Svalue
-    if "delta_lu_e" not in options:
-        options.delta_lu_e = 0.08532
-    if options.verbose:
-        print(f'delta_lu_e = {options.delta_lu_e:.3f} mJ MBq-1 h-1')
-    # go
-    return dose_method_madsen2018_equation(spect_a, roi_a, acq_time_h,
-                                           options.delta_lu_e, roi.roi_mass, roi.time_eff_h)
-
-
-def dose_method_madsen2018_dose_rate(dose_rate_a, roi_a, time_from_injection_h, effective_time_h):
+def dose_madsen2018_dose_rate(dose_rate_a, roi_a, time_from_injection_h, effective_time_h):
     # compute mean dose rate in the ROI in Gy/s
     # convert to hours
     v = dose_rate_a[roi_a == 1]
@@ -242,7 +65,7 @@ def dose_method_madsen2018_dose_rate(dose_rate_a, roi_a, time_from_injection_h, 
     return dose
 
 
-def dose_method_madsen2018_equation(spect_Bq, roi, acq_time_h, delta_lu_e, roi_mass_g, roi_time_eff_h):
+def dose_madsen2018(spect_Bq, roi, acq_time_h, delta_lu_e, roi_mass_g, roi_time_eff_h):
     """
     Input image and ROI must be numpy arrays
     - spect must be in Bq (not concentration)
@@ -402,7 +225,7 @@ def test_compare_json_doses(json_ref, json_test, tol=0.001):
             if diff > tol:
                 b = False
                 is_ok = False
-            print_tests(b, f"{roi:<15} {v:<10} : {v1:10.2f} vs {v2:10.2f}  -> {diff*100:5.2f} % {b}")
+            print_tests(b, f"{roi:<15} {v:<10} : {v1:10.2f} vs {v2:10.2f}  -> {diff * 100:5.2f} % {b}")
     print_tests(is_ok, f"Compare doses (tol={tol})")
     return is_ok
 
@@ -476,12 +299,12 @@ class DoseMadsen2018(DoseComputation):
                 raise ValueError(f'Effective time must be provided for ROI {roi}.')
             roi = resample_roi_like(roi, like)
             roi.update_mass_and_volume(density_ct)
-            dose = dose_method_madsen2018_equation(sitk.GetArrayViewFromImage(spect.image),
-                                                   sitk.GetArrayViewFromImage(roi.image),
-                                                   spect.time_from_injection_h,
-                                                   self.delta_lu_e,
-                                                   roi.mass_g,
-                                                   roi.effective_time_h)
+            dose = dose_madsen2018(sitk.GetArrayViewFromImage(spect.image),
+                                   sitk.GetArrayViewFromImage(roi.image),
+                                   spect.time_from_injection_h,
+                                   self.delta_lu_e,
+                                   roi.mass_g,
+                                   roi.effective_time_h)
             results[roi.name] = {"dose_Gy": dose,
                                  "mass_g": roi.mass_g,
                                  "volume_ml": roi.volume_ml}
@@ -508,11 +331,11 @@ class DoseHanscheid2017(DoseComputation):
                 raise ValueError(f'Effective time must be provided for ROI {roi}.')
             roi = resample_roi_like(roi, like)
             roi.update_mass_and_volume(density_ct)
-            dose = dose_method_hanscheid2017_equation(sitk.GetArrayViewFromImage(spect.image),
-                                                      sitk.GetArrayViewFromImage(roi.image),
-                                                      spect.time_from_injection_h,
-                                                      spect.voxel_volume_ml,
-                                                      roi.effective_time_h)
+            dose = dose_hanscheid2017(sitk.GetArrayViewFromImage(spect.image),
+                                      sitk.GetArrayViewFromImage(roi.image),
+                                      spect.time_from_injection_h,
+                                      spect.voxel_volume_ml,
+                                      roi.effective_time_h)
 
             results[roi.name] = {"dose_Gy": dose,
                                  "mass_g": roi.mass_g,
@@ -559,11 +382,11 @@ class DoseHanscheid2018(DoseComputation):
                 sitk.GetArrayViewFromImage(density_ct.image),
                 verbose=True,
             )
-            dose = dose_method_hanscheid2018_equation(spect_arr,
-                                                      roi_arr,
-                                                      spect.time_from_injection_h,
-                                                      svalue,
-                                                      mass_scaling)
+            dose = dose_hanscheid2018(spect_arr,
+                                      roi_arr,
+                                      spect.time_from_injection_h,
+                                      svalue,
+                                      mass_scaling)
 
             results[roi.name] = {"dose_Gy": dose,
                                  "mass_g": roi.mass_g,
@@ -602,10 +425,10 @@ class DoseMadsen2018DoseRate(DoseComputation):
                 raise ValueError(f'Effective time must be provided for ROI {roi}.')
             roi = resample_roi_like(roi, like)
             roi.update_mass_and_volume(density_ct)
-            dose = dose_method_madsen2018_dose_rate(dose_rate_arr,
-                                                    sitk.GetArrayViewFromImage(roi.image),
-                                                    dose_rate.time_from_injection_h,
-                                                    roi.effective_time_h)
+            dose = dose_madsen2018_dose_rate(dose_rate_arr,
+                                             sitk.GetArrayViewFromImage(roi.image),
+                                             dose_rate.time_from_injection_h,
+                                             roi.effective_time_h)
             dose = dose * self.scaling
             results[roi.name] = {"dose_Gy": dose,
                                  "mass_g": roi.mass_g,

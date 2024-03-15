@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     # compare
     spect_ref = ref_folder / "spect_12mm_ref.nii.gz"
-    b = im.compare_images(spect_output, spect_ref)
+    b = im.test_compare_images(spect_output, spect_ref)
     he.print_tests(b, f"Resample with bq {spect_output} vs {spect_ref}")
     is_ok = b and is_ok
 
