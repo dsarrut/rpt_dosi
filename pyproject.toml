@@ -8,15 +8,15 @@ include-package-data = true
 zip-safe = false
 
 [tool.setuptools.dynamic]
-version = {file = "VERSION"}
-readme = {file = ["README.md"]}
+version = { file = "VERSION" }
+readme = { file = ["README.md"] }
 
 [project]
 name = "rpt-dosi"
 dynamic = ["version", "readme"]
-authors = [{name = "David Sarrut", email = "david.sarrut@creatis.insa-lyon.fr"}]
+authors = [{ name = "David Sarrut", email = "david.sarrut@creatis.insa-lyon.fr" }]
 description = "RadioPharmaceutical Therapy Dosimetry"
-license = {file = "LICENSE.md"}
+license = { file = "LICENSE.md" }
 keywords = ["html"]
 classifiers = [
     "Programming Language :: Python",
@@ -28,34 +28,37 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-        "colored",
-        "tqdm",
-        "pydicom",
-        "click",
-        "python-box<7.0.0",
-        "numpy",
-        "SimpleITK",
-        "matplotlib",
-        "python-Levenshtein",
-        "bs4",
-        "selenium",
-        "radioactivedecay",
-        "questionary",
-        "pandas",
-        "TotalSegmentator",
-        "openpyxl",
+    "colored",
+    "tqdm",
+    "pydicom",
+    "click",
+    "python-box<7.0.0",
+    "numpy",
+    "SimpleITK",
+    "matplotlib",
+    "python-Levenshtein",
+    "bs4",
+    "selenium",
+    "radioactivedecay",
+    "questionary",
+    "pandas",
+    "TotalSegmentator",
+    "openpyxl",
 ]
 requires-python = ">=3.8"
 
 [project.scripts]
 
 rpt_tests = "rpt_dosi.bin.rpt_tests:go"
+
 rpt_crop_bg = "rpt_dosi.bin.rpt_crop_bg:go"
 rpt_roi_crop = "rpt_dosi.bin.rpt_roi_crop:go"
 rpt_resample_ct = "rpt_dosi.bin.rpt_resample_ct:go"
 rpt_resample_spect = "rpt_dosi.bin.rpt_resample_spect:go"
 rpt_resample_roi = "rpt_dosi.bin.rpt_resample_roi:go"
-rpt_spect_update = "rpt_dosi.bin.rpt_spect_update:go"
+rpt_image_info = "rpt_dosi.bin.rpt_image_info:go"
+rpt_image_update = "rpt_dosi.bin.rpt_image_update:go"
+
 rpt_dose = "rpt_dosi.bin.rpt_dose:go"
 rpt_dose_rate = "rpt_dosi.bin.rpt_dose_rate:go"
 rpt_tmtv = "rpt_dosi.bin.rpt_tmtv:go"

@@ -58,20 +58,26 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 def go(input_image, ct, input_unit, time_from_injection_h,
        phantom, rad, resample_like,
        roi_list, sigma, output, method, scaling):
-    # reading images
+    # read ct image
     ct = rim.read_ct(ct)
-    if input_unit == "Gy_sec":
-        input_image = rim.read_dose(input_image, input_unit)
-    else:
-        input_image = rim.read_spect(input_image, input_unit)
-    input_image.time_from_injection_h = time_from_injection_h
+
+    # read spect or dose_rate
+    im = rim.read_image(input_image)
+    if im.image_type is None:
+        if input_unit is None:
+            raise ValueError("Unknown image type, please set --input_unit")
+        if input_unit == "Gy/sec":
+            im = rim.read_dose(input_image, input_unit)
+        else:
+            im = rim.read_spect(input_image, input_unit)
+    im.time_from_injection_h = time_from_injection_h
 
     # read rois
     rois = rim.read_list_of_rois(roi_list)
 
     # create the dose method
     the_method = rd.get_dose_computation_method(method)
-    d = the_method(ct, input_image)
+    d = the_method(ct, im)
 
     # common options
     d.resample_like = resample_like

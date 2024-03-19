@@ -3,7 +3,6 @@
 
 import click
 import rpt_dosi.images as rpt
-import SimpleITK as sitk
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -34,7 +33,7 @@ def go(input_image, spacing, output, sigma, like):
         ct = rpt.resample_ct_spacing(ct, spacing, sigma)
 
     # write
-    sitk.WriteImage(ct.image, output)
+    ct.write(output)
 
 
 # --------------------------------------------------------------------------

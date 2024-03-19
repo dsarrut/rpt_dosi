@@ -3,7 +3,6 @@
 
 import click
 import rpt_dosi.images as rpt
-import SimpleITK as sitk
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -21,12 +20,9 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--sigma", default=None,
               help="specify sigma for gauss filter (None=no gauss, 0 = auto)",
               )
-@click.option("--unit",
-              type=click.Choice(rpt.ImageSPECT.authorized_units),
-              help=f"Set this flag if the spect unit is one of {rpt.ImageSPECT.authorized_units}")
-def go(input_image, spacing, output, sigma, like, unit):
+def go(input_image, spacing, output, sigma, like):
     # read image
-    spect = rpt.read_spect(input_image, unit)
+    spect = rpt.read_spect(input_image)
 
     # resample
     if like is not None:
@@ -37,7 +33,7 @@ def go(input_image, spacing, output, sigma, like, unit):
         spect = rpt.resample_spect_spacing(spect, spacing, sigma)
 
     # write
-    sitk.WriteImage(spect.image, output)
+    spect.write(output)
 
 
 # --------------------------------------------------------------------------

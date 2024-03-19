@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import rpt_dosi.images as im
+import rpt_dosi.images as rim
 import rpt_dosi.helpers as he
 
 if __name__ == "__main__":
@@ -16,14 +16,14 @@ if __name__ == "__main__":
     print()
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_activity.nii.gz"
-    spect = im.read_spect(spect_input, "Bq")
+    spect = rim.read_spect(spect_input)
     s = spect.voxel_volume_ml / 0.666
-    cmd = f"rpt_spect_update -i {spect_input} -u Bq -o {spect_output} -c {s}"
+    cmd = f"rpt_image_update -i {spect_input} -u Bq -o {spect_output} -s {s} -t SPECT"
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
 
     # compare
     spect_ref = ref_folder / "spect_activity_ref.nii.gz"
-    b = im.test_compare_images(spect_output, spect_ref, tol=1e-6)
+    b = rim.test_compare_images(spect_output, spect_ref, tol=1e-6)
     he.print_tests(b, f"SPECT calibration activity {spect_output}  vs  {spect_ref}")
     is_ok = b and cmd_ok
 
@@ -31,14 +31,18 @@ if __name__ == "__main__":
     print()
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_activity_conc.nii.gz"
-    spect = im.read_spect(spect_input, "Bq")
-    s = 1 / 0.222
-    cmd = f"rpt_spect_update -i {spect_input} -u BqmL -o {spect_output} -c {s}"
+    # read as Bq
+    cmd = f"rpt_image_update -i {spect_input} -u Bq -o {spect_output} -t SPECT"
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
+    # convert as BqmL, scale
+    cmd = f"rpt_image_update -i {spect_output} -u Bq/mL -o {spect_output} -s {s}"
+    cmd_ok = he.run_cmd(cmd, data_folder / "..") and cmd_ok
+    # convert back as Bq
+    cmd = f"rpt_image_update -i {spect_output} -u Bq -o {spect_output}"
+    cmd_ok = he.run_cmd(cmd, data_folder / "..") and cmd_ok
 
     # compare
-    spect_ref = ref_folder / "spect_activity_conc_ref.nii.gz"
-    b = im.test_compare_images(spect_output, spect_ref, tol=1e-6)
+    b = rim.test_compare_images(spect_output, spect_ref, tol=1e-6)
     he.print_tests(
         b and cmd_ok, f"SPECT calibration activity concentration {spect_output}  vs  {spect_ref}"
     )
@@ -48,12 +52,16 @@ if __name__ == "__main__":
     print()
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_suv.nii.gz"
-    cmd = f"rpt_spect_update -i {spect_input} -u Bq -o {spect_output} --ia 7400 --bw 80 --output_unit SUV"
+    # read as Bq
+    cmd = f"rpt_image_update -i {spect_input} -u Bq -o {spect_output} -t SPECT"
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
+    # convert as SUV
+    cmd = f"rpt_image_update -i {spect_output} -u SUV -o {spect_output} --ia 7400 --bw 80"
+    cmd_ok = he.run_cmd(cmd, data_folder / "..") and cmd_ok
 
     # compare
     spect_ref = ref_folder / "spect_suv_ref.nii.gz"
-    b = im.test_compare_images(spect_output, spect_ref)
+    b = rim.test_compare_images(spect_output, spect_ref)
     he.print_tests(
         b and cmd_ok, f"SPECT SUV {spect_output}  vs  {spect_ref}"
     )

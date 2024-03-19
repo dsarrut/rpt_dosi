@@ -4,12 +4,12 @@
 import rpt_dosi.helpers as he
 import rpt_dosi.db as rtpdb
 
-#rpt_db_set_spect_datetime_from_dicom --db db.json -o db_datetime.json
-#rpt_db_spect_calibration --db db.json -o db_calib.json -c 0.176906614
+# rpt_db_set_spect_datetime_from_dicom --db db.json -o db_datetime.json
+# rpt_db_spect_calibration --db db.json -o db_calib.json -c 0.176906614
 
 if __name__ == "__main__":
     # folders
-    data_folder, ref_folder, output_folder = he.get_tests_folders("test007")
+    _, ref_folder, output_folder = he.get_tests_folders("test007")
     data_folder = ref_folder
     ref_folder = ref_folder / "ref_json"
     print(f"Input data folder = {data_folder}")
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     db_input = data_folder / "db.json"
     db_output = output_folder / "db_calib.json"
     db_ref = ref_folder / "db_calib.json"
-    s = 1/0.176906614
+    s = 1 / 0.176906614
     cmd = f"rpt_db_spect_calibration --db {db_input} -c 0.176906614 -o {db_output}"
     cmd_ok = he.run_cmd(cmd, data_folder)
 

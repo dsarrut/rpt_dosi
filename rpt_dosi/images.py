@@ -9,16 +9,40 @@ import json
 from box import BoxList
 
 
+def read_image(filename):
+    im = ImageBase()
+    im.filename = filename
+    im.read_metadata()
+    if im.image_type is not None:
+        im = build_image_from_type(im.image_type)
+    im.read(filename)
+    return im
+
+
+def change_image_type(image, image_type):
+    output = build_image_from_type(image_type)
+    output.image = image.image
+    return output
+
+
+def build_image_from_type(image_type):
+    if image_type not in image_builders:
+        raise ValueError(f"This image type '{image_type}' is not known. "
+                         f"Known image types: {image_builders.keys()}")
+    the_class = image_builders[image_type]
+    output = the_class()
+    return output
+
+
 def read_ct(filename):
     ct = ImageCT()
     ct.read(filename)
     return ct
 
 
-def read_spect(filename, unit):
-    spect = ImageSPECT()
+def read_spect(filename, unit=None):
+    spect = ImageSPECT(unit)
     spect.read(filename)
-    spect.unit = unit
     return spect
 
 
@@ -51,13 +75,14 @@ def read_list_of_rois(filename):
 class ImageBase:
     authorized_units = []
     default_values = {}
+    image_type = None
 
-    def __init__(self, name=None):
-        self.name = name
+    def __init__(self):
         self.image = None
+        self.description = ""
         self.filename = None
-        self.dicom_folder = None
-        self.dicom_filename = None
+        self.dicom_folder = None  # FIXME later
+        self.dicom_filename = None  # FIXME later
         self.acquisition_datetime = None
         # internal parameters
         self._unit = None
@@ -69,8 +94,11 @@ class ImageBase:
 
     @property
     def voxel_volume_ml(self):
-        v = np.prod(self.image.GetSpacing()) / 1000
-        return v
+        if self.image is not None:
+            v = np.prod(self.image.GetSpacing()) / 1000
+            return v
+        else:
+            return 0
 
     @property
     def default_value(self):
@@ -78,6 +106,10 @@ class ImageBase:
 
     @unit.setter
     def unit(self, value):
+        if self.image_type is None:
+            raise ValueError("Cannot set the unit, the image type is not known "
+                             f"(use change_image_type function, with one "
+                             f"of {[k for k in image_builders]})")
         if value not in self.authorized_units:
             raise ValueError(f"Unauthorized unit {value}. Must be one of {self.authorized_units}")
         if value not in self.default_values:
@@ -88,8 +120,58 @@ class ImageBase:
     def read(self, filename):
         self.filename = filename
         self.image = sitk.ReadImage(filename)
-        if self.name is None:
-            self.name = os.path.basename(self.filename)
+        self.read_metadata()
+
+    def write(self, filename):
+        sitk.WriteImage(self.image, filename)
+        self.filename = filename
+        self.write_metadata()
+
+    def read_metadata(self):
+        json_filename = self._get_json_filename()
+        if os.path.exists(json_filename):
+            with open(json_filename, 'r') as json_file:
+                metadata = json.load(json_file)
+                self._apply_metadata(metadata)
+
+    def write_metadata(self):
+        metadata = self._gather_metadata()
+        json_filename = self._get_json_filename()
+        with open(json_filename, 'w') as json_file:
+            json.dump(metadata, json_file, indent=2)
+
+    def _get_json_filename(self):
+        if self.filename:
+            base_filename = self.filename
+            # Keep removing extensions until there are none left
+            while os.path.splitext(base_filename)[1] != '':
+                base_filename = os.path.splitext(base_filename)[0]
+            return base_filename + '.json'
+        return None
+
+    def _apply_metadata(self, metadata):
+        if 'image_type' in metadata:
+            if (self.image_type is not None and
+                    self.image_type != metadata['image_type']):
+                raise ValueError(f'This expected image type is {self.image_type} '
+                                 f'but the metadata has type {metadata["image_type"]}')
+            self.image_type = metadata['image_type']
+        if 'description' in metadata:
+            self.description = metadata['description']
+        if 'unit' in metadata:
+            self._unit = metadata['unit']
+        if 'acquisition_datetime' in metadata:
+            self.acquisition_datetime = metadata['acquisition_datetime']
+
+    def _gather_metadata(self):
+        metadata = {
+            'filename': str(self.filename),
+            'image_type': self.image_type,
+            'description': self.description,
+            'unit': self.unit,
+            'acquisition_datetime': str(self.acquisition_datetime)
+        }
+        return metadata
 
     def read_dicom(self, filename):
         if os.path.isdir(filename):
@@ -99,31 +181,45 @@ class ImageBase:
             self.dicom_filename = filename
             # FIXME open + unit ?
         # FIXME error detection
+        fatal(f'Not yet implemented')
+
+    def info(self):
+        json_filename = self._get_json_filename()
+        js = f'(metadata: {self._get_json_filename()})'
+        if not os.path.exists(json_filename):
+            js = '(no metadata available)'
+        s = f'Image:  {self.filename} {js}\n'
+        s += f'Type:   {self.image_type}\n'
+        s += f'Loaded: {self.image is not None}\n'
+        if self.image is not None:
+            s += f'Size:    {self.image.GetSize()}\n'
+            s += f'Spacing: {self.image.GetSpacing()}\n'
+            s += f'Origin:  {self.image.GetOrigin()}\n'
+        s += f'Unit:   {self.unit}\n'
+        s += f'Date:   {self.acquisition_datetime}\n'
+        return s
 
     def __str__(self):
-        return f"Image: {self.name} unit={self.unit}"
+        return f"Image: unit={self.unit}"
 
 
 class ImageCT(ImageBase):
-    authorized_units = ['HU', 'gcm3']  # FIXME add attenuation
-    default_values = {'HU': -1000, 'gcm3': 0}
+    authorized_units = ['HU', 'g/cm3']  # FIXME add attenuation
+    default_values = {'HU': -1000, 'g/cm3': 0}
+    image_type = "CT"
 
     def __init__(self):
         super().__init__()
         self.unit = 'HU'
 
-    def read(self, filename):
-        super().read(filename)
-        self.unit = 'HU'
-
     def __str__(self):
-        return f"CT: {self.name} unit={self.unit}, vox_vol={self.voxel_volume_ml} ml"
+        return f"CT: unit={self.unit}, vox_vol={self.voxel_volume_ml} ml"
 
     def get_densities(self):
         if self.unit != 'HU':
             raise ValueError(f'Unit {self.unit} is not HU, cannot compute density CT')
         density_ct = copy.copy(self)
-        density_ct.unit = 'gcm3'
+        density_ct.unit = 'g/cm3'
         # Simple conversion from HU to g/cm^3
         density_ct.image = self.image / 1000 + 1
         # the density of air is near 0, not negative
@@ -135,11 +231,16 @@ class ImageCT(ImageBase):
 
 
 class ImageSPECT(ImageBase):
-    authorized_units = ['Bq', 'BqmL', "SUV"]
-    default_values = {'Bq': 0, 'BqmL': 0, "SUV": 0}
+    authorized_units = ['Bq', 'Bq/mL', "SUV"]
+    default_values = {'Bq': 0, 'Bq/mL': 0, "SUV": 0}
+    image_type = "SPECT"
 
-    def __init__(self):
+    def __init__(self, unit=None):
         super().__init__()
+        if unit is None:
+            self.unit = 'Bq'
+        else:
+            self.unit = unit
         self.injection_datetime = None
         self.injection_activity_mbq = None
         self.time_from_injection_h = None
@@ -147,24 +248,53 @@ class ImageSPECT(ImageBase):
         self.converter = {"Bq": self._convert_to_bq}
 
     def __str__(self):
-        return (f"SPECT: {self.name} unit={self.unit}, "
+        return (f"SPECT: unit={self.unit}, "
                 f"vox_vol={self.voxel_volume_ml} ml, "
                 f"body_weight={self.body_weight_kg}, "
                 f"injection_datetime={self.injection_datetime}, "
                 f"injection_activity_mbq={self.injection_activity_mbq}")
 
+    def info(self):
+        s = super().info() + '\n'
+        s += f'Body weight:    {self.body_weight_kg} kq\n'
+        s += f'Injection date: {self.injection_datetime}\n'
+        s += f'Injection:      {self.injection_activity_mbq} MBq\n'
+        s += f'Total activity: {self.compute_total_activity()} MBq\n'
+        return s
+
+    def _apply_metadata(self, metadata):
+        super()._apply_metadata(metadata)
+        if 'body_weight_kg' in metadata:
+            self.body_weight_kg = metadata['body_weight_kg']
+        if 'injection_activity_mbq' in metadata:
+            self.injection_activity_mbq = metadata['injection_activity_mbq']
+        if 'injection_datetime' in metadata:
+            self.injection_datetime = metadata['injection_datetime']
+
+    def _gather_metadata(self):
+        metadata = super()._gather_metadata()
+        m = {
+            'body_weight_kg': self.body_weight_kg,
+            'injection_activity_mbq': self.injection_activity_mbq,
+            'injection_datetime': self.injection_datetime
+        }
+        metadata.update(m)
+        print(metadata)
+        return metadata
+
     @ImageBase.unit.setter
     def unit(self, value):
-        if value == "Bqml":
+        if value == "Bq/mL":
             self._convert_to_bqml()
         if value == "Bq":
             self._convert_to_bq()
         if value == "SUV":
             self._convert_to_suv()
-        super(ImageSPECT, self.__class__).unit.fset(self, value)
+        # set the unit
+        self._unit = value
 
     def _convert_to_bq(self):
-        if self.unit == 'BqmL':
+        if self.unit == 'Bq/mL':
             self.image = self.image * self.voxel_volume_ml
         if self.unit == "SUV":
             arr = sitk.GetArrayFromImage(self.image)
@@ -176,9 +306,10 @@ class ImageSPECT(ImageBase):
     def _convert_to_bqml(self):
         if self.unit == 'Bq':
             self.image = self.image / self.voxel_volume_ml
+            self._unit = "Bq/mL"
         if self.unit == "SUV":
-            self.unit = "Bq"
-            self.unit = "BqmL"
+            self.unit = "Bq"  # convert SUV to Bq
+            self.unit = "Bq/mL"  # convert Bq to bqml
 
     def _convert_to_suv(self):
         if self.body_weight_kg is None:
@@ -186,8 +317,8 @@ class ImageSPECT(ImageBase):
         if self.injection_activity_mbq is None:
             raise ValueError(f'To convert to SUV, injection_activity_MBq cannot be None (SPECT image {self.filename})')
         arr = sitk.GetArrayFromImage(self.image)
-        # convert to bqml first
-        self.unit = "BqmL"
+        # convert to Bq/mL first
+        self.unit = "Bq/mL"
         # convert to SUV
         arr = arr / self.voxel_volume_ml / (self.injection_activity_mbq * self.body_weight_kg)
         im = sitk.GetImageFromArray(arr)
@@ -199,7 +330,7 @@ class ImageSPECT(ImageBase):
             raise ValueError("Image data not loaded.")
         arr = sitk.GetArrayViewFromImage(self.image)
         total_activity = np.sum(arr)
-        if self.unit == 'BqmL':
+        if self.unit == 'Bq/mL':
             total_activity = total_activity * self.voxel_volume_ml
         return total_activity
 
@@ -207,6 +338,7 @@ class ImageSPECT(ImageBase):
 class ImageROI(ImageBase):
     authorized_units = ['label']
     default_values = {'label': 0}
+    image_type = "ROI"
 
     def __init__(self, name):
         super().__init__()
@@ -235,16 +367,23 @@ class ImageROI(ImageBase):
 
 
 class ImageDose(ImageBase):
-    authorized_units = ['Gy', 'Gy_sec']
-    default_values = {'Gy': 0, 'Gy_sec': 0}
+    authorized_units = ['Gy', 'Gy/sec']
+    default_values = {'Gy': 0, 'Gy/sec': 0}
 
     def __init__(self, unit):
         super().__init__()
         self.unit = unit
 
     def __str__(self):
-        s = f"Dose: {self.name} unit={self.unit}, vox_vol={self.voxel_volume_ml} ml"
+        s = f"Dose: unit={self.unit}, vox_vol={self.voxel_volume_ml} ml"
         return s
+
+
+image_builders = {
+    "CT": ImageCT,
+    "SPECT": ImageSPECT,
+    "ROI": ImageROI,
+    "Dose": ImageDose}
 
 
 def images_have_same_domain(image1, image2, tolerance=1e-5):
@@ -463,7 +602,6 @@ def resample_spect_like(spect: ImageSPECT, like: ImageBase, gaussian_sigma=None)
     if o.unit == 'Bq' or o.unit == 'counts':
         scaling = spect.voxel_volume_ml / like.voxel_volume_ml
         o.image = o.image * scaling
-    print(o.image)
     return o
 
 
@@ -559,9 +697,10 @@ def test_compare_images(image1, image2, tol=1e-6):
     # warning : strange behavior with GetArrayViewFromImage ???
     img1 = sitk.GetArrayFromImage(img1)
     img2 = sitk.GetArrayFromImage(img2)
-    print(f'Total image1 = {np.sum(img1)}')
-    print(f'Total image2 = {np.sum(img2)}')
     ok = np.allclose(img1, img2, atol=tol)
+    if not ok:
+        print(f'Total image1 = {np.sum(img1)}')
+        print(f'Total image2 = {np.sum(img2)}')
     return ok
 
 
