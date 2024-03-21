@@ -6,14 +6,7 @@ __pycache__
 
 tests/log/*log
 dicom/
-db_clb/B*
-db_clb/C*
-db_clb/D*
-db_clb/F*
-db_clb/G*
-db_clb/L*
-db_clb/M*
-db_clb/P*
+db_clb/
 spectrum_runtest/
 old_tests/
 

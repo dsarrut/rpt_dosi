@@ -40,8 +40,8 @@ def read_ct(filename):
     return ct
 
 
-def read_spect(filename, unit=None):
-    spect = ImageSPECT(unit)
+def read_spect(filename):
+    spect = ImageSPECT()
     spect.read(filename)
     return spect
 
@@ -53,8 +53,8 @@ def read_roi(filename, name, effective_time_h=None):
     return roi
 
 
-def read_dose(filename, unit):
-    d = ImageDose(unit)
+def read_dose(filename):
+    d = ImageDose()
     d.read(filename)
     return d
 
@@ -116,6 +116,10 @@ class ImageBase:
             raise ValueError(f'Undefined default value for unit {value}. Must be one of {self.default_values}')
         self._unit = value
         self._default_value = self.default_values[value]
+
+    def require_unit(self, unit):
+        if unit != self.unit:
+            raise ValueError(f"The unit '{unit}' is required while it is {self.unit}")
 
     def read(self, filename):
         self.filename = filename
@@ -213,9 +217,9 @@ class ImageCT(ImageBase):
         self.unit = 'HU'
 
     def __str__(self):
-        return f"CT: unit={self.unit}, vox_vol={self.voxel_volume_ml} ml"
+        return f"CT: unit={self.unit}"
 
-    def get_densities(self):
+    def compute_densities(self):
         if self.unit != 'HU':
             raise ValueError(f'Unit {self.unit} is not HU, cannot compute density CT')
         density_ct = copy.copy(self)
@@ -235,21 +239,17 @@ class ImageSPECT(ImageBase):
     default_values = {'Bq': 0, 'Bq/mL': 0, "SUV": 0}
     image_type = "SPECT"
 
-    def __init__(self, unit=None):
+    def __init__(self):
         super().__init__()
-        if unit is None:
-            self.unit = 'Bq'
-        else:
-            self.unit = unit
+        self.unit = 'Bq'
         self.injection_datetime = None
         self.injection_activity_mbq = None
         self.time_from_injection_h = None
         self.body_weight_kg = None
-        self.converter = {"Bq": self._convert_to_bq}
+        self.converter = {"Bq": self.convert_to_bq}
 
     def __str__(self):
         return (f"SPECT: unit={self.unit}, "
-                f"vox_vol={self.voxel_volume_ml} ml, "
                 f"body_weight={self.body_weight_kg}, "
                 f"injection_datetime={self.injection_datetime}, "
                 f"injection_activity_mbq={self.injection_activity_mbq}")
@@ -279,21 +279,20 @@ class ImageSPECT(ImageBase):
             'injection_datetime': self.injection_datetime
         }
         metadata.update(m)
-        print(metadata)
         return metadata
 
     @ImageBase.unit.setter
     def unit(self, value):
         if value == "Bq/mL":
-            self._convert_to_bqml()
+            self.convert_to_bqml()
         if value == "Bq":
-            self._convert_to_bq()
+            self.convert_to_bq()
         if value == "SUV":
-            self._convert_to_suv()
+            self.convert_to_suv()
         # set the unit
         self._unit = value
 
-    def _convert_to_bq(self):
+    def convert_to_bq(self):
         if self.unit == 'Bq/mL':
             self.image = self.image * self.voxel_volume_ml
         if self.unit == "SUV":
@@ -303,15 +302,15 @@ class ImageSPECT(ImageBase):
             im.CopyInformation(self.image)
             self.image = im
 
-    def _convert_to_bqml(self):
+    def convert_to_bqml(self):
         if self.unit == 'Bq':
             self.image = self.image / self.voxel_volume_ml
             self._unit = "Bq/mL"
         if self.unit == "SUV":
             self.unit = "Bq"  # convert SUV to Bq
-            self.unit = "Bq/mL"  # convert Bq to bqml
+            self.unit = "Bq/mL"  # convert Bq to BqmL
 
-    def _convert_to_suv(self):
+    def convert_to_suv(self):
         if self.body_weight_kg is None:
             raise ValueError(f'To convert to SUV, body_weight_kg cannot be None (SPECT image {self.filename})')
         if self.injection_activity_mbq is None:
@@ -349,12 +348,19 @@ class ImageROI(ImageBase):
         self.volume_ml = None
 
     def __str__(self):
-        s = f"ROI: {self.name} unit={self.unit}, vox_vol={self.voxel_volume_ml} ml"
+        s = f"ROI: {self.name} unit={self.unit}"
         s += f", Teff = {self.effective_time_h} h"
         if self.mass_g is not None:
             s += f", mass={self.mass_g} g"
         if self.volume_ml is not None:
             s += f", volume={self.volume_ml} ml"
+        return s
+
+    def info(self):
+        s = super().info() + '\n'
+        s += f'Teff:   {self.effective_time_h} h\n'
+        s += f'Mass:   {self.mass_g} g\n'
+        s += f'Volume: {self.volume_ml} mL'
         return s
 
     def update_mass_and_volume(self, density_ct):
@@ -369,13 +375,14 @@ class ImageROI(ImageBase):
 class ImageDose(ImageBase):
     authorized_units = ['Gy', 'Gy/sec']
     default_values = {'Gy': 0, 'Gy/sec': 0}
+    image_type = "Dose"
 
-    def __init__(self, unit):
+    def __init__(self):
         super().__init__()
-        self.unit = unit
+        self.unit = 'Gy'
 
     def __str__(self):
-        s = f"Dose: unit={self.unit}, vox_vol={self.voxel_volume_ml} ml"
+        s = f"Dose: unit={self.unit}"
         return s
 
 

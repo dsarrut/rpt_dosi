@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     s = 6974.43264  # this value is computed by rpt_dose_rate
     print("Madsen with dose rate")
-    cmd = (f"rpt_dose -s {output_folder / 'output-dose.mhd'} -u Gy_sec --ct {ct_input} -l {oar_json}"
+    cmd = (f"rpt_dose -s {output_folder / 'output-dose.mhd'} -u Gy/sec --ct {ct_input} -l {oar_json}"
            f" -o {output} -t 24 -m madsen2018_dose_rate --scaling {s}")
     cmd_ok = he.run_cmd(cmd, data_folder / "..") and cmd_ok
 

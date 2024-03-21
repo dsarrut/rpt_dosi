@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import click
-import rpt_dosi.images as rim
 import rpt_dosi.doserate as dora
 import opengate as gate
 

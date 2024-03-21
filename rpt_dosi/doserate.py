@@ -208,7 +208,8 @@ class DoseRateSimulation():
         # resample data if needed
         if self.resample_like is not None:
             ct = rim.read_ct(self.ct_filename)
-            activity = rim.read_spect(self.activity_filename, 'Bq')
+            activity = rim.read_spect(self.activity_filename)
+            activity.require_unit('Bq')
             try:
                 sp = float(self.resample_like)
                 print(f'Resampling from ct to {sp} mm')
@@ -260,7 +261,8 @@ class DoseRateSimulation():
         return source
 
     def compute_scaling(self, sim):
-        spect = rim.read_spect(self.resampled_activity_filename, 'Bq')
+        spect = rim.read_spect(self.resampled_activity_filename)
+        spect.require_unit('Bq')
         total_activity_bq = spect.compute_total_activity()
         scaling = total_activity_bq / float(self.activity_bq)
         print(f'Total activity in image is {total_activity_bq:.0f} Bq, scaling factor is {scaling}')

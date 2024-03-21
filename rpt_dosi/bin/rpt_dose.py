@@ -18,7 +18,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     help="Input SPECT or dose_rate image (use --unit to specify the image)",
 )
 @click.option("--input_unit", "-u",
-              type=click.Choice(rim.ImageSPECT.authorized_units + ['Gy_sec']),
+              type=click.Choice(rim.ImageSPECT.authorized_units + ['Gy/sec']),
               required=True,
               help=f"SPECT unit: {rim.ImageSPECT.authorized_units}")
 @click.option(
@@ -66,10 +66,15 @@ def go(input_image, ct, input_unit, time_from_injection_h,
     if im.image_type is None:
         if input_unit is None:
             raise ValueError("Unknown image type, please set --input_unit")
+        im = None
         if input_unit == "Gy/sec":
-            im = rim.read_dose(input_image, input_unit)
-        else:
-            im = rim.read_spect(input_image, input_unit)
+            im = rim.read_dose(input_image)
+            im.unit = "Gy/sec"
+        if input_unit == "Bq":
+            im = rim.read_spect(input_image)
+            im.unit = "Bq"
+        if im is None:
+            raise ValueError(f"Expected image unit is either Bq or Gy/sec, but is {input_unit}")
     im.time_from_injection_h = time_from_injection_h
 
     # read rois

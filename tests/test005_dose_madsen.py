@@ -23,7 +23,8 @@ if __name__ == "__main__":
 
     # read images
     ct = rim.read_ct(ct_input)
-    spect = rim.read_spect(spect_input, 'Bq')
+    spect = rim.read_spect(spect_input)
+    spect.unit = 'Bq'
     spect.time_from_injection_h = 24.0
     # warning how to keep coherence with injection time + acquisition time?
 

@@ -287,8 +287,10 @@ class DoseMadsen2018(DoseComputation):
 
     def run(self, rois: list[ImageROI]):
         self.check_options()
+        if self.spect.unit != "Bq":
+            raise ValueError(f"The SPECT unit must be Bq, while is {spect.unit}, cannot compute dose.")
         ct, spect, like = self.init_resampling()
-        density_ct = ct.get_densities()
+        density_ct = ct.compute_densities()
 
         # compute dose for each roi
         results = self.init_results()
@@ -320,8 +322,10 @@ class DoseHanscheid2017(DoseComputation):
 
     def run(self, rois: list[ImageROI]):
         self.check_options()
+        if self.spect.unit != "Bq":
+            raise ValueError(f"The SPECT unit must be Bq, while is {spect.unit}, cannot compute dose.")
         ct, spect, like = self.init_resampling()
-        density_ct = ct.get_densities()
+        density_ct = ct.compute_densities()
 
         # compute dose for each roi
         results = self.init_results()
@@ -358,8 +362,10 @@ class DoseHanscheid2018(DoseComputation):
 
     def run(self, rois: list[ImageROI]):
         self.check_options()
+        if self.spect.unit != "Bq":
+            raise ValueError(f"The SPECT unit must be Bq, while is {spect.unit}, cannot compute dose.")
         ct, spect, like = self.init_resampling()
-        density_ct = ct.get_densities()
+        density_ct = ct.compute_densities()
 
         # compute dose for each roi
         results = self.init_results()
@@ -414,7 +420,9 @@ class DoseMadsen2018DoseRate(DoseComputation):
     def run(self, rois: list[ImageROI]):
         self.check_options()
         ct, dose_rate, like = self.init_resampling()
-        density_ct = ct.get_densities()
+        if dose_rate.unit != "Gy/sec":
+            raise ValueError(f"The dose rate unit must be Gy/sec, while is {dose_rate.unit}, cannot compute dose.")
+        density_ct = ct.compute_densities()
         dose_rate_arr = sitk.GetArrayViewFromImage(dose_rate.image)
 
         # compute dose for each roi
