@@ -42,7 +42,6 @@ dependencies = [
     "radioactivedecay",
     "questionary",
     "pandas",
-    "TotalSegmentator",
     "openpyxl",
 ]
 requires-python = ">=3.8"
