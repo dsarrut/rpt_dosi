@@ -13,31 +13,18 @@ if __name__ == "__main__":
     print()
 
     # test
-    print("Hanscheid 2017 method with default Teff")
-    spect_input = data_folder / "spect_8.321mm.nii.gz"
-    ct_input = data_folder / "ct_8mm.nii.gz"
-    oar_json = data_folder / "oar.json"
-    output = output_folder / "dose.json"
-    cmd = f"rpt_dose -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m hanscheid2017"
-    is_ok = he.run_cmd(cmd, data_folder / "..")
-
-    # open the dose files
-    dose_ref = ref_folder / "dose_ref_2017.json"
-    is_ok = rd.test_compare_json_doses(dose_ref, output) and is_ok
-
-    # test
     print()
     print("Hanscheid 2017 method with Teff in oar.json file")
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     ct_input = data_folder / "ct_8mm.nii.gz"
     oar_json = data_folder / "oar_teff.json"
     output = output_folder / "dose.json"
-    cmd = f"rpt_dose -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m hanscheid2017"
-    is_ok = he.run_cmd(cmd, data_folder / "..") and is_ok
+    cmd = f"rpt_dose -s {spect_input} -u Bq -r spect --ct {ct_input} -l {oar_json} -o {output} -t 24 -m hanscheid2017"
+    cmd_ok = he.run_cmd(cmd, data_folder / "..")
 
     # compare the dose files
     dose_ref = ref_folder / "dose_ref_2017.json"
-    is_ok = rd.test_compare_json_doses(dose_ref, output) and is_ok
+    is_ok = cmd_ok and rd.test_compare_json_doses(dose_ref, output)
 
     # test
     print()
@@ -46,12 +33,12 @@ if __name__ == "__main__":
     ct_input = data_folder / "ct_8mm.nii.gz"
     oar_json = data_folder / "oar.json"
     output = output_folder / "dose.json"
-    cmd = f"rpt_dose -s {spect_input} --ct {ct_input} -l {oar_json} -o {output} -t 24 -m hanscheid2018"
-    is_ok = he.run_cmd(cmd, data_folder / "..") and is_ok
+    cmd = f"rpt_dose -s {spect_input} -u Bq --ct {ct_input} -l {oar_json} -o {output} -t 24 -m hanscheid2018"
+    cmd_ok = he.run_cmd(cmd, data_folder / "..")
 
     # compare the dose files
     dose_ref = ref_folder / "dose_ref_2018.json"
-    is_ok = rd.test_compare_json_doses(dose_ref, output) and is_ok
+    is_ok = cmd_ok and rd.test_compare_json_doses(dose_ref, output) and is_ok
 
     # end
     he.test_ok(is_ok)

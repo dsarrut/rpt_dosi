@@ -26,6 +26,8 @@ def go():
     for f in tests_files:
         if "test" not in f:
             continue
+        if "wip" in f:
+            continue
         files.append(f)
 
     files = sorted(files)

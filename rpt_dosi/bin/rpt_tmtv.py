@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import click
-import rpt_dosi.images as im
+import rpt_dosi.tmtv as rtmtv
 import SimpleITK as sitk
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
@@ -47,12 +47,12 @@ def go(input_filename, threshold, output, output_mask):
         {'filename': "rois/urinary_bladder.nii.gz", 'dilatation': 5}
     ]
 
-    tmtv, mask = im.tmtv_compute_mask(spect_image,
-                                      "rois/skull.nii.gz",
-                                      10,
-                                      roi_list,
-                                      threshold,
-                                      verbose=True)
+    tmtv, mask = rtmtv.tmtv_compute_mask(spect_image,
+                                         "rois/skull.nii.gz",
+                                         10,
+                                         roi_list,
+                                         threshold,
+                                         verbose=True)
 
     # write
     sitk.WriteImage(tmtv, output)

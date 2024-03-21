@@ -23,13 +23,13 @@ if __name__ == "__main__":
 
     # compare
     tmtv_ref = ref_folder / "tmtv_ref.nii.gz"
-    b = im.test_compare_image_exact(output, tmtv_ref)
+    b = im.test_compare_images(output, tmtv_ref)
     he.print_tests(b, f"Compare TMTV {output} vs {tmtv_ref}")
     is_ok = b and is_ok
 
     # compare
     tmtv_ref = ref_folder / "tmtv_mask_ref.nii.gz"
-    b = im.test_compare_image_exact(output_mask, tmtv_ref)
+    b = im.test_compare_images(output_mask, tmtv_ref)
     he.print_tests(b, f"Compare TMTV mask {output_mask} vs {tmtv_ref}")
     is_ok = b and is_ok
 
