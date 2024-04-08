@@ -59,7 +59,7 @@ def read_dose(filename):
     return d
 
 
-def read_list_of_rois(filename):
+def read_list_of_rois(filename, folder=None):
     rois = []
     with open(filename, "r") as f:
         rois_file = BoxList(json.load(f))
@@ -67,7 +67,10 @@ def read_list_of_rois(filename):
             Teff = None
             if "time_eff_h" in roi:
                 Teff = roi["time_eff_h"]
-            r = read_roi(roi.roi_filename, roi.roi_name, Teff)
+            fn = roi.roi_filename
+            if folder is not None:
+                fn = os.path.join(folder, fn)
+            r = read_roi(fn, roi.roi_name, Teff)
             rois.append(r)
     return rois
 

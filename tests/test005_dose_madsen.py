@@ -5,6 +5,7 @@ import rpt_dosi.helpers as he
 import rpt_dosi.dosimetry as rd
 import rpt_dosi.images as rim
 import json
+import os
 
 if __name__ == "__main__":
     # folders
@@ -29,7 +30,7 @@ if __name__ == "__main__":
     # warning how to keep coherence with injection time + acquisition time?
 
     # read rois
-    rois = rim.read_list_of_rois(oar_json)
+    rois = rim.read_list_of_rois(oar_json, os.path.join(data_folder, "../"))
 
     # compute dose
     d = rd.DoseMadsen2018(ct, spect)

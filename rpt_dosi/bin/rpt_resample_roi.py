@@ -19,7 +19,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--output", "-o", required=True, help="output filename")
 def go(input_image, spacing, output, like):
     # read image
-    roi = rpt.read_roi(input_image, "unknown")
+    roi = rpt.read_roi(input_image, "unknown_roi")
 
     # resample
     if like is not None:
