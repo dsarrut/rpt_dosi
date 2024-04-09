@@ -19,7 +19,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 )
 @click.option("--input_unit", "-u",
               type=click.Choice(rim.ImageSPECT.authorized_units + ['Gy/sec']),
-              required=True,
+              default=None,
               help=f"SPECT unit: {rim.ImageSPECT.authorized_units}")
 @click.option(
     "--ct",

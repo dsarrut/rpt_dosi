@@ -157,6 +157,9 @@ def are_dicts_equal(dict1, dict2, float_tolerance=1e-9):
                     float_tolerance))
                 return False
         elif isinstance(value1, str) and isinstance(value2, str):
+            # special case on windows for path
+            if "\\" in value1:
+                value1 = value1.replace("\\", "/")
             if not value1 == value2:
                 print("The strings values are not equals: " + str(value1) + " vs. " + str(value2))
                 return False

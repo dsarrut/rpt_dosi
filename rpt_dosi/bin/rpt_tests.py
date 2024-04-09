@@ -41,8 +41,7 @@ def go():
         print(f"Running: {f:<46}  ", end="")
         cmd = "python " + str(tests_folder / f)
         log = str(log_folder / f"{f}.log")
-        #r = os.system(f"{cmd} > {log} 2>&1")
-        r = os.system(f"{cmd}")
+        r = os.system(f"{cmd} > {log} 2>&1")
         # subprocess.run(cmd, stdout=f, shell=True, check=True)
         if r == 0:
             print(he.colored.stylize(" OK", he.color_ok), end="")
