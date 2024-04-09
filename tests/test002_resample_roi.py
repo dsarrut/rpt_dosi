@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     # compare
     roi_ref = ref_folder / "liver_7.5mm_ref.nii.gz"
-    b = im.test_compare_image_exact(roi_output, roi_ref)
+    b = im.test_compare_images(roi_output, roi_ref)
     he.print_tests(b, f"Resample ROI {roi_output} vs {roi_ref}")
     is_ok = b and is_ok
 

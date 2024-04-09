@@ -4,20 +4,23 @@
 import json
 import click
 from rpt_dosi import dosimetry as rd
-import SimpleITK as sitk
-from box import Box
+import rpt_dosi.images as rim
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
-    "--spect",
+    "--input_image",
     "-s",
     required=True,
     type=click.Path(exists=True),
-    help="Input SPECT image",
+    help="Input SPECT or dose_rate image (use --unit to specify the image)",
 )
+@click.option("--input_unit", "-u",
+              type=click.Choice(rim.ImageSPECT.authorized_units + ['Gy/sec']),
+              default=None,
+              help=f"SPECT unit: {rim.ImageSPECT.authorized_units}")
 @click.option(
     "--ct",
     "-c",
@@ -29,48 +32,78 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option(
     "--roi_list", "-l", type=str, help="Filename : list of ROI filename and name"
 )
-@click.option("--acq_time", "-t", type=float, required=True, help="Time in h")
-@click.option(
-    "--phantom", "-p", default="ICRP 110 AM", help="Phantom ICRP 110 AF or AM"
-)
-@click.option("--rad", default="Lu177", help="Radionuclide")
-@click.option("--verbose", "-v", default=False, is_flag=True, help="Verbose")
+@click.option("--time_from_injection_h", "-t", type=float, required=True, help="Time in h")
+@click.option("--rad", default="lu177", help="Radionuclide")
 @click.option(
     "--method",
     "-m",
-    default="hanscheid2018",
-    type=click.Choice(["hanscheid2017", "hanscheid2018", "madsen2018"]),
+    default="hanscheid2017",
+    type=click.Choice(["hanscheid2017",
+                       "hanscheid2018",
+                       "madsen2018",
+                       "madsen2018_dose_rate"]),
     help="Which method to use",
 )
-def go(spect, ct, acq_time, phantom, rad, roi_list, verbose, output, method):
-    # Reading images as itk image
-    spect = sitk.ReadImage(spect)
-    ct = sitk.ReadImage(ct)
+@click.option("--resample_like", "-r",
+              type=click.Choice(["spect", "ct"]),
+              default="spect",
+              help="Resample image like spect, dose_rate or ct")
+@click.option("--sigma", default="auto",
+              help="specify sigma for gauss filter (None=no gauss, 0 = auto)",
+              )
+@click.option(
+    "--phantom", "-p", default="ICRP 110 AM", help="Phantom ICRP 110 AF or AM (only used by some methods)"
+)
+@click.option("--scaling", default=1.0, help="Scaling factor (for dose rate)")
+def go(input_image, ct, input_unit, time_from_injection_h,
+       phantom, rad, resample_like,
+       roi_list, sigma, output, method, scaling):
+    # read ct image
+    ct = rim.read_ct(ct)
 
-    # Consider the list of roi/name,
-    # this is a dict struct with roi_filename & roi_name
-    with open(roi_list, "r") as f:
-        rois = json.load(f)
+    # read spect or dose_rate
+    im = rim.read_image(input_image)
+    if im.image_type is None:
+        if input_unit is None:
+            raise ValueError("Unknown image type, please set --input_unit")
+        im = None
+        if input_unit == "Gy/sec":
+            im = rim.read_dose(input_image)
+            im.unit = "Gy/sec"
+        if input_unit == "Bq":
+            im = rim.read_spect(input_image)
+            im.unit = "Bq"
+        if im is None:
+            raise ValueError(f"Expected image unit is either Bq or Gy/sec, but is {input_unit}")
+    im.time_from_injection_h = time_from_injection_h
 
-    # options
-    options = {
-        "radionuclide": rad,
-        "phantom": phantom,
-        "verbose": verbose
-    }
+    # read rois
+    rois = rim.read_list_of_rois(roi_list)
+
+    # create the dose method
+    the_method = rd.get_dose_computation_method(method)
+    d = the_method(ct, im)
+
+    # common options
+    d.resample_like = resample_like
+    d.radionuclide = rad
+    d.gaussian_sigma = sigma
+
+    # specific options (only used by some methods)
+    d.phantom = phantom
+    d.scaling = scaling
 
     # compute dose for all roi
-    results = rd.dose_for_each_rois(spect, ct, rois, acq_time, method, options)
+    doses = d.run(rois)
+
+    # save output to json and print
+    with open(output, "w") as f:
+        json.dump(doses, f, indent=4)
 
     # print
-    for roi in rois:
-        rn = roi['roi_name']
-        res = Box(results[rn])
-        print(f"{rn:<15}  {res.dose_Gy:.2f} Gy  {res.mass_g:.2f} g  {res.volume_ml:.2f} g mL")
-
-    # save output to json
-    with open(output, "w") as f:
-        json.dump(results, f, indent=4)
+    for d in doses:
+        print(f'{d} = {doses[d]}')
+    print(f'Results saved in {output}')
 
 
 # --------------------------------------------------------------------------

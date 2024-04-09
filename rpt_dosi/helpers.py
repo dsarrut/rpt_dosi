@@ -153,9 +153,13 @@ def are_dicts_equal(dict1, dict2, float_tolerance=1e-9):
                 return False
         elif isinstance(value1, (int, float)) and isinstance(value2, (int, float)):
             if not math.isclose(value1, value2, abs_tol=float_tolerance):
-                print("The number values are not equals: " + str(value1) + " vs. " + str(value2) + " tol= " + str(float_tolerance))
+                print("The number values are not equals: " + str(value1) + " vs. " + str(value2) + " tol= " + str(
+                    float_tolerance))
                 return False
         elif isinstance(value1, str) and isinstance(value2, str):
+            # special case on windows for path
+            if "\\" in value1:
+                value1 = value1.replace("\\", "/")
             if not value1 == value2:
                 print("The strings values are not equals: " + str(value1) + " vs. " + str(value2))
                 return False
@@ -184,7 +188,6 @@ def run_cmd(cmd, folder=None):
     if folder is not None:
         os.chdir(folder)
     pwd = os.getcwd()
-    print(f'Current folder = {pwd}')
     print(cmd)
     r = os.system(cmd)
     os.chdir(pwd_initial)
