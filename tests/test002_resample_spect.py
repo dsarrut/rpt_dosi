@@ -27,9 +27,9 @@ if __name__ == "__main__":
     is_ok = b and is_ok
 
     # check total counts
-    spect1 = sitk.GetArrayViewFromImage(sitk.ReadImage(spect_input))
+    spect1 = sitk.GetArrayFromImage(sitk.ReadImage(spect_input))
     tc_input = np.sum(spect1)
-    spect2 = sitk.GetArrayViewFromImage(sitk.ReadImage(spect_output))
+    spect2 = sitk.GetArrayFromImage(sitk.ReadImage(spect_output))
     tc_output = np.sum(spect2)
     diff = np.fabs(tc_input - tc_output) / tc_input * 100
     b = diff < 0.5
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     like = rim.read_image(spect_output)
     sp = rim.resample_spect_like(sp, like, "auto")
     sp.write(spect_output)
-    spect2 = sitk.GetArrayViewFromImage(sitk.ReadImage(spect_output))
+    spect2 = sitk.GetArrayFromImage(sitk.ReadImage(spect_output))
     tc_output = np.sum(spect2) * sp.voxel_volume_ml
     diff = np.fabs(tc_input - tc_output) / tc_input * 100
     b = diff < 0.5
