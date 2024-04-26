@@ -3,6 +3,8 @@
 
 import rpt_dosi.images as rim
 import rpt_dosi.helpers as he
+import shutil
+import os
 
 if __name__ == "__main__":
     # folders
@@ -16,7 +18,11 @@ if __name__ == "__main__":
     print()
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_8.321mm.nii.gz"
-    cmd = f"cp {spect_input} {spect_output} ; rm {str(spect_output)+'.json'} ; rpt_image_set_metadata -i {spect_output} -u Bq -t SPECT"
+    shutil.copy(spect_input, spect_output)
+    a = str(spect_output)+'.json'
+    if os.path.exists(a):
+        os.remove(a)
+    cmd = f"rpt_image_set_metadata -i {spect_output} -u Bq -t SPECT"
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
     out_spect = rim.read_spect(spect_output)
     is_ok = out_spect.image_type == 'SPECT' and out_spect.unit == 'Bq' and cmd_ok
