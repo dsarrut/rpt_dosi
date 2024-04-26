@@ -11,3 +11,5 @@ spectrum_runtest/
 old_tests/
 
 tests/output
+
+patient_test

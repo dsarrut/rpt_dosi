@@ -4,7 +4,6 @@ from box import Box
 import inspect
 import colored
 import Levenshtein
-import rpt_dosi
 from pathlib import Path
 import sys
 import math
@@ -21,6 +20,10 @@ except AttributeError:
     color_ok = colored.fore("green")
 
 
+class Error(Exception):
+    pass
+
+
 def fatal(s):
     caller = inspect.getframeinfo(inspect.stack()[1][0])
     ss = f"(in {caller.filename} line {caller.lineno})"
@@ -28,7 +31,7 @@ def fatal(s):
     print(ss)
     s = colored.stylize(s, color_error)
     print(s)
-    raise Exception(s)
+    raise Error(s)
 
 
 def read_and_check_input_infos(json_file):

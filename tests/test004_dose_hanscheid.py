@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     # test
     print()
-    print("Hanscheid 2017 method with Teff in oar.json file")
+    print("Hanscheid 2017 method with Teff in oar.json file (cmd line)")
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     ct_input = data_folder / "ct_8mm.nii.gz"
     oar_json = data_folder / "oar_teff.json"
@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     # test
     print()
-    print("Hanscheid 2018 method")
+    print("Hanscheid 2018 method (cmd line)")
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     ct_input = data_folder / "ct_8mm.nii.gz"
     oar_json = data_folder / "oar.json"

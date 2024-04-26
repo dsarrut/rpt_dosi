@@ -12,45 +12,49 @@ if __name__ == "__main__":
     print(f"Output data folder = {output_folder}")
     print()
 
-    # Read image with no metadata, add CT metadata
+    print('Update image with no metadata, add CT metadata (cmd line)')
     filename = "ct_8mm.nii.gz"
     ct_input = data_folder / filename
     ct_output = output_folder / filename
-    cmd = f"rpt_image_update -i {ct_input} -t CT -o {ct_output}"
+    cmd = f"cp {ct_input} {ct_output} ; rpt_image_set_metadata -i {ct_output} -t CT -v"
     is_ok = he.run_cmd(cmd, data_folder / "..")
+    he.print_tests(is_ok, f'cmd line ok')
 
-    # Read image with no metadata, consider as spect
     print()
-    im = rim.read_spect(ct_input)
-    b = im.image_type == 'SPECT' and im.unit == 'Bq' and is_ok
+    print('Read image with metadata (CT)')
+    im = rim.read_ct(ct_output)
+    print(im._get_metadata_filename())
+    b = im.image_type == 'CT' and im.unit == 'HU'
+    he.print_tests(b, f'OK, image metadata is {im}')
+    is_ok = b and is_ok
+
+    print()
+    print('Read image with no metadata, consider as spect (function), no unit')
+    im = rim.read_spect(ct_input, "Bq")
+    b = im.image_type == 'SPECT' and im.unit == "Bq" and is_ok
     he.print_tests(b, im)
     is_ok = b and is_ok
 
-    # Read image with metadata
-    print()
-    im = rim.read_ct(ct_output)
-    b = im.image_type == 'CT' and im.unit == 'HU'
-    he.print_tests(b, f'OK, image metadata is a CT {im}')
-    is_ok = b and is_ok
-
     # Read image with wrong type
     print()
+    print('Read image with wrong type')
     b = False
     try:
         im = rim.read_spect(ct_output)
-    except ValueError:
+    except he.Error:
         b = True
-    he.print_tests(b, "Correct, cannot read CT as SPECT")
+    he.print_tests(b, "     Correct, cannot read CT as SPECT")
     is_ok = b and is_ok
 
     # Read image with wrong type
     print()
+    print('Read image with wrong type')
     b = False
     try:
         im = rim.read_roi(ct_output, 'toto')
-    except ValueError:
+    except he.Error:
         b = True
-    he.print_tests(b, "Correct, cannot read CT as ROI")
+    he.print_tests(b, "     Correct, cannot read CT as ROI")
     is_ok = b and is_ok
 
     # end

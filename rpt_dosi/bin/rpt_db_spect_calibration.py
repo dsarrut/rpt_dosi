@@ -39,7 +39,7 @@ def go(db_file, output, calibration_factor):
             print(f"Input image: {input_image}")
             # read image
             spect = rim.read_spect(input_image)
-            spect.require_unit('Bq')
+            spect.convert_to_bq()
             print(spect)
             # apply calibration
             spect.image = spect.image * calibration_factor

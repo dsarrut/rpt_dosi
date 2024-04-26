@@ -19,12 +19,12 @@ if __name__ == "__main__":
     oar_json = data_folder / "oar_teff.json"
     output = output_folder / "dose.json"
 
-    #cmd = f"rpt_dose_rate -s {spect_input} -r spect --ct {ct_input} -o {output_folder} -a 1e5"
-    #cmd_ok = he.run_cmd(cmd, data_folder / "..")
+    # cmd = f"rpt_dose_rate -s {spect_input} -r spect --ct {ct_input} -o {output_folder} -a 1e5"
+    # cmd_ok = he.run_cmd(cmd, data_folder / "..")
 
     s = 6974.43264  # this value is computed by rpt_dose_rate
     print("Madsen with dose rate")
-    cmd = (f"rpt_dose -s {data_folder / 'test009' / 'output-dose.mhd'} -u Gy/sec --ct {ct_input} -l {oar_json}"
+    cmd = (f"rpt_dose -d {data_folder / 'test009' / 'output-dose.mhd'} -u Gy/s --ct {ct_input} -l {oar_json}"
            f" -o {output} -t 24 -m madsen2018_dose_rate --scaling {s}")
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
 

@@ -11,16 +11,23 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
-    "--input_image",
+    "--spect",
     "-s",
-    required=True,
+    default=None,
     type=click.Path(exists=True),
-    help="Input SPECT or dose_rate image (use --unit to specify the image)",
+    help="Input SPECT image (use --unit to specify the image)",
+)
+@click.option(
+    "--dose_rate",
+    "-d",
+    default=None,
+    type=click.Path(exists=True),
+    help="Input dose rate image",
 )
 @click.option("--input_unit", "-u",
-              type=click.Choice(rim.ImageSPECT.authorized_units + ['Gy/sec']),
+              type=click.Choice(rim.ImageSPECT.authorized_units + ['Gy/s']),
               default=None,
-              help=f"SPECT unit: {rim.ImageSPECT.authorized_units}")
+              help=f"SPECT or dose rate unit: {rim.ImageSPECT.authorized_units + ['Gy/s']}")
 @click.option(
     "--ct",
     "-c",
@@ -28,9 +35,11 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     type=click.Path(exists=True),
     help="Input CT image",
 )
-@click.option("--output", "-o", required=True, help="Output json filename")
 @click.option(
-    "--roi_list", "-l", type=str, help="Filename : list of ROI filename and name"
+    "--roi_list", "-l", type=str, default=None, help="Filename : list of ROI filename and name"
+)
+@click.option(
+    "--roi", "-r", multiple=True, type=(str, str, float), help="ROI: filename + name + Teff"
 )
 @click.option("--time_from_injection_h", "-t", type=float, required=True, help="Time in h")
 @click.option("--rad", default="lu177", help="Radionuclide")
@@ -55,33 +64,60 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     "--phantom", "-p", default="ICRP 110 AM", help="Phantom ICRP 110 AF or AM (only used by some methods)"
 )
 @click.option("--scaling", default=1.0, help="Scaling factor (for dose rate)")
-def go(input_image, ct, input_unit, time_from_injection_h,
-       phantom, rad, resample_like,
-       roi_list, sigma, output, method, scaling):
+@click.option("--output", "-o", default=None, help="Output json filename")
+def go(spect,
+       dose_rate,
+       ct,
+       input_unit,
+       time_from_injection_h,
+       phantom,
+       rad,
+       resample_like,
+       roi_list,
+       roi,
+       sigma,
+       output,
+       method,
+       scaling):
+    # spect or dose_rate ?
+    if spect is None and dose_rate is None:
+        rim.fatal(f'Please provide either --spect or --dose_rate option')
+    if spect is not None and dose_rate is not None:
+        rim.fatal('Please provide either --spect or --dose_rate option, not both')
+
+    # read spect
+    im = None
+    if spect is not None:
+        im = rim.read_spect(spect, input_unit)
+
+    # read dose_rate
+    if dose_rate is not None:
+        im = rim.read_dose(dose_rate, input_unit)
+        print(im.unit)
+        if im.unit != "Gy/s":
+            rim.fatal("Dose rate pixel type must be 'Gy/s'")
+
+    # timing (read in sidecar metadata or option)
+    if time_from_injection_h is None:
+        if im.time_from_injection_h is None:
+            rim.fatal('Please provide --time_from_injection_h')
+    else:
+        im.time_from_injection_h = time_from_injection_h
+
+    # read rois
+    if roi_list is not None:
+        rois = rim.read_list_of_rois(roi_list)
+    else:
+        rois = []
+    for r in roi:
+        a_roi = rim.read_roi(r[0], r[1], r[2])
+        rois.append(a_roi)
+
     # read ct image
     ct = rim.read_ct(ct)
 
-    # read spect or dose_rate
-    im = rim.read_image(input_image)
-    if im.image_type is None:
-        if input_unit is None:
-            raise ValueError("Unknown image type, please set --input_unit")
-        im = None
-        if input_unit == "Gy/sec":
-            im = rim.read_dose(input_image)
-            im.unit = "Gy/sec"
-        if input_unit == "Bq":
-            im = rim.read_spect(input_image)
-            im.unit = "Bq"
-        if im is None:
-            raise ValueError(f"Expected image unit is either Bq or Gy/sec, but is {input_unit}")
-    im.time_from_injection_h = time_from_injection_h
-
-    # read rois
-    rois = rim.read_list_of_rois(roi_list)
-
     # create the dose method
-    the_method = rd.get_dose_computation_method(method)
+    the_method = rd.get_dose_computation_class(method)
     d = the_method(ct, im)
 
     # common options
@@ -96,14 +132,15 @@ def go(input_image, ct, input_unit, time_from_injection_h,
     # compute dose for all roi
     doses = d.run(rois)
 
-    # save output to json and print
-    with open(output, "w") as f:
-        json.dump(doses, f, indent=4)
+    # save output to json
+    if output is not None:
+        with open(output, "w") as f:
+            json.dump(doses, f, indent=4)
+            print(f'Results saved in {output}')
 
     # print
     for d in doses:
         print(f'{d} = {doses[d]}')
-    print(f'Results saved in {output}')
 
 
 # --------------------------------------------------------------------------

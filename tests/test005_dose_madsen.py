@@ -16,7 +16,7 @@ if __name__ == "__main__":
     print()
 
     # test
-    print("Madsen 2018 method with Teff")
+    print("Madsen 2018 method with Teff (function)")
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     ct_input = data_folder / "ct_8mm.nii.gz"
     oar_json = data_folder / "oar_teff.json"
@@ -24,8 +24,7 @@ if __name__ == "__main__":
 
     # read images
     ct = rim.read_ct(ct_input)
-    spect = rim.read_spect(spect_input)
-    spect.unit = 'Bq'
+    spect = rim.read_spect(spect_input, 'Bq')
     spect.time_from_injection_h = 24.0
     # warning how to keep coherence with injection time + acquisition time?
 

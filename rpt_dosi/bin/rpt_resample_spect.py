@@ -20,9 +20,13 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--sigma", default=None,
               help="specify sigma for gauss filter (None=no gauss, 0 = auto)",
               )
-def go(input_image, spacing, output, sigma, like):
+@click.option("--unit", "-u",
+              default=None,
+              help=f"Set the image unit {[k.authorized_units for k in rpt.image_builders.values()]}"
+              )
+def go(input_image, unit, spacing, output, sigma, like):
     # read image
-    spect = rpt.read_spect(input_image)
+    spect = rpt.read_spect(input_image, unit)
 
     # resample
     if like is not None:
