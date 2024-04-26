@@ -16,7 +16,7 @@ if __name__ == "__main__":
     filename = "ct_8mm.nii.gz"
     ct_input = data_folder / filename
     ct_output = output_folder / filename
-    cmd = f"cp {ct_input} {ct_output} ; ls {ct_output}* ; rpt_image_set_metadata -i {ct_output} -t CT -v"
+    cmd = f"cp {ct_input} {ct_output} ; rpt_image_set_metadata -i {ct_output} -t CT -v"
     is_ok = he.run_cmd(cmd, data_folder / "..")
     he.print_tests(is_ok, f'cmd line ok')
 
@@ -24,6 +24,8 @@ if __name__ == "__main__":
     print('Read image with metadata (CT)')
     im = rim.read_ct(ct_output)
     print(im._get_metadata_filename())
+    with open(im._get_metadata_filename()) as f:
+        print(f.read())
     b = im.image_type == 'CT' and im.unit == 'HU'
     he.print_tests(b, f'OK, image metadata is CT and HU {im}')
     is_ok = b and is_ok
