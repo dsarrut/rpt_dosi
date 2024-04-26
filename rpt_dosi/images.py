@@ -302,8 +302,7 @@ class ImageCT(ImageBase):
 
     def __init__(self):
         super().__init__()
-        super().__init__()
-        # set HU bye default
+        # set HU by default
         self.unit = 'HU'
 
     def __str__(self):
