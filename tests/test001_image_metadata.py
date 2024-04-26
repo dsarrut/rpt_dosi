@@ -52,8 +52,9 @@ if __name__ == "__main__":
            f" --tag injection_datetime '2022-02-01 12:11:00'"
            f" --tag injection_activity_mbq 7504"
            f" --tag acquisition_datetime '2022-02-01 18:11:00'"
-           f" --tag body_weight_kg 70.4")
-    is_ok = he.run_cmd(cmd, data_folder / "..") and is_ok
+           f" --tag body_weight_kg 70.4 -v")
+    cmd_ok = he.run_cmd(cmd, data_folder / "..")
+    he.print_tests(cmd_ok, f'cmd ? {cmd_ok}')
 
     # special case for time_from_injection_h
     print()
@@ -63,7 +64,7 @@ if __name__ == "__main__":
     spect.injection_datetime = None
     spect.time_from_injection_h = 12.4
     print(spect.acquisition_datetime)
-    is_ok = spect.acquisition_datetime == "1970-01-01 12:24:00" and is_ok
+    is_ok = spect.acquisition_datetime == "1970-01-01 12:24:00" and cmd_ok and is_ok
     he.print_tests(is_ok, f'correct date ? {is_ok}')
 
     # special case for time_from_injection_h
