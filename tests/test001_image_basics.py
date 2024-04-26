@@ -18,7 +18,7 @@ if __name__ == "__main__":
     ct_output = output_folder / filename
     cmd = f"cp {ct_input} {ct_output} ; rpt_image_set_metadata -i {ct_output} -t CT -v"
     is_ok = he.run_cmd(cmd, data_folder / "..")
-    he.print_tests(is_ok, f'cmd line ok')
+    he.print_tests(is_ok, f'cmd line {is_ok}')
 
     print()
     print('Read image with metadata (CT)')

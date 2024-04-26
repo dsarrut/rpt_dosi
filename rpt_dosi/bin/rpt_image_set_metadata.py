@@ -21,9 +21,11 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--verbose", "-v", is_flag=True, help="verbose")
 @click.option("--force", "-f", is_flag=True, help="If set to True, erase all previous metadata associated")
 def go(input_image, unit, image_type, tag, verbose, force):
-    # read image
+    # delete metadata before ?
     if force:
         rim.delete_metadata(input_image)
+
+    # read image
     im = rim.read_image_header_only(input_image)
     if verbose:
         print('Input metadata')
@@ -33,14 +35,14 @@ def go(input_image, unit, image_type, tag, verbose, force):
     if image_type is not None:
         if image_type not in rim.image_builders.keys():
             rim.fatal(f"Unknown image type {image_type}. Available types are {rim.image_builders.keys()}")
-        im.image_type = image_type
+        im = rim.build_image_from_type(image_type)
+        im.filename = input_image
         im.write_metadata()
         im = rim.read_image_header_only(input_image)
 
     # convert the unit
     if unit is not None:
-        if im.unit is None:
-            im.unit = unit
+        im.unit = unit
 
     # set tags values
     for t in tag:
