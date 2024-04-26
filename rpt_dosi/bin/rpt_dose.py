@@ -85,6 +85,18 @@ def go(spect,
     if spect is not None and dose_rate is not None:
         rim.fatal('Please provide either --spect or --dose_rate option, not both')
 
+    # read rois
+    if roi_list is not None:
+        rois = rim.read_list_of_rois(roi_list)
+    else:
+        rois = []
+    for r in roi:
+        a_roi = rim.read_roi(r[0], r[1], r[2])
+        rois.append(a_roi)
+    if len(rois) == 0:
+        rim.fatal('No ROI given. Use --roi and/or --roi_list options')
+
+
     # read spect
     im = None
     if spect is not None:
@@ -103,15 +115,6 @@ def go(spect,
             rim.fatal('Please provide --time_from_injection_h')
     else:
         im.time_from_injection_h = time_from_injection_h
-
-    # read rois
-    if roi_list is not None:
-        rois = rim.read_list_of_rois(roi_list)
-    else:
-        rois = []
-    for r in roi:
-        a_roi = rim.read_roi(r[0], r[1], r[2])
-        rois.append(a_roi)
 
     # read ct image
     ct = rim.read_ct(ct)
