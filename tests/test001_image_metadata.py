@@ -19,7 +19,7 @@ if __name__ == "__main__":
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_8.321mm.nii.gz"
     shutil.copy(spect_input, spect_output)
-    a = str(spect_output)+'.json'
+    a = str(spect_output) + '.json'
     if os.path.exists(a):
         os.remove(a)
     cmd = f"rpt_image_set_metadata -i {spect_output} -u Bq -t SPECT"
@@ -48,11 +48,11 @@ if __name__ == "__main__":
 
     # set tags for spect
     print()
-    cmd = (f"rpt_image_set_metadata -i {spect_output}"
-           f" --tag injection_datetime '2022-02-01 12:11:00'"
-           f" --tag injection_activity_mbq 7504"
-           f" --tag acquisition_datetime '2022-02-01 18:11:00'"
-           f" --tag body_weight_kg 70.4 -v")
+    cmd = (f'rpt_image_set_metadata -i {spect_output}'
+           f' --tag injection_datetime "2022-02-01 12:11:00"'
+           f' --tag injection_activity_mbq 7504'
+           f' --tag acquisition_datetime "2022-02-01 18:11:00"'
+           f' --tag body_weight_kg 70.4 -v')
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
     he.print_tests(cmd_ok, f'cmd ? {cmd_ok}')
 
