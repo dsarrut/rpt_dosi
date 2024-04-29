@@ -11,3 +11,7 @@ spectrum_runtest/
 old_tests/
 
 tests/output
+
+docs/source/html
+docs/source/_build
+

@@ -98,7 +98,7 @@ pygments_style = None
 # html_theme = 'alabaster'
 # html_theme = 'groundwork'
 
-html_logo = "gate_logo.png"
+# html_logo = "gate_logo.png"
 
 # import sphinx_pdj_theme
 # html_theme = 'sphinx_pdj_theme'
@@ -252,5 +252,5 @@ epub_exclude_files = ["search.html"]
 # -- Extension configuration -------------------------------------------------
 # sphinx-autoapi configuration
 autoapi_type = "python"
-autoapi_dirs = ["../../opengate", "../../core"]
-autoapi_ignore = ["*/opengate/tests/src*"]
+autoapi_dirs = ["../../rpt_dosi"]
+autoapi_ignore = ["*/rpt_dosi/tests/src*"]
