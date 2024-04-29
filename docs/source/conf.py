@@ -24,7 +24,7 @@ import os
 
 # -- Project information -----------------------------------------------------
 
-project = "OPENGATE"
+project = "RPT DOSI"
 now = datetime.now()
 copyright = (
     str(now.year) + ", OpenGATE Collaboration. Updated on " + now.strftime("%B %d, %Y")
@@ -98,7 +98,7 @@ pygments_style = None
 # html_theme = 'alabaster'
 # html_theme = 'groundwork'
 
-html_logo = "gate_logo.png"
+# html_logo = "gate_logo.png"
 
 # import sphinx_pdj_theme
 # html_theme = 'sphinx_pdj_theme'
@@ -153,7 +153,7 @@ html_static_path = ["_static"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # Configure viewcode extension.
-code_url = f"https://github.com/OpenGATE/opengate/blob/master/"
+code_url = f"https://github.com/dsarrut/rpt_dosi/blob/master/"
 
 
 def linkcode_resolve(domain, info):
@@ -172,7 +172,7 @@ def linkcode_resolve(domain, info):
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "OPENGATEdoc"
+htmlhelp_basename = "RPT_DOSIdoc"
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -252,5 +252,5 @@ epub_exclude_files = ["search.html"]
 # -- Extension configuration -------------------------------------------------
 # sphinx-autoapi configuration
 autoapi_type = "python"
-autoapi_dirs = ["../../opengate", "../../core"]
-autoapi_ignore = ["*/opengate/tests/src*"]
+autoapi_dirs = ["../../rpt_dosi"]
+autoapi_ignore = ["*/rpt_dosi/tests/src*"]

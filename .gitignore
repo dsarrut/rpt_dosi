@@ -13,3 +13,6 @@ old_tests/
 tests/output
 
 patient_test
+docs/source/html
+docs/source/_build
+
