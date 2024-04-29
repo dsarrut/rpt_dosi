@@ -10,11 +10,10 @@ from .opendose import (
     get_svalue_and_mass_scaling,
     guess_phantom_and_isotope,
 )
-from .helpers import find_closest_match, print_tests, fatal
-import SimpleITK as itk
+from .helpers import print_tests, fatal
 import numpy as np
 from datetime import datetime
-from box import Box, BoxList
+from box import Box
 import SimpleITK as sitk
 
 
@@ -287,8 +286,7 @@ class DoseMadsen2018(DoseComputation):
 
     def run(self, rois: list[ImageROI]):
         self.check_options()
-        if self.spect.unit != "Bq":
-            raise ValueError(f"The SPECT unit must be Bq, while is {spect.unit}, cannot compute dose.")
+        self.spect.convert_to_bq()
         ct, spect, like = self.init_resampling()
         density_ct = ct.compute_densities()
 
@@ -298,7 +296,7 @@ class DoseMadsen2018(DoseComputation):
 
         for roi in rois:
             if roi.effective_time_h is None:
-                raise ValueError(f'Effective time must be provided for ROI {roi}.')
+                fatal(f'Effective time must be provided for ROI {roi}.')
             roi = resample_roi_like(roi, like)
             roi.update_mass_and_volume(density_ct)
             dose = dose_madsen2018(sitk.GetArrayViewFromImage(spect.image),
@@ -322,8 +320,7 @@ class DoseHanscheid2017(DoseComputation):
 
     def run(self, rois: list[ImageROI]):
         self.check_options()
-        if self.spect.unit != "Bq":
-            raise ValueError(f"The SPECT unit must be Bq, while is {spect.unit}, cannot compute dose.")
+        self.spect.convert_to_bq()
         ct, spect, like = self.init_resampling()
         density_ct = ct.compute_densities()
 
@@ -332,7 +329,7 @@ class DoseHanscheid2017(DoseComputation):
 
         for roi in rois:
             if roi.effective_time_h is None:
-                raise ValueError(f'Effective time must be provided for ROI {roi}.')
+                fatal(f'Effective time must be provided for ROI {roi}.')
             roi = resample_roi_like(roi, like)
             roi.update_mass_and_volume(density_ct)
             dose = dose_hanscheid2017(sitk.GetArrayViewFromImage(spect.image),
@@ -358,12 +355,11 @@ class DoseHanscheid2018(DoseComputation):
     def check_options(self):
         super().check_options()
         if self.phantom is None:
-            raise ValueError(f'For {self.name}, you need to provide a MIRD phantom')
+            fatal(f'For {self.name}, you need to provide a MIRD phantom')
 
     def run(self, rois: list[ImageROI]):
         self.check_options()
-        if self.spect.unit != "Bq":
-            raise ValueError(f"The SPECT unit must be Bq, while is {spect.unit}, cannot compute dose.")
+        self.spect.convert_to_bq()
         ct, spect, like = self.init_resampling()
         density_ct = ct.compute_densities()
 
@@ -420,8 +416,8 @@ class DoseMadsen2018DoseRate(DoseComputation):
     def run(self, rois: list[ImageROI]):
         self.check_options()
         ct, dose_rate, like = self.init_resampling()
-        if dose_rate.unit != "Gy/sec":
-            raise ValueError(f"The dose rate unit must be Gy/sec, while is {dose_rate.unit}, cannot compute dose.")
+        if dose_rate.unit != "Gy/s":
+            fatal(f"The dose rate unit must be Gy/s, while is {dose_rate.unit}, cannot compute dose.")
         density_ct = ct.compute_densities()
         dose_rate_arr = sitk.GetArrayViewFromImage(dose_rate.image)
 
@@ -430,7 +426,7 @@ class DoseMadsen2018DoseRate(DoseComputation):
 
         for roi in rois:
             if roi.effective_time_h is None:
-                raise ValueError(f'Effective time must be provided for ROI {roi}.')
+                fatal(f'Effective time must be provided for ROI {roi}.')
             roi = resample_roi_like(roi, like)
             roi.update_mass_and_volume(density_ct)
             dose = dose_madsen2018_dose_rate(dose_rate_arr,
@@ -445,7 +441,7 @@ class DoseMadsen2018DoseRate(DoseComputation):
         return results
 
 
-def get_dose_computation_method(name):
+def get_dose_computation_class(name):
     methods = [DoseMadsen2018, DoseHanscheid2017, DoseHanscheid2018, DoseMadsen2018DoseRate]
     for d in methods:
         if d.name.lower() == name.lower():

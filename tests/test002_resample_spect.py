@@ -17,7 +17,7 @@ if __name__ == "__main__":
     # test resample (unit is assumed to be Bq)
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_test.nii.gz"
-    cmd = f"rpt_resample_spect -i {spect_input} -o {spect_output} -s 12 --sigma auto"
+    cmd = f"rpt_resample_spect -i {spect_input} -o {spect_output} -s 12 --sigma auto -u Bq"
     is_ok = he.run_cmd(cmd, data_folder / "..")
 
     # compare
@@ -38,8 +38,8 @@ if __name__ == "__main__":
 
     # convert to BqmL
     print()
-    sp = rim.read_spect(spect_input)
-    sp.unit = 'Bq/mL'
+    sp = rim.read_spect(spect_input, 'Bq')
+    sp.convert_to_bqml()
     like = rim.read_image(spect_output)
     sp = rim.resample_spect_like(sp, like, "auto")
     sp.write(spect_output)

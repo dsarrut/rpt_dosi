@@ -11,7 +11,10 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--input_image", "-i", required=True, type=click.Path(exists=True))
 def go(input_image):
     # read image
-    im = rim.read_image(filename=input_image)
+    im = rim.ImageBase()
+    im.filename = input_image
+    im.read_metadata()
+    im.read_header()
     print(im.info())
 
 
