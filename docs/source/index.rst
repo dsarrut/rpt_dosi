@@ -1,6 +1,6 @@
 
-GATE documentation
-==================
+RPT DOSI documentation
+======================
 
 .. toctree::
    :maxdepth: 2

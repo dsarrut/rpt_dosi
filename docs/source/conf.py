@@ -27,9 +27,9 @@ import os
 project = "RPT DOSI"
 now = datetime.now()
 copyright = (
-    str(now.year) + ", OpenGATE Collaboration. Updated on " + now.strftime("%B %d, %Y")
+    str(now.year) + ", CREATIS. Updated on " + now.strftime("%B %d, %Y")
 )
-author = "OpenGate Collaboration"
+author = "David Sarrut"
 
 # The short X.Y version
 version = ""
@@ -162,8 +162,6 @@ def linkcode_resolve(domain, info):
     if not info["module"]:
         return None
     filename = info["module"].replace(".", "/")
-    if filename.startswith("opengate_core"):
-        filename = "opengate_core/" + filename
     if os.path.isdir("../../" + filename):
         filename = filename + "/__init__"
     return code_url + filename + ".py"
@@ -198,9 +196,9 @@ latex_elements = {
 latex_documents = [
     (
         master_doc,
-        "OPENGATE.tex",
-        "OPENGATE Documentation",
-        "OpenGATE Collaboration",
+        "RPT_DOSI.tex",
+        "RPT_DOSI Documentation",
+        "RPT_DOSI Collaboration",
         "manual",
     ),
 ]
@@ -210,7 +208,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "OPENGATE", "OPENGATE Documentation", [author], 1)]
+man_pages = [(master_doc, "RPT_DOSI", "RPT_DOSI Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output ----------------------------------------------
@@ -221,10 +219,10 @@ man_pages = [(master_doc, "OPENGATE", "OPENGATE Documentation", [author], 1)]
 texinfo_documents = [
     (
         master_doc,
-        "OPENGATE",
-        "OPENGATE Documentation",
+        "RPT_DOSI",
+        "RPT_DOSI Documentation",
         author,
-        "OPENGATE",
+        "RPT_DOSI",
         "One line description of project.",
         "Miscellaneous",
     ),

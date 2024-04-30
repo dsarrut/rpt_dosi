@@ -1,6 +1,8 @@
 ## How to start ?
 
-RPT_DOSI is a python toolkit for dosimetry in radionuclide therapy. In practice, it is used for estimating the absorbed dose from SPECT (or PET) images in 177Lu therapy (neurendocrine tumors and prostate cancer with PSMA).
+RPT_DOSI is a python toolkit for dosimetry in radionuclide therapy. 
+
+It is used for example for estimating the absorbed dose from SPECT (or PET) images in 177Lu therapy (neuroendocrine tumors and prostate cancer with PSMA).
 
 ### Installation
 

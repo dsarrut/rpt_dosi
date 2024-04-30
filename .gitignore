@@ -15,4 +15,4 @@ tests/output
 patient_test
 docs/source/html
 docs/source/_build
-
+docs/build
