@@ -30,16 +30,16 @@ Once installed, we recommend to run the tests:
 
 ### Quick demo
 
-The toolkit contains Python functions and command linse for several dosimetry methods. Here is a simple example to compute the dose for a ROI (Regions Of Interests) from a SPECT image with the Madsen2018 method:
+The toolkit contains Python functions and command line tools for several dosimetry methods. Here is a simple example to compute the dose for a ROI (Regions Of Interests) from a SPECT image with the [Madsen2018](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5948162/) method:
 
 First, as a command line tool:
 
     rpt_dose --spect spect.nii.gz --input_unit Bq --ct ct.nii.gz --resample_like spect --time_from_injection_h 24 --method madsen2018 --roi spleen.nii.gz spleen 56 --roi liver.nii.gz liver 67
 
-This command will compute the dose in the SPECT image in the spleen. We explicitly states that the SPECT image is in Bq (not Bq/mL), that the SPECT image was acquired 24 hours after injection, and that the spleen has a Teff (effective clearance time) of 67 hours. We will see later how to store units and metadata in companions files. The inputs are:
+This command computes the dose in the spleen from the activity of the SPECT image. We explicitly states that the SPECT image is in Bq (not Bq/mL), that the SPECT image was acquired 24 hours after injection, and that the spleen has a Teff (effective clearance time) of 67 hours. We will see later how to store units and metadata in companions files. The inputs are:
 
 - the spect image: spect.nii.gz (it can be any image file format type, such as mhd or mha)
-- the pixel unit value for the SPECT : Bq
+- the pixel unit value for the SPECT: Bq
 - the acquisition time of the SPECT image according the injection: 24 hours
 - the ct image: ct.nii.gz (the default pixel unit value is HU)
 - the mask of the ROI: spleen.nii.gz
