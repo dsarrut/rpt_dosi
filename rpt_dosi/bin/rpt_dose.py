@@ -96,7 +96,6 @@ def go(spect,
     if len(rois) == 0:
         rim.fatal('No ROI given. Use --roi and/or --roi_list options')
 
-
     # read spect
     im = None
     if spect is not None:
