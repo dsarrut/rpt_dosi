@@ -35,6 +35,7 @@ if __name__ == "__main__":
     d = rd.DoseMadsen2018(ct, spect)
     d.resample_like = "spect"
     d.gaussian_sigma = 'auto'
+    d.phantom = "ICRP 110 AM"
     doses = d.run(rois)
 
     # save output to json and print

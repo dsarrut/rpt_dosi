@@ -9,9 +9,12 @@ from rpt_dosi.helpers import get_data_folder
 
 def guess_phantom_id(phantom_name):
     # which phantom ?
-    phantoms = {"ICRP 110 AF": "1", "ICRP 110 AM": "2"}
-    phantom_name, _ = find_closest_match(phantom_name, phantoms.keys())
-    phantom_id = phantoms[phantom_name]
+    phantoms = {"icrp 110 af": "1", "icrp 110 am": "2"}
+    #phantom_name, r = find_closest_match(phantom_name, phantoms.keys())
+    p = phantom_name.lower()
+    if p not in phantoms:
+        fatal(f'Cannot find the phantom "{phantom_name}" in the available phantoms: {phantoms}')
+    phantom_id = phantoms[p]
     return phantom_id, phantom_name
 
 
@@ -30,6 +33,8 @@ def guess_isotope_id(phantom_name, isotope_name):
 
 
 def guess_phantom_and_isotope(phantom_name, isotope_name):
+    if phantom_name is None:
+        fatal(f"Cannot phantom_name is empty")
     _, phantom_name = guess_phantom_id(phantom_name)
     _, rad_name = guess_isotope_id(phantom_name, isotope_name)
     return phantom_name, rad_name

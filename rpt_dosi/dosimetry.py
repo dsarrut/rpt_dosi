@@ -64,7 +64,7 @@ def dose_madsen2018_dose_rate(dose_rate_a, roi_a, time_from_injection_h, effecti
     return dose
 
 
-def dose_madsen2018(spect_Bq, roi, acq_time_h, delta_lu_e, roi_mass_g, roi_time_eff_h):
+def dose_madsen2018(spect_Bq, roi, acq_time_h, svalue, mass_scaling, roi_time_eff_h):
     """
     Input image and ROI must be numpy arrays
     - spect must be in Bq (not concentration)
@@ -75,22 +75,13 @@ def dose_madsen2018(spect_Bq, roi, acq_time_h, delta_lu_e, roi_mass_g, roi_time_
     # compute mean activity in the ROI, in MBq
     v = spect_Bq[roi == 1]
     At = np.sum(v) / 1e6
-    # print(f'At = {At * 1e6:.3f} Bq')
-
-    # Svalue in mGy MBq-1 h-1
-    svalue = delta_lu_e / roi_mass_g * 1000
-    # print(f'delta_lu_e = {delta_lu_e:}')
-    # print(f'roi_mass_g = {roi_mass_g:}')
-    # print(f'svalue = {svalue:}')
 
     # effective clearance rate
     k = np.log(2) / roi_time_eff_h
-    # print(f'k = {k:.3f} ')
 
     # 1Gy = 1J/kg
     integrated_activity = At * np.exp(k * acq_time_h) / k
-    # print(f'ia*svalue = {At * svalue:}')
-    dose = integrated_activity * svalue / 1000
+    dose = mass_scaling * integrated_activity * svalue / 1000
 
     return dose
 
@@ -276,13 +267,24 @@ class DoseComputation:
                    "date": str(datetime.now())}
         return Box(results)
 
+class DoseComputationWithPhantom(DoseComputation):
+    # name of the method
+    name = None
 
-class DoseMadsen2018(DoseComputation):
+    def __init__(self, ct, spect):
+        super().__init__(ct, spect)
+        self.phantom = None
+
+    def check_options(self):
+        super().check_options()
+        if self.phantom is None:
+            fatal(f'For {self.name}, you need to provide a MIRD phantom')
+
+class DoseMadsen2018(DoseComputationWithPhantom):
     name = "madsen2018"
 
     def __init__(self, ct, spect):
         super().__init__(ct, spect)
-        self.delta_lu_e = 0.08532
 
     def run(self, rois: list[ImageROI]):
         self.check_options()
@@ -292,18 +294,30 @@ class DoseMadsen2018(DoseComputation):
 
         # compute dose for each roi
         results = self.init_results()
-        results["delta_e"] = self.delta_lu_e
 
+        # MIRD phantom
+        phantom_name, rad_name = guess_phantom_and_isotope(self.phantom, self.radionuclide)
+
+        # loop on roi
         for roi in rois:
             if roi.effective_time_h is None:
                 fatal(f'Effective time must be provided for ROI {roi}.')
             roi = resample_roi_like(roi, like)
-            roi.update_mass_and_volume(density_ct)
+            roi_arr = sitk.GetArrayViewFromImage(roi.image)
+            svalue, mass_scaling, roi.mass_g, roi.volume_ml = get_svalue_and_mass_scaling(
+                phantom_name,
+                roi_arr,
+                roi.name,
+                rad_name,
+                spect.voxel_volume_ml,
+                sitk.GetArrayViewFromImage(density_ct.image),
+                verbose=False,
+            )
             dose = dose_madsen2018(sitk.GetArrayViewFromImage(spect.image),
                                    sitk.GetArrayViewFromImage(roi.image),
                                    spect.time_from_injection_h,
-                                   self.delta_lu_e,
-                                   roi.mass_g,
+                                   svalue,
+                                   mass_scaling,
                                    roi.effective_time_h)
             results[roi.name] = {"dose_Gy": dose,
                                  "mass_g": roi.mass_g,
@@ -345,17 +359,11 @@ class DoseHanscheid2017(DoseComputation):
         return results
 
 
-class DoseHanscheid2018(DoseComputation):
+class DoseHanscheid2018(DoseComputationWithPhantom):
     name = "hanscheid2018"
 
     def __init__(self, ct, spect):
         super().__init__(ct, spect)
-        self.phantom = None
-
-    def check_options(self):
-        super().check_options()
-        if self.phantom is None:
-            fatal(f'For {self.name}, you need to provide a MIRD phantom')
 
     def run(self, rois: list[ImageROI]):
         self.check_options()
@@ -368,7 +376,6 @@ class DoseHanscheid2018(DoseComputation):
 
         # MIRD phantom
         phantom_name, rad_name = guess_phantom_and_isotope(self.phantom, self.radionuclide)
-        print(phantom_name, rad_name)
 
         # loop on roi
         spect_arr = sitk.GetArrayViewFromImage(spect.image)
@@ -382,7 +389,7 @@ class DoseHanscheid2018(DoseComputation):
                 rad_name,
                 spect.voxel_volume_ml,
                 sitk.GetArrayViewFromImage(density_ct.image),
-                verbose=True,
+                verbose=False,
             )
             dose = dose_hanscheid2018(spect_arr,
                                       roi_arr,
