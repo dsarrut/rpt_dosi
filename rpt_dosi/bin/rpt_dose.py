@@ -39,7 +39,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     "--roi_list", "-l", type=str, default=None, help="Filename : list of ROI filename and name"
 )
 @click.option(
-    "--roi", "-r", multiple=True, type=(str, str, float), help="ROI: filename + name + Teff"
+    "--roi", multiple=True, type=(str, str, float), help="ROI: filename + name + Teff"
 )
 @click.option("--time_from_injection_h", "-t", type=float, required=True, help="Time in h")
 @click.option("--rad", default="lu177", help="Radionuclide")
@@ -50,7 +50,10 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     type=click.Choice(["hanscheid2017",
                        "hanscheid2018",
                        "madsen2018",
-                       "madsen2018_dose_rate"]),
+                       "madsen2018_dose_rate",
+                       "hanscheid2018_dose_rate",
+                       "hanscheid2017_dose_rate", ## FIXME auto from dosimetry
+                       ]),
     help="Which method to use",
 )
 @click.option("--resample_like", "-r",
@@ -104,7 +107,6 @@ def go(spect,
     # read dose_rate
     if dose_rate is not None:
         im = rim.read_dose(dose_rate, input_unit)
-        print(im.unit)
         if im.unit != "Gy/s":
             rim.fatal("Dose rate pixel type must be 'Gy/s'")
 

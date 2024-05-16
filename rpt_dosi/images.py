@@ -204,6 +204,8 @@ class ImageBase:
 
     def read(self, filename):
         self.filename = filename
+        if not os.path.exists(filename):
+            fatal(f'Image: the filename {filename} does not exist.')
         self.image = sitk.ReadImage(filename)
         self.read_metadata()
 
@@ -273,7 +275,7 @@ class ImageBase:
         js = f'(metadata: {self._get_metadata_filename()})'
         if not os.path.exists(json_filename):
             js = '(no metadata available)'
-        s = f'Image:    {self.filename} {js}\n'
+        s = f'Image:   {self.filename} {js}\n'
         s += f'Type:    {self.image_type}\n'
         s += f'Loaded:  {self.image is not None}\n'
         s += f'Unit:    {self.unit}\n'
