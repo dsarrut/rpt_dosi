@@ -71,8 +71,8 @@ def dose_hanscheid2018_dose_rate(dose_rate_a, roi_a, time_from_injection_h):
     dr = np.mean(v) * 3600
     # print(f'dr = {dr:.3f} Gy/h')
 
-    # S is in (mGy/MBq/s), so we get dose in mGy
-    dose = dr * (2 * time_from_injection_h * 3600.0) / np.log(2) / 1000.0
+    # dose rate in Gy/h
+    dose = dr * (2 * time_from_injection_h) / np.log(2)
 
     return dose
 
