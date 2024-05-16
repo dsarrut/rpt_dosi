@@ -9,7 +9,7 @@ import os
 
 if __name__ == "__main__":
     # folders
-    data_folder, ref_folder, output_folder = he.get_tests_folders("test009")
+    data_folder, ref_folder, output_folder = he.get_tests_folders("test005")
     print(f"Input data folder = {data_folder}")
     print(f"Ref data folder = {ref_folder}")
     print(f"Output data folder = {output_folder}")
