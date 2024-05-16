@@ -743,19 +743,16 @@ def resample_spect_like(spect: ImageSPECT, like: ImageBase, gaussian_sigma=None)
 
 
 def resample_spect_spacing(spect: ImageSPECT, spacing, gaussian_sigma=None):
-    # FIXME TODO
-    exit()
-
     if image_has_this_spacing(spect.image, spacing):
         return
     o = copy.copy(spect)
     o.image = apply_itk_gauss_smoothing(spect.image, gaussian_sigma)
+    # convert to bqml and back to initial unit
+    initial_unit = o.unit
+    o.convert_to_bqml()
     o.image = resample_itk_image_spacing(o.image, spacing, o.unit_default_value, linear=True)
+    o.convert_to_unit(initial_unit)
     # take the volume into account if needed
-    if o.unit == 'Bq' or o.unit == 'counts':
-        v = np.prod(spacing) / 1000
-        scaling = v / spect.voxel_volume_ml
-        o.image = o.image * scaling
     return o
 
 
