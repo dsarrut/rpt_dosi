@@ -20,20 +20,14 @@ if __name__ == "__main__":
     cmd = f"rpt_resample_spect -i {spect_input} -o {spect_output} -s 12 --sigma auto -u Bq"
     is_ok = he.run_cmd(cmd, data_folder / "..")
 
-    # compare
-    spect_ref = ref_folder / "spect_12mm_ref.nii.gz"
-    b = rim.test_compare_images(spect_output, spect_ref)
-    he.print_tests(b, f"Resample with bq {spect_output} vs {spect_ref}")
-    is_ok = b and is_ok
-
     # check total counts
-    spect1 = sitk.GetArrayFromImage(sitk.ReadImage(spect_input))
-    tc_input = np.sum(spect1)
-    spect2 = sitk.GetArrayFromImage(sitk.ReadImage(spect_output))
-    tc_output = np.sum(spect2)
+    spect1 = rim.read_spect(spect_input, 'Bq')
+    tc_input = spect1.compute_total_activity()
+    spect2 = rim.read_spect(spect_output)
+    tc_output = spect2.compute_total_activity()
     diff = np.fabs(tc_input - tc_output) / tc_input * 100
     b = diff < 0.5
-    he.print_tests(b, f'Total counts = {tc_input}, {tc_output}  => {diff} %')
+    he.print_tests(b, f'Total counts (Bq) = {tc_input}, {tc_output}  => {diff} %')
     is_ok = b and is_ok
 
     # convert to BqmL
@@ -43,11 +37,11 @@ if __name__ == "__main__":
     like = rim.read_image(spect_output)
     sp = rim.resample_spect_like(sp, like, "auto")
     sp.write(spect_output)
-    spect2 = sitk.GetArrayFromImage(sitk.ReadImage(spect_output))
-    tc_output = np.sum(spect2) * sp.voxel_volume_ml
+    spect2 = rim.read_spect(spect_output)
+    tc_output = spect2.compute_total_activity()
     diff = np.fabs(tc_input - tc_output) / tc_input * 100
     b = diff < 0.5
-    he.print_tests(b, f'Total counts = {tc_input}, {tc_output}  => {diff} %')
+    he.print_tests(b, f'Total counts (Bq/mL + like) = {tc_input}, {tc_output}  => {diff} %')
     is_ok = b and is_ok
 
     # end

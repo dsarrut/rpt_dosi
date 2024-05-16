@@ -41,12 +41,39 @@ if __name__ == "__main__":
     # save output to json and print
     with open(output, "w") as f:
         json.dump(doses, f, indent=4)
-    for d in doses:
-        print(f'{d} = {doses[d]}')
+    for do in doses:
+        print(f'{do} = {doses[do]}')
 
     # compare the dose files
     dose_ref = ref_folder / "dose_ref_madsen2018.json"
+    print(dose_ref)
+    print(output)
     is_ok = rd.test_compare_json_doses(dose_ref, output)
+
+    # compute dose
+    print()
+    print('-'*30)
+    output = output_folder / "dose_ct.json"
+    d.resample_like = "ct"
+    doses = d.run(rois)
+
+    # save output to json and print
+    with open(output, "w") as f:
+        json.dump(doses, f, indent=4)
+    for do in doses:
+        print(f'{do} = {doses[do]}')
+
+    # compare the dose files
+    print()
+    print('compare with saved file')
+    dose_ref = ref_folder / "dose_ref_madsen2018_ct.json"
+    is_ok = rd.test_compare_json_doses(dose_ref, output) and is_ok
+
+    # compare the dose files
+    print()
+    print('compare resample spect vs resample ct, tolerance 14%')
+    dose_ref = ref_folder / "dose_ref_madsen2018.json"
+    is_ok = rd.test_compare_json_doses(dose_ref, output, tol=0.14) and is_ok
 
     # end
     he.test_ok(is_ok)

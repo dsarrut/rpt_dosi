@@ -15,6 +15,7 @@ import numpy as np
 from datetime import datetime
 from box import Box
 import SimpleITK as sitk
+import copy
 
 
 def dose_hanscheid2017(spect_Bq, roi, acq_time_h, volume_voxel_mL, time_eff_h):
@@ -220,6 +221,9 @@ def triexpo_apply(x, decay_constant_hours, A1, k1, A2, k2, A3, k3):
 
 
 def test_compare_json_doses(json_ref, json_test, tol=0.001):
+    print('Compare dose in the following files: ')
+    print('\t test      = ', json_test)
+    print('\t reference = ', json_ref)
     with open(json_test) as f:
         dose = json.load(f)
     with open(json_ref) as f:
@@ -276,10 +280,9 @@ class DoseComputation:
         spect = resample_spect_like(self.spect, like, self.gaussian_sigma)
 
         # check spect : must be in Bq
-        if spect.unit == "BqmL":
-            spect = spect.copy()
-            spect.image = spect.image * spect.voxel_volume_ml
-            spect.unit = "Bq"
+        if spect.unit != "Bq":
+            spect = copy.copy(spect)
+            spect.convert_to_unit('Bq')
         if spect.unit != "Bq":
             fatal(f'The SPECT unit must be Bq while it is {spect.unit}, cannot compute dose with Madsen2018')
 
