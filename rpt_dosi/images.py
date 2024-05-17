@@ -173,7 +173,7 @@ class ImageBase:
     def convert_to_unit(self, new_unit):
         if new_unit not in self.unit_converter:
             fatal(f"I dont know how to convert to '{new_unit}'")
-        # get the function name
+        # get the function's name
         f = self.unit_converter[new_unit]
         # and call it (probably there is a better way)
         getattr(self, f)()
@@ -269,7 +269,7 @@ class ImageBase:
             'image_type': self.image_type,
             'description': self.description,
             'unit': self.unit,
-            'acquisition_datetime': str(self.acquisition_datetime)
+            'acquisition_datetime': self.acquisition_datetime
         }
         return metadata
 
