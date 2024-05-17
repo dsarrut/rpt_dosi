@@ -37,6 +37,7 @@ def go(input_image, unit, spacing, output, sigma, like):
         spect = rpt.resample_spect_spacing(spect, spacing, sigma)
 
     # write
+    print(spect)
     spect.write(output)
 
 

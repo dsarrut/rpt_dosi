@@ -173,7 +173,10 @@ class ImageBase:
     def convert_to_unit(self, new_unit):
         if new_unit not in self.unit_converter:
             fatal(f"I dont know how to convert to '{new_unit}'")
-        self.unit_converter[new_unit]()
+        # get the function name
+        f = self.unit_converter[new_unit]
+        # and call it (probably there is a better way)
+        getattr(self, f)()
 
     def copy_info_from(self, image):
         self.description = image.description
@@ -204,6 +207,8 @@ class ImageBase:
 
     def read(self, filename):
         self.filename = filename
+        if not os.path.exists(filename):
+            fatal(f'Image: the filename {filename} does not exist.')
         self.image = sitk.ReadImage(filename)
         self.read_metadata()
 
@@ -273,7 +278,7 @@ class ImageBase:
         js = f'(metadata: {self._get_metadata_filename()})'
         if not os.path.exists(json_filename):
             js = '(no metadata available)'
-        s = f'Image:    {self.filename} {js}\n'
+        s = f'Image:   {self.filename} {js}\n'
         s += f'Type:    {self.image_type}\n'
         s += f'Loaded:  {self.image is not None}\n'
         s += f'Unit:    {self.unit}\n'
@@ -337,9 +342,9 @@ class ImageSPECT(ImageBase):
         self.body_weight_kg = None
         # unit converter
         self.unit_converter = {
-            'Bq': self.convert_to_bq,
-            'Bq/mL': self.convert_to_bqml,
-            'SUV': self.convert_to_suv,
+            'Bq': "convert_to_bq",
+            'Bq/mL': "convert_to_bqml",
+            'SUV': "convert_to_suv",
         }
         # list of tag
         self.available_tags.update({'injection_datetime': str})
@@ -729,11 +734,11 @@ def resample_spect_like(spect: ImageSPECT, like: ImageBase, gaussian_sigma=None)
         return spect
     o = copy.copy(spect)
     o.image = apply_itk_gauss_smoothing(spect.image, gaussian_sigma)
+    # convert to bqml and back to initial unit
+    initial_unit = o.unit
+    o.convert_to_bqml()
     o.image = resample_itk_image_like(o.image, like.image, o.unit_default_value, linear=True)
-    # take the volume into account if needed
-    if o.unit == 'Bq' or o.unit == 'counts':
-        scaling = spect.voxel_volume_ml / like.voxel_volume_ml
-        o.image = o.image * scaling
+    o.convert_to_unit(initial_unit)
     return o
 
 
@@ -742,12 +747,12 @@ def resample_spect_spacing(spect: ImageSPECT, spacing, gaussian_sigma=None):
         return
     o = copy.copy(spect)
     o.image = apply_itk_gauss_smoothing(spect.image, gaussian_sigma)
+    # convert to bqml and back to initial unit
+    initial_unit = o.unit
+    o.convert_to_bqml()
     o.image = resample_itk_image_spacing(o.image, spacing, o.unit_default_value, linear=True)
+    o.convert_to_unit(initial_unit)
     # take the volume into account if needed
-    if o.unit == 'Bq' or o.unit == 'counts':
-        v = np.prod(spacing) / 1000
-        scaling = v / spect.voxel_volume_ml
-        o.image = o.image * scaling
     return o
 
 
