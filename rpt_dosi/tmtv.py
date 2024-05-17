@@ -100,3 +100,89 @@ def tmtv_compute_mask(image, skull_filename, head_margin_mm, roi_list, threshold
     mask.CopyInformation(image)
 
     return tmtv, mask
+
+
+def find_foci(tmtv, tmtv_mask, min_size_cm3=1, percentage_threshold=0.001):
+    # get the sitk image
+    mask = tmtv_mask.image
+
+    # convert mask image into char
+    mask = sitk.Cast(mask, sitk.sitkInt8)
+
+    # pre processing, image closing
+    # radius = [2, 2, 2]
+    # mask = sitk.BinaryMorphologicalClosing(mask, radius)
+    # mask = sitk.BinaryMorphologicalOpening(mask, radius)
+
+    # find foci with connected component labelling
+    foci = sitk.ConnectedComponent(mask)
+
+    # relabel by size
+    foci = sitk.RelabelComponent(foci, sortByObjectSize=True)
+
+    # Get the shape statistics of the labels using
+    # (not needed for the final version)
+    stats = sitk.LabelShapeStatisticsImageFilter()
+    stats.Execute(foci)
+    print(f'Number of labels = {stats.GetNumberOfLabels()}')
+
+    # Keep only labels with more than a given size
+    volume = tmtv_mask.voxel_volume_ml
+    max_size = int(min_size_cm3 / volume)
+    print(f'{min_size_cm3=} -> {max_size=} pixels')
+    foci = sitk.RelabelComponent(foci, minimumObjectSize=max_size)
+
+    # relabel
+    # (not needed for the final version)
+    stats = sitk.LabelShapeStatisticsImageFilter()
+    stats.Execute(foci)
+    print(f'Number of labels = {stats.GetNumberOfLabels()}')
+
+    # keep labels only if max intensity
+    spect = tmtv.image
+    spect_arr = sitk.GetArrayViewFromImage(spect)
+    foci_arr = sitk.GetArrayFromImage(foci)
+    total_max_intensity = np.max(spect_arr)
+    print(f'{total_max_intensity=}')
+
+    # Keep only labels where the maximum intensity exceeds the threshold
+
+    for l in stats.GetLabels():
+        # select pixels at the label
+        label_arr = spect_arr[foci_arr == l]
+        # print(f'{len(label_arr)=}')
+        max_intensity = np.max(label_arr)
+        # Check if the maximum intensity exceeds the threshold
+        if max_intensity <= (percentage_threshold * total_max_intensity):
+            foci_arr[foci_arr == l] = 0
+            print(f'remove {l} {max_intensity=} vs {total_max_intensity}  --->   {max_intensity / total_max_intensity}')
+
+    # Keep only the labels to be retained
+    a = sitk.GetImageFromArray(foci_arr)
+    a.CopyInformation(foci)
+    foci = a
+
+    # relabel
+    # (not needed for the final version)
+    stats = sitk.LabelShapeStatisticsImageFilter()
+    stats.Execute(foci)
+    print(f'Number of labels = {stats.GetNumberOfLabels()}')
+
+    return foci
+
+
+def get_label_centroids(foci):
+    # Create an empty list to store centroids
+    centroids = []
+
+    # Get the shape statistics of the labels using LabelShapeStatisticsImageFilter
+    stats = sitk.LabelShapeStatisticsImageFilter()
+    stats.Execute(foci)
+
+    # Iterate over the labels
+    for label in stats.GetLabels():
+        # Get the centroid of the label
+        centroid = stats.GetCentroid(label)
+        centroids.append(centroid)
+
+    return centroids
