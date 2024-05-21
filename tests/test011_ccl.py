@@ -44,7 +44,7 @@ if __name__ == "__main__":
     # write landmarks file for vv
     with open(landmarks_file, 'w') as f:
         f.write("LANDMARKS1")
-        i=0
+        i = 0
         for centroid in foci_centroids:
             f.write(f"{i} {centroid[0]} {centroid[1]} {centroid[2]} 0 0\n")
-            i = i+1
+            i = i + 1

@@ -109,7 +109,7 @@ def find_foci(tmtv, tmtv_mask, min_size_cm3=1, percentage_threshold=0.001):
     # convert mask image into char
     mask = sitk.Cast(mask, sitk.sitkInt8)
 
-    # pre processing, image closing
+    # pre-processing, image closing
     # radius = [2, 2, 2]
     # mask = sitk.BinaryMorphologicalClosing(mask, radius)
     # mask = sitk.BinaryMorphologicalOpening(mask, radius)
