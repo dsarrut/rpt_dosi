@@ -85,6 +85,9 @@ class TMTV:
         self.rois_to_remove_folder = "rois"
         self.rois_to_remove_default()
 
+        # remove areas less than a given volume
+        self.minimal_volume_cc = None
+
         # computed param
         self.removed_rois_mask = None
 
@@ -124,6 +127,9 @@ class TMTV:
 
         # threshold
         np_mask = self.apply_threshold(itk_image, np_mask)
+
+        # keep areas with a minimal volume
+        #if self.minimal_volume_cc is not None:
 
         # apply the mask
         itk_tmtv = tmtv_apply_mask(itk_image, np_mask)

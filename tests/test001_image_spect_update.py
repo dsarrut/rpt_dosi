@@ -20,7 +20,7 @@ if __name__ == "__main__":
     spect = rim.read_spect(spect_input, "Bq")
     print(spect.compute_total_activity())
     t1 = spect.compute_total_activity()
-    s = spect.voxel_volume_ml / 0.666
+    s = spect.voxel_volume_cc / 0.666
     cmd = f"rpt_spect_update -i {spect_input} -o {spect_output} -s {s} -u Bq"
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
     sp = rim.read_spect(spect_output)
