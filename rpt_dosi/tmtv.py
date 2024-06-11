@@ -119,7 +119,7 @@ class TMTV:
                                    self.cut_the_head_margin_mm)
 
         # remove the rois
-        self.verbose and print(f'Remove the {len(self.rois_to_remove)} ROIs')
+        self.verbose and print(f'Remove {len(self.rois_to_remove)} ROIs (physiological uptake)')
         self.removed_rois_mask = tmtv_mask_remove_rois(itk_image,
                                                        np_mask,
                                                        self.rois_to_remove,
@@ -128,15 +128,17 @@ class TMTV:
         # threshold
         np_mask = self.apply_threshold(itk_image, np_mask)
 
-        # keep areas with a minimal volume
-        #if self.minimal_volume_cc is not None:
-
-        # apply the mask
-        itk_tmtv = tmtv_apply_mask(itk_image, np_mask)
-
         # convert mask to itk image
         itk_mask = sitk.GetImageFromArray(np_mask)
         itk_mask.CopyInformation(itk_image)
+
+        # keep areas with a minimal volume
+        (self.verbose and self.minimal_volume_cc is not None
+         and print(f'Remove areas below {self.minimal_volume_cc} cc'))
+        itk_mask = remove_small_areas(itk_mask, self.minimal_volume_cc, keep_binary_mask=True)
+
+        # apply the mask
+        itk_tmtv = tmtv_apply_mask(itk_image, np_mask)
 
         return itk_tmtv, itk_mask
 
@@ -202,6 +204,33 @@ class TMTV:
 
 def is_number(n):
     return isinstance(n, (int, float))
+
+
+def remove_small_areas(itk_mask, minimal_volume_cc, keep_binary_mask=True):
+    if minimal_volume_cc is None:
+        return itk_mask
+    minimal_volume_cc = float(minimal_volume_cc)
+
+    # convert mask image into char
+    mask = sitk.Cast(itk_mask, sitk.sitkInt8)
+
+    # connected component labelling
+    ccl = sitk.ConnectedComponent(mask)
+
+    # Keep only labels with more than a given size
+    volume_cc = float(np.prod(itk_mask.GetSpacing())) * 0.001
+    max_size = int(minimal_volume_cc / volume_cc)
+    ccl = sitk.RelabelComponent(ccl, minimumObjectSize=max_size, sortByObjectSize=True)
+
+    # back to binary mask ?
+    if keep_binary_mask:
+        np_mask = sitk.GetArrayFromImage(ccl)
+        np_mask[np_mask != 0] = 1
+        a = sitk.GetImageFromArray(np_mask)
+        a.CopyInformation(ccl)
+        ccl = a
+
+    return ccl
 
 
 def find_foci(tmtv, tmtv_mask, min_size_cm3=1, percentage_threshold=0.001):

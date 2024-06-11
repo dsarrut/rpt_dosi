@@ -20,10 +20,13 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 )
 @click.option("--threshold", "-t", default='auto', help="Threshold method (float or 'auto', or 'gafita2019'")
 @click.option("--population_mean_liver", default=None, help="Used with 'gafita2019' thresholding method")
+@click.option("--minimal_volume_cc", default=None, help="Remove areas less than minimal_volume_cc")
 @click.option("--roi_list", default=None, help="Json file with physiological roi filename and dilatation (to remove)")
 @click.option("--output", "-o", required=True, help="output filename TMTV")
 @click.option("--output_mask", "-m", required=True, help="output filename TMTV mask")
-def go(input_filename, threshold, output, output_mask, roi_list, population_mean_liver):
+def go(input_filename,
+       threshold, output, output_mask,
+       roi_list, population_mean_liver, minimal_volume_cc):
     """
     Compute TMTV Total Metabolic Tumor Volume
     input:
@@ -52,6 +55,7 @@ def go(input_filename, threshold, output, output_mask, roi_list, population_mean
     tmtv_extractor.cut_the_head = True
     tmtv_extractor.cut_the_head_margin_mm = 10
     tmtv_extractor.population_mean_liver = population_mean_liver
+    tmtv_extractor.minimal_volume_cc = minimal_volume_cc
 
     # go
     tmtv, mask = tmtv_extractor.compute_mask(image.image)
