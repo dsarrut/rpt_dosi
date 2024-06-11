@@ -879,29 +879,40 @@ def mip(img, dim3=False):
     return mip_image
 
 
-def image_roi_stats(roi, spect, resample_like=None):
-    if resample_like is None:
-        if not image_has_this_spacing(roi, spect):
-            fatal(f"Cannot compute roi stats, the images have different sizes: {roi} and {spect}")
-    else:
-        if resample_like not in ['spect', 'roi']:
-            fatal(f"the option resample_like, must be 'spect' or 'roi', while it is {resample_like}")
+def image_roi_stats(roi, spect, ct=None, resample_like="spect"):
+    # resample
+    m = {'spect': spect, 'roi': roi}
+    if ct is not None:
+        m['ct'] = ct
+    if resample_like not in m:
+        fatal(f"the option resample_like, must be {m}, while it is {resample_like}")
+    resample_like = m[resample_like]
+    spect = resample_spect_like(spect, resample_like)
+    roi = resample_roi_like(roi, resample_like)
 
-        if resample_like == "spect":
-            roi = resample_roi_like(roi, spect)
-        if resample_like == "roi":
-            spect = resample_spect_like(spect, roi)
+    # convert to np
     spect_a = sitk.GetArrayViewFromImage(spect.image)
     roi_a = sitk.GetArrayViewFromImage(roi.image)
+
     # select pixels
     d = roi_a == 1
     p = spect_a[d]
+
     # compute stats
-    return {
+    res = {
         "mean": float(np.mean(p)),
         "std": float(np.std(p)),
         "min": float(np.min(p)),
         "max": float(np.max(p)),
         "sum": float(np.sum(p)),
-        "volume_ml": float(len(d) * roi.voxel_volume_ml)
+        "volume_ml": float(len(p) * roi.voxel_volume_ml)
     }
+
+    # for ct (densities)
+    if ct is not None:
+        ct = resample_ct_like(ct, resample_like)
+        densities = ct.compute_densities()
+        roi.update_mass_and_volume(densities)
+        res["mass_g"] = roi.mass_g
+
+    return res
