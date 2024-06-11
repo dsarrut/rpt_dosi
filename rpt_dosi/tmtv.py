@@ -1,6 +1,7 @@
 import SimpleITK as sitk
 import numpy as np
 import rpt_dosi.images as rim
+import rpt_dosi.helpers as rhe
 from pathlib import Path
 
 
@@ -42,15 +43,7 @@ def tmtv_apply_mask(itk_image, np_mask):
     return img
 
 
-def tmtv_mask_threshold(itk_image, mask, threshold):
-    # convert img in nparray
-    img_np = sitk.GetArrayFromImage(itk_image)
-
-    # threshold the mask
-    mask[img_np < threshold] = 0
-
-
-def tmtv_mask_remove_rois(itk_image, mask, roi_list, roi_folder=""):
+def tmtv_mask_remove_rois(itk_image, np_mask, roi_list, roi_folder=""):
     # initialize the mask of removed rois
     removed_roi_mask = np.zeros_like(sitk.GetArrayViewFromImage(itk_image))
     # loop on the roi
@@ -64,7 +57,7 @@ def tmtv_mask_remove_rois(itk_image, mask, roi_list, roi_folder=""):
         roi_img = dilate_mask(roi_img, roi['dilatation'])
         # update the masks
         roi_np = sitk.GetArrayViewFromImage(roi_img)
-        mask[roi_np == 1] = 0
+        np_mask[roi_np == 1] = 0
         removed_roi_mask[roi_np == 1] = 1
     return removed_roi_mask
 
@@ -72,8 +65,7 @@ def tmtv_mask_remove_rois(itk_image, mask, roi_list, roi_folder=""):
 class TMTV:
     """
     Compute TMTV Total Metabolic Tumor Volume
-
-    Consider ITK images as input and output here
+    Consider ITK images as input and output
     """
 
     def __init__(self):
@@ -81,6 +73,7 @@ class TMTV:
 
         # intensity threshold (auto or a value)
         self.intensity_threshold = "auto"
+        self.population_mean_liver = None  # (for gafita2019)
 
         # remove the head
         self.cut_the_head = False
@@ -90,12 +83,12 @@ class TMTV:
         # init default list of roi to be removed
         self.rois_to_remove = []
         self.rois_to_remove_folder = "rois"
-        self.default_roi_list()
+        self.rois_to_remove_default()
 
         # computed param
-        self.removed_roi_mask = None
+        self.removed_rois_mask = None
 
-    def default_roi_list(self):
+    def rois_to_remove_default(self):
         self.rois_to_remove = [
             {'filename': "liver.nii.gz", 'dilatation': 10},
             {'filename': "kidney_left.nii.gz", 'dilatation': 10},
@@ -124,10 +117,10 @@ class TMTV:
 
         # remove the rois
         self.verbose and print(f'Remove the {len(self.rois_to_remove)} ROIs')
-        self.removed_roi_mask = tmtv_mask_remove_rois(itk_image,
-                                                      np_mask,
-                                                      self.rois_to_remove,
-                                                      self.rois_to_remove_folder)
+        self.removed_rois_mask = tmtv_mask_remove_rois(itk_image,
+                                                       np_mask,
+                                                       self.rois_to_remove,
+                                                       self.rois_to_remove_folder)
 
         # threshold
         np_mask = self.apply_threshold(itk_image, np_mask)
@@ -142,16 +135,64 @@ class TMTV:
         return itk_tmtv, itk_mask
 
     def apply_threshold(self, itk_image, np_mask):
-        image_np = sitk.GetArrayViewFromImage(itk_image)
-        if self.intensity_threshold == 'auto':
-            v_sum = np.sum(image_np[self.removed_roi_mask == 1])
-            n = np.sum(self.removed_roi_mask == 1)
-            threshold = v_sum / n
-        else:
+        np_image = sitk.GetArrayViewFromImage(itk_image)
+        threshold = None
+        try:
+            self.intensity_threshold = float(self.intensity_threshold)
+        except:
+            pass
+        if is_number(self.intensity_threshold):
             threshold = float(self.intensity_threshold)
+        else:
+            methods = ['auto', 'gafita2019']
+            if self.intensity_threshold not in methods:
+                rhe.fatal(f'Threshold must be a number or {methods} '
+                          f'while it is {self.intensity_threshold}')
+            if self.intensity_threshold == 'auto':
+                threshold = self.get_removed_rois_mean_value(np_image)
+            if self.intensity_threshold == 'gafita2019':
+                threshold = self.get_gafita2019_threshold(itk_image, self.population_mean_liver)
 
         # threshold the mask
         self.verbose and print(f'Thresholding with {threshold}')
-        np_mask[image_np < threshold] = 0
+        np_mask[np_image < threshold] = 0
 
         return np_mask
+
+    def get_removed_rois_mean_value(self, np_image):
+        v_sum = np.sum(np_image[self.removed_rois_mask == 1])
+        n = np.sum(self.removed_rois_mask == 1)
+        return v_sum / n
+
+    def get_gafita2019_threshold(self, itk_image, population_mean_liver):
+        if population_mean_liver is None:
+            rhe.fatal(f'For gafita2019 method, population_mean_liver must be provided')
+        population_mean_liver = float(population_mean_liver)
+        # we assume one roi is the liver
+        liver_roi = None
+        for roi in self.rois_to_remove:
+            if 'liver' in roi['filename']:
+                liver_roi = roi
+        if liver_roi is None:
+            rhe.fatal(f'Cannot find liver ROI in {self.rois_to_remove_folder}')
+        roi_list = [liver_roi]
+
+        # get the mean intensity in the liver
+        np_mask = np.ones_like(sitk.GetArrayViewFromImage(itk_image))
+        liver_mask = tmtv_mask_remove_rois(itk_image,
+                                           np_mask,
+                                           roi_list,
+                                           roi_folder=self.rois_to_remove_folder)
+        np_image = sitk.GetArrayViewFromImage(itk_image)
+        mean_liver = np_image[liver_mask == 1].mean()
+        std_liver = np_image[liver_mask == 1].std()
+        self.verbose and print(
+            f'Computed mean/std liver: {mean_liver} {std_liver}, population mean: {population_mean_liver=}')
+
+        # compute threshold
+        threshold = (population_mean_liver / mean_liver) * (mean_liver + std_liver)
+        return threshold
+
+
+def is_number(n):
+    return isinstance(n, (int, float))

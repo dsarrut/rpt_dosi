@@ -48,7 +48,7 @@ if __name__ == "__main__":
     tmtv_extractor.intensity_threshold = "auto"
     tmtv_extractor.verbose = True
     tmtv_extractor.cut_the_head = True
-    tmtv_extractor.cut_the_head_roi_filename = "data/rois/skull.nii.gz"
+    tmtv_extractor.cut_the_head_roi_filename = data_folder / "rois/skull.nii.gz"
     tmtv_extractor.rois_to_remove_folder = data_folder / "rois"
     spect = sitk.ReadImage(spect_input)
     tmtv, mask = tmtv_extractor.compute_mask(spect)

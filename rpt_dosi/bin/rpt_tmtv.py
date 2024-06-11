@@ -18,11 +18,12 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     type=click.Path(exists=True),
     help="Input SPECT or PET image",
 )
-@click.option("--threshold", "-t", default='auto', help="Threshold")
+@click.option("--threshold", "-t", default='auto', help="Threshold method (float or 'auto', or 'gafita2019'")
+@click.option("--population_mean_liver", default=None, help="Used with 'gafita2019' thresholding method")
 @click.option("--roi_list", default=None, help="Json file with physiological roi filename and dilatation (to remove)")
 @click.option("--output", "-o", required=True, help="output filename TMTV")
 @click.option("--output_mask", "-m", required=True, help="output filename TMTV mask")
-def go(input_filename, threshold, output, output_mask, roi_list):
+def go(input_filename, threshold, output, output_mask, roi_list, population_mean_liver):
     """
     Compute TMTV Total Metabolic Tumor Volume
     input:
@@ -37,6 +38,7 @@ def go(input_filename, threshold, output, output_mask, roi_list):
     print(image)
 
     # user defined list of roi and associated dilatation in mm
+    # JSON file must be a list of {'filename': "liver.nii.gz", 'dilatation': 10}
     if roi_list is not None:
         with open(roi_list, 'r') as file:
             roi_list = json.load(file)
@@ -49,6 +51,7 @@ def go(input_filename, threshold, output, output_mask, roi_list):
     tmtv_extractor.verbose = True
     tmtv_extractor.cut_the_head = True
     tmtv_extractor.cut_the_head_margin_mm = 10
+    tmtv_extractor.population_mean_liver = population_mean_liver
 
     # go
     tmtv, mask = tmtv_extractor.compute_mask(image.image)
