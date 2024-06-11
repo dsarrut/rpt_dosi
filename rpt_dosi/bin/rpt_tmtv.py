@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import click
+import json
 import rpt_dosi.tmtv as rtmtv
+import rpt_dosi.images as rim
 import SimpleITK as sitk
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
@@ -17,46 +19,54 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     help="Input SPECT or PET image",
 )
 @click.option("--threshold", "-t", default='auto', help="Threshold")
+@click.option("--roi_list", default=None, help="Json file with physiological roi filename and dilatation (to remove)")
 @click.option("--output", "-o", required=True, help="output filename TMTV")
 @click.option("--output_mask", "-m", required=True, help="output filename TMTV mask")
-def go(input_filename, threshold, output, output_mask):
+def go(input_filename, threshold, output, output_mask, roi_list):
     """
+    Compute TMTV Total Metabolic Tumor Volume
     input:
     - spect or pet image
     - list of rois filenames
     - thresholding
-
-    output: new roi
+    output: new roi mask and TMTV
     """
 
-    # read image
-    spect_image = sitk.ReadImage(input_filename)
+    # read image (SPECT or PET)
+    image = rim.read_image(input_filename)
+    print(image)
 
-    # default list of roi and associated dilatation in mm
-    roi_list = [
-        {'filename': "rois/liver.nii.gz", 'dilatation': 10},
-        {'filename': "rois/kidney_left.nii.gz", 'dilatation': 10},
-        {'filename': "rois/kidney_right.nii.gz", 'dilatation': 10},
-        {'filename': "rois/spleen.nii.gz", 'dilatation': 10},
-        {'filename': "rois/gallbladder.nii.gz", 'dilatation': 5},
-        {'filename': "rois/stomach.nii.gz", 'dilatation': 5},
-        {'filename': "rois/pancreas.nii.gz", 'dilatation': 5},
-        {'filename': "rois/small_bowel.nii.gz", 'dilatation': 5},
-        {'filename': "rois/colon.nii.gz", 'dilatation': 5},
-        {'filename': "rois/duodenum.nii.gz", 'dilatation': 5},
-        {'filename': "rois/urinary_bladder.nii.gz", 'dilatation': 5}
-    ]
+    # user defined list of roi and associated dilatation in mm
+    if roi_list is not None:
+        with open(roi_list, 'r') as file:
+            roi_list = json.load(file)
 
-    tmtv, mask = rtmtv.tmtv_compute_mask(spect_image,
-                                         "rois/skull.nii.gz",
-                                         10,
-                                         roi_list,
-                                         threshold,
-                                         verbose=True)
+    # create main object and set options
+    tmtv_extractor = rtmtv.TMTV()
+    tmtv_extractor.intensity_threshold = threshold
+    if roi_list is not None:
+        tmtv_extractor.rois_to_remove = roi_list
+    tmtv_extractor.verbose = True
+    tmtv_extractor.cut_the_head = True
+    tmtv_extractor.cut_the_head_margin_mm = 10
 
-    # write
-    sitk.WriteImage(tmtv, output)
-    sitk.WriteImage(mask, output_mask)
+    # go
+    tmtv, mask = tmtv_extractor.compute_mask(image.image)
+
+    # convert to image type for input image (if any)
+    if image.image_type is not None:
+        tmtv_img = rim.build_image_from_type(image.image_type)
+        tmtv_img.image = tmtv
+        print(tmtv_img)
+        tmtv_img.write(output)
+    else:
+        sitk.WriteImage(tmtv, output)
+
+    # convert to image type for mask
+    roi_img = rim.ImageROI('tmtv_mask')
+    roi_img.image = mask
+    print(roi_img)
+    roi_img.write(output_mask)
 
 
 # --------------------------------------------------------------------------
