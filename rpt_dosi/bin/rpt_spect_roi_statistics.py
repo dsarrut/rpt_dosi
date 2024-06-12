@@ -3,6 +3,7 @@
 
 import click
 import rpt_dosi.images as rim
+import json
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -29,24 +30,29 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     type=click.Path(exists=True),
     help="Input ROI mask",
 )
+@click.option("--like", "-l", default="spect", type=str,
+              help="Resample like: spect, roi or ct",
+              )
+@click.option("--unit", "-u",
+              default=None,
+              help=f"Set the image unit {[k.authorized_units for k in rim.image_builders.values()]}"
+              )
 @click.option("--output", "-o", default=None, help="Output json filename")
-def go(input_image, ct, roi, output):
+def go(input_image, ct, roi, like, unit, output):
     # read spect
-    spect = rim.read_spect(input_image)
+    spect = rim.read_spect(input_image, unit)
 
     # read roi
     roi = rim.read_roi(roi, "unnamed_roi")
-    roi = rim.resample_roi_like(roi, spect)
 
-    # get stats
-    res = rim.image_roi_stats(roi, spect, "spect")
+    # read ct
     if ct is not None:
         ct = rim.read_ct(ct)
-        ct = rim.resample_ct_like(ct, spect)
-        densities = ct.compute_densities()
-        roi.update_mass_and_volume(densities)
-        res["mass_g"] = roi.mass_g
 
+    # get stats
+    res = rim.image_roi_stats(roi, spect, ct, like)
+
+    # print and save
     print(res)
     if output is not None:
         with open(output, "w") as f:

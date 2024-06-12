@@ -194,7 +194,7 @@ class ImageBase:
             fatal(f"Tag {key} = {value} cannot be converted to {tag_type}")
 
     @property
-    def voxel_volume_ml(self):
+    def voxel_volume_cc(self):
         if self.image is not None:
             v = np.prod(self.image.GetSpacing()) / 1000
             return v
@@ -347,9 +347,9 @@ class ImageSPECT(ImageBase):
             'SUV': "convert_to_suv",
         }
         # list of tag
-        self.available_tags.update({'injection_datetime': str})
-        self.available_tags.update({"injection_activity_mbq": float})
-        self.available_tags.update({'body_weight_kg': float})
+        self.available_tags['injection_datetime'] = str
+        self.available_tags['injection_activity_mbq'] = float
+        self.available_tags['body_weight_kg'] = float
 
     def __str__(self):
         return (f"SPECT: unit={self.unit}, "
@@ -388,11 +388,11 @@ class ImageSPECT(ImageBase):
 
     def convert_to_bq(self):
         if self.unit == 'Bq/mL':
-            self.image = self.image * self.voxel_volume_ml
+            self.image = self.image * self.voxel_volume_cc
             self._unit = 'Bq'
         if self.unit == "SUV":
             arr = sitk.GetArrayFromImage(self.image)
-            arr = arr * self.voxel_volume_ml * (self.injection_activity_mbq * self.body_weight_kg)
+            arr = arr * self.voxel_volume_cc * (self.injection_activity_mbq * self.body_weight_kg)
             im = sitk.GetImageFromArray(arr)
             im.CopyInformation(self.image)
             self.image = im
@@ -400,7 +400,7 @@ class ImageSPECT(ImageBase):
 
     def convert_to_bqml(self):
         if self.unit == 'Bq':
-            self.image = self.image / self.voxel_volume_ml
+            self.image = self.image / self.voxel_volume_cc
             self._unit = "Bq/mL"
         if self.unit == "SUV":
             self.convert_to_bq()
@@ -475,22 +475,22 @@ class ImageROI(ImageBase):
         self.unit = 'label'
         self.effective_time_h = None
         self.mass_g = None
-        self.volume_ml = None
+        self.volume_cc = None
 
     def __str__(self):
         s = f"ROI: {self.name} unit={self.unit}"
         s += f", Teff = {self.effective_time_h} h"
         if self.mass_g is not None:
             s += f", mass={self.mass_g} g"
-        if self.volume_ml is not None:
-            s += f", volume={self.volume_ml} ml"
+        if self.volume_cc is not None:
+            s += f", volume={self.volume_cc} ml"
         return s
 
     def info(self):
         s = super().info() + '\n'
         s += f'Teff:   {self.effective_time_h} h\n'
         s += f'Mass:   {self.mass_g} g\n'
-        s += f'Volume: {self.volume_ml} mL'
+        s += f'Volume: {self.volume_cc} cc'
         return s
 
     def update_mass_and_volume(self, density_ct):
@@ -498,8 +498,8 @@ class ImageROI(ImageBase):
         a = sitk.GetArrayViewFromImage(self.image)
         da = sitk.GetArrayViewFromImage(density_ct.image)
         d = da[a == 1]
-        self.mass_g = np.sum(d) * self.voxel_volume_ml
-        self.volume_ml = len(d) * self.voxel_volume_ml
+        self.mass_g = np.sum(d) * self.voxel_volume_cc
+        self.volume_cc = len(d) * self.voxel_volume_cc
 
 
 class ImageDose(ImageBase):
@@ -787,7 +787,7 @@ def OLD_resample_roi_like_spect(spect, roi, convert_to_np=True, verbose=True):
 def get_stats_in_rois(spect, ct, rois_list):
     # load spect
     spect = sitk.ReadImage(spect)
-    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
+    volume_voxel_cc = np.prod(spect.GetSpacing()) / 1000
     spect_a = sitk.GetArrayFromImage(spect)
     # load ct
     ct = sitk.ReadImage(ct)
@@ -804,7 +804,7 @@ def get_stats_in_rois(spect, ct, rois_list):
         s = image_roi_stats_OLD(spect_a, roi_a)
         # compute mass
         d = densities[roi_a == 1]
-        mass = np.sum(d) * volume_voxel_mL
+        mass = np.sum(d) * volume_voxel_cc
         s["mass_g"] = mass
         # set in the db
         res[roi.roi_name] = s
@@ -879,29 +879,40 @@ def mip(img, dim3=False):
     return mip_image
 
 
-def image_roi_stats(roi, spect, resample_like=None):
-    if resample_like is None:
-        if not image_has_this_spacing(roi, spect):
-            fatal(f"Cannot compute roi stats, the images have different sizes: {roi} and {spect}")
-    else:
-        if resample_like not in ['spect', 'roi']:
-            fatal(f"the option resample_like, must be 'spect' or 'roi', while it is {resample_like}")
+def image_roi_stats(roi, spect, ct=None, resample_like="spect"):
+    # resample
+    m = {'spect': spect, 'roi': roi}
+    if ct is not None:
+        m['ct'] = ct
+    if resample_like not in m:
+        fatal(f"the option resample_like, must be {m}, while it is {resample_like}")
+    resample_like = m[resample_like]
+    spect = resample_spect_like(spect, resample_like)
+    roi = resample_roi_like(roi, resample_like)
 
-        if resample_like == "spect":
-            roi = resample_roi_like(roi, spect)
-        if resample_like == "roi":
-            spect = resample_spect_like(spect, roi)
+    # convert to np
     spect_a = sitk.GetArrayViewFromImage(spect.image)
     roi_a = sitk.GetArrayViewFromImage(roi.image)
+
     # select pixels
     d = roi_a == 1
     p = spect_a[d]
+
     # compute stats
-    return {
+    res = {
         "mean": float(np.mean(p)),
         "std": float(np.std(p)),
         "min": float(np.min(p)),
         "max": float(np.max(p)),
         "sum": float(np.sum(p)),
-        "volume_ml": float(len(d) * roi.voxel_volume_ml)
+        "volume_cc": float(len(p) * roi.voxel_volume_cc)
     }
+
+    # for ct (densities)
+    if ct is not None:
+        ct = resample_ct_like(ct, resample_like)
+        densities = ct.compute_densities()
+        roi.update_mass_and_volume(densities)
+        res["mass_g"] = roi.mass_g
+
+    return res
