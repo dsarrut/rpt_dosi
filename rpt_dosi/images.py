@@ -924,6 +924,11 @@ def mhd_copy_or_move(mhd_path, new_mhd_path, mode="copy"):
     # get the raw file
     folder = Path(os.path.dirname(mhd_path))
     raw_path = folder / mhd_find_raw_file(mhd_path)
+    # do it
+    if mode == "copy":
+        shutil.copy(mhd_path, new_mhd_path)
+    if mode == "move":
+        shutil.move(mhd_path, new_mhd_path)
     # look for the correct raw path
     new_raw_path, _ = rhe.get_basename_and_extension(new_mhd_path)
     _, extension = rhe.get_basename_and_extension(raw_path)
@@ -935,15 +940,14 @@ def mhd_copy_or_move(mhd_path, new_mhd_path, mode="copy"):
     # copy the raw file
     # change the raw filename in the mhd file
     new_raw_filename = os.path.basename(new_raw_path)
-    mhd_replace_raw(new_mhd_path, new_raw_filename)
     # do it
     if mode == "copy":
-        shutil.copy(mhd_path, new_mhd_path)
         shutil.copy(raw_path, new_raw_path)
+        mhd_replace_raw(new_mhd_path, new_raw_filename)
         return
     if mode == "move":
-        shutil.move(mhd_path, new_mhd_path)
         shutil.move(raw_path, new_raw_path)
+        mhd_replace_raw(new_mhd_path, new_raw_filename)
         return
     print(f"Copy {mhd_path} + {os.path.basename(raw_path)} "
           f"--->   {new_mhd_path} + {os.path.basename(new_raw_path)}")
@@ -957,8 +961,10 @@ def copy_or_move_image(source_path, dest_path, mode):
         return mhd_copy_or_move(source_path, dest_path, mode)
     if mode == 'copy':
         shutil.copy(source_path, dest_path)
+        return
     if mode == "move":
         shutil.move(source_path, dest_path)
+        return
     print(f"Copy {source_path}  --->   {dest_path}")
 
 

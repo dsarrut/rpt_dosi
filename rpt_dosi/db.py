@@ -493,6 +493,10 @@ class ImagingTimepoint:
             print(f'Error the folder for timepoint {self.timepoint_id} '
                   f'does not exist (expected {self.timepoint_path})')
             return False
+        if not os.path.exists(self.timepoint_path / "rois"):
+            print(f'Error the ROI folder for timepoint {self.timepoint_id} '
+                  f'does not exist (expected {self.timepoint_path / "rois"})')
+            return False
         return True
 
     def check_files(self):
@@ -502,4 +506,10 @@ class ImagingTimepoint:
         if not os.path.exists(self.spect_image_path):
             print(f'Error the SPECT image {self.spect_image_path} does not exist')
             return False
-        return True
+        is_ok = True
+        for roi in self.rois:
+            if not os.path.exists(self.get_roi_path(roi)):
+                print(f'Error the roi {self.get_roi_path(roi)} '
+                      f'does not exist')
+                is_ok = False
+        return is_ok
