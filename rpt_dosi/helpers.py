@@ -24,13 +24,15 @@ class Error(Exception):
     pass
 
 
-def fatal(s):
+def fatal(s, stop_and_exit=False):
     caller = inspect.getframeinfo(inspect.stack()[1][0])
     ss = f"(in {caller.filename} line {caller.lineno})"
     ss = colored.stylize(ss, color_error)
     print(ss)
     s = colored.stylize(s, color_error)
     print(s)
+    if stop_and_exit:
+        exit()
     raise Error(s)
 
 
@@ -201,3 +203,12 @@ def indent(input_str, indentation='\t'):
     lines = input_str.splitlines()
     indented_lines = [indentation + line for line in lines]
     return '\n'.join(indented_lines)
+
+
+def get_basename_and_extension(filename):
+    base = filename
+    extensions = []
+    while os.path.splitext(base)[1]:
+        base, ext = os.path.splitext(base)
+        extensions.append(ext)
+    return os.path.basename(base), ''.join(extensions)

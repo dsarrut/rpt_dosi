@@ -1,5 +1,6 @@
-import rpt_dosi.dicom_utils as rdicom
-import rpt_dosi.images as rim
+from . import dicom_utils as rdicom
+from . import images as rim
+from . import helpers as rhe
 import shutil
 import json
 from box import Box
@@ -92,7 +93,7 @@ def db_get_tac(cycle, roi_name):
     return np.array(times), np.array(activities)
 
 
-class PatientTreatment:
+class PatientTreatmentDatabase:
     """
     Store information about a patient treatment:
     - all cycles, all imaging timepoints
@@ -108,7 +109,6 @@ class PatientTreatment:
                         spect.nii.gz
                    tp2/ ...
             cycle2/ ...
-
     """
 
     def __init__(self, filename, create=False):
@@ -126,15 +126,19 @@ class PatientTreatment:
                 fatal(f'The database file {filename} does not exist')
 
     def info(self):
+        ctp = ''
+        for cycle in self.cycles.values():
+            ctp += f'{cycle.cycle_id} ({len(cycle.timepoints)})   '
         s = (f'Patient id = {self.patient_id}\n'
-             f'Data folder = {self.db_folder}\n'
+             f'Data folder = {self.db_path}\n'
              f'Body weight kg = {self.body_weight_kg} kg\n'
-             f'Cycles : {len(self.cycles)} {' '.join(self.cycles.keys())}\n'
-             f'Total nb of timepoints = {self.number_of_timepoints()}')
+             f'Cycles {len(self.cycles)} = {ctp}\n'
+             f'Total nb of timepoints = {self.number_of_timepoints()}\n'
+             f'Total nb of rois = {self.number_of_rois()}')
         return s
 
     @property
-    def db_folder(self):
+    def db_path(self):
         if self._db_folder is None:
             fatal(f'Database folder is not defined')
         if not os.path.exists(self._db_folder):
@@ -149,6 +153,13 @@ class PatientTreatment:
 
     def number_of_timepoints(self):
         return np.array([len(cycle.timepoints) for cycle in self.cycles.values()]).sum()
+
+    def number_of_rois(self):
+        n = 0
+        for cycle in self.cycles.values():
+            for tp in cycle.timepoints.values():
+                n += len(tp.rois)
+        return n
 
     def get_cycle(self, cycle_id):
         if cycle_id not in self.cycles:
@@ -176,8 +187,8 @@ class PatientTreatment:
             self.from_dict(db)
         self._db_folder = Path(os.path.dirname(filename))
         self.json_path = filename
-        #self.check_folders()
-        #self.check_files()
+        # self.check_folders()
+        # self.check_files()
 
     def as_dict(self):
         db = {
@@ -188,12 +199,31 @@ class PatientTreatment:
         return db
 
     def from_dict(self, db):
+        av = ["patient_id",
+              "body_weight_kg",
+              "cycles"]
+        for a in av:
+            if a not in db:
+                fatal(f'Error loading Timepoint, dict MUST contains "{a}", '
+                      f'while is is {db}')
         self.patient_id = db["patient_id"]
         self.body_weight_kg = db["body_weight_kg"]
         for cycle in db["cycles"]:
             cid = cycle["cycle_id"]
             tc = TreatmentCycle(self, cid).from_dict(cycle)
             self.cycles[cid] = tc
+
+    def check_folders(self):
+        is_ok = True
+        for cycle in self.cycles.values():
+            is_ok = cycle.check_folders() and is_ok
+        return is_ok
+
+    def check_files(self):
+        is_ok = True
+        for cycle in self.cycles.values():
+            is_ok = cycle.check_files() and is_ok
+        return is_ok
 
 
 class TreatmentCycle:
@@ -208,7 +238,7 @@ class TreatmentCycle:
 
     def info(self):
         s = (f'Cycle id = {self.cycle_id}\n'
-             f'Folder = {self.cycle_folder}\n'
+             f'Folder = {self.cycle_path}\n'
              f'Injection activity mbq = {self.injection_activity_mbq}\n'
              f'Injection datetime = {self.injection_datetime}\n'
              f'Injection radionuclide = {self.injection_radionuclide}\n'
@@ -230,8 +260,8 @@ class TreatmentCycle:
         return self.timepoints[tp_id]
 
     @property
-    def cycle_folder(self):
-        return self.db.db_folder / self.cycle_id
+    def cycle_path(self):
+        return self.db.db_path / self.cycle_id
 
     def as_dict(self):
         return {
@@ -243,6 +273,14 @@ class TreatmentCycle:
         }
 
     def from_dict(self, db):
+        av = ["injection_activity_mbq",
+              "injection_datetime",
+              "injection_radionuclide",
+              "timepoints"]
+        for a in av:
+            if a not in db:
+                fatal(f'Error loading Cycle, dict MUST contains "{a}", '
+                      f'while is is {db}')
         self.injection_activity_mbq = db["injection_activity_mbq"]
         self.injection_datetime = db["injection_datetime"]
         self.injection_radionuclide = db["injection_radionuclide"]
@@ -252,11 +290,27 @@ class TreatmentCycle:
             self.timepoints[tid] = timepoint
         return self
 
+    def check_folders(self):
+        if not os.path.exists(self.cycle_path):
+            print(f'Error the folder for cycle {self.cycle_id} '
+                  f'does not exist (expected {self.cycle_path})')
+            return False
+        is_ok = True
+        for tp in self.timepoints.values():
+            is_ok = tp.check_folders() and is_ok
+        return is_ok
+
+    def check_files(self):
+        is_ok = True
+        for tp in self.timepoints.values():
+            is_ok = tp.check_files() and is_ok
+        return is_ok
+
 
 class ImagingTimepoint:
     """
         Store filenames, not paths, paths are computed on the fly.
-        The folders are build from cycle/timepoint
+        The folders are build from db/cycle/timepoint
     """
 
     def __init__(self, cycle, tp_id):
@@ -265,20 +319,26 @@ class ImagingTimepoint:
         self.acquisition_datetime = None
         self._ct_image_filename = None
         self._spect_image_filename = None
+        self.rois = {}
 
     def info(self):
         s = (f'Timepoint id = {self.timepoint_id}\n'
-             f'Folder = {self.tp_folder}\n'
+             f'Folder = {self.timepoint_path}\n'
              f'Acquisition date = {self.acquisition_datetime}\n'
              f'CT image = {self.ct_image_path}\n'
-             f'SPECT image = {self.spect_image_path}')
+             f'SPECT image = {self.spect_image_path}\n'
+             f'ROIs = {len(self.rois)} {" ".join(self.rois.keys())}')
         return s
 
     def __str__(self):
+        s = ''
+        if len(self.rois) > 1:
+            s = 's'
         return (f'{self.timepoint_id} '
                 f'{self.acquisition_datetime} '
                 f'{self.ct_image_filename} '
-                f'{self.spect_image_filename}')
+                f'{self.spect_image_filename} - '
+                f' {len(self.rois)} roi{s}')
 
     def as_dict(self):
         return {
@@ -286,13 +346,35 @@ class ImagingTimepoint:
             "ct_image_filename": self.ct_image_filename,
             "spect_image_filename": self.spect_image_filename,
             "acquisition_datetime": self.acquisition_datetime,
+            "rois": [
+                {'roi_name': r,
+                 'filename': self.rois[r]}
+                for r in self.rois.keys()]
         }
 
     def from_dict(self, db):
+        av = ["timepoint_id",
+              "ct_image_filename",
+              "spect_image_filename",
+              "acquisition_datetime",
+              "rois"]
+        for a in av:
+            if a not in db:
+                fatal(f'Error loading Timepoint, dict MUST contains "{a}", '
+                      f'while is is {db}')
+
+        self.timepoint_id = db['timepoint_id']
         self.ct_image_filename = db["ct_image_filename"]
         self.spect_image_filename = db["spect_image_filename"]
         self.acquisition_datetime = db["acquisition_datetime"]
+        for r in db['rois']:
+            self.rois[r['roi_name']] = r['filename']
         return self
+
+    def get_roi_path(self, roi_name):
+        if roi_name not in self.rois:
+            fatal(f'Cannot find ROI {roi_name} in the list of rois {self.rois.keys()}')
+        return self.timepoint_path / "rois" / self.rois[roi_name]
 
     @property
     def ct_image_filename(self):
@@ -320,15 +402,15 @@ class ImagingTimepoint:
 
     @property
     def ct_image_path(self):
-        return self.tp_folder / self.ct_image_filename
+        return self.timepoint_path / self.ct_image_filename
 
     @property
     def spect_image_path(self):
-        return self.tp_folder / self.spect_image_filename
+        return self.timepoint_path / self.spect_image_filename
 
     @property
-    def tp_folder(self):
-        return self.cycle.cycle_folder / self.timepoint_id
+    def timepoint_path(self):
+        return self.cycle.cycle_path / self.timepoint_id
 
     @property
     def time_from_injection_h(self):
@@ -338,7 +420,7 @@ class ImagingTimepoint:
     def time_from_injection_h(self, value):
         if self.cycle.injection_datetime is None and self.acquisition_datetime is None:
             self.cycle.injection_datetime = "1970-01-01 00:00:00"
-            d = datetime.datetime.strptime(self.injection_datetime, "%Y-%m-%d %H:%M:%S")
+            d = datetime.strptime(self.cycle.injection_datetime, "%Y-%m-%d %H:%M:%S")
             self.acquisition_datetime = (d + datetime.timedelta(hours=value)).strftime("%Y-%m-%d %H:%M:%S")
         else:
             fatal(f'Cannot set the time from injection since injection_datetime or acquisition_datetime exists')
@@ -349,13 +431,42 @@ class ImagingTimepoint:
                mode='copy',
                exist_ok=False):
         self.set_image(ct_input_path, 'ct_image', ct_filename, mode, exist_ok)
+        # set the sidecar json file
+        ct = rim.ImageCT()
+        ct.filename = str(self.ct_image_path)
+        ct.read_header()
+        ct.write_metadata()
 
     def set_spect(self,
                   spect_input_path,
+                  unit,
                   spect_filename=None,
                   mode='copy',
                   exist_ok=False):
         self.set_image(spect_input_path, 'spect_image', spect_filename, mode, exist_ok)
+        # set the sidecar json file
+        spect = rim.ImageSPECT()
+        spect.filename = str(self.spect_image_path)
+        spect.unit = unit
+        spect.read_header()
+        spect.write_metadata()
+
+    def set_rois(self, roi_list, mode='copy', exist_ok=False):
+        for roi in roi_list:
+            self.set_roi(roi['filename'], roi['roi_name'], mode, exist_ok)
+
+    def set_roi(self, input_path, roi_name, mode, exist_ok=False):
+        # compute the new filename as roi_name.extension
+        filename = os.path.basename(input_path)
+        base, extension = rhe.get_basename_and_extension(filename)
+        self.rois[roi_name] = roi_name + extension
+        # get the dest path
+        dest_path = self.get_roi_path(roi_name)
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        # check if already exist
+        if not exist_ok and os.path.exists(dest_path):
+            fatal(f'File image {dest_path} already exists')
+        rim.copy_or_move_image(input_path, dest_path, mode)
 
     def set_image(self,
                   input_image_path,
@@ -366,12 +477,8 @@ class ImagingTimepoint:
         """
         Copy or move a ct or a spect
         """
-        # consider the image filename
-        if image_filename is None:
-            folder, filename = os.path.split(input_image_path)
-            setattr(self, f"{attribute_name}_filename", filename)
-        else:
-            setattr(self, f"{attribute_name}_filename", image_filename)
+        # get the image filename
+        setattr(self, f"{attribute_name}_filename", os.path.basename(input_image_path))
         # create the dirs if needed
         path = os.path.dirname(getattr(self, f"{attribute_name}_path"))
         os.makedirs(path, exist_ok=True)
@@ -380,3 +487,19 @@ class ImagingTimepoint:
             fatal(f'File image {path} already exists')
         # copy or move the image
         rim.copy_or_move_image(input_image_path, getattr(self, f"{attribute_name}_path"), mode)
+
+    def check_folders(self):
+        if not os.path.exists(self.timepoint_path):
+            print(f'Error the folder for timepoint {self.timepoint_id} '
+                  f'does not exist (expected {self.timepoint_path})')
+            return False
+        return True
+
+    def check_files(self):
+        if not os.path.exists(self.ct_image_path):
+            print(f'Error the CT image {self.ct_image_path} does not exist')
+            return False
+        if not os.path.exists(self.spect_image_path):
+            print(f'Error the SPECT image {self.spect_image_path} does not exist')
+            return False
+        return True

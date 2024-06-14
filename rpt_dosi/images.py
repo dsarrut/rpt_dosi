@@ -1,3 +1,4 @@
+from . import helpers as rhe
 import SimpleITK as sitk
 import math
 from .helpers import fatal
@@ -9,6 +10,7 @@ import json
 from box import BoxList, Box
 import datetime
 import shutil
+from pathlib import Path
 
 
 def read_image(filename):
@@ -266,7 +268,7 @@ class ImageBase:
 
     def _gather_metadata(self):
         metadata = {
-            'filename': str(self.filename),
+            'filename': str(os.path.basename(self.filename)),
             'image_type': self.image_type,
             'description': self.description,
             'unit': self.unit,
@@ -899,13 +901,12 @@ def mhd_find_raw_file(mhd_file_path):
     with open(mhd_file_path, 'r') as mhd_file:
         for line in mhd_file:
             if line.startswith('ElementDataFile'):
-                return line7.split('=')[1].strip()
+                return line.split('=')[1].strip()
 
 
 def mhd_replace_raw(mhd_file_path, new_raw_filename):
     with open(mhd_file_path, 'r') as file:
         lines = file.readlines()
-
     with open(mhd_file_path, 'w') as file:
         for line in lines:
             if line.startswith('ElementDataFile'):
@@ -919,52 +920,46 @@ def is_mhd_file(filepath):
     return extension.lower() == '.mhd'
 
 
-def mhd_copy(mhd_path, new_mhd_path):
-    # copy mhd
-    shutil.copy(mhd_path, new_mhd_path)
-    print(f'copied {mhd_path} to {new_mhd_path}')
+def mhd_copy_or_move(mhd_path, new_mhd_path, mode="copy"):
     # get the raw file
-    raw_path = mhd_find_raw_file(mhd_path)
+    folder = Path(os.path.dirname(mhd_path))
+    raw_path = folder / mhd_find_raw_file(mhd_path)
+    # look for the correct raw path
+    new_raw_path, _ = rhe.get_basename_and_extension(new_mhd_path)
+    _, extension = rhe.get_basename_and_extension(raw_path)
+    new_raw_path = Path(os.path.dirname(new_mhd_path)) / (new_raw_path + extension)
+    # special case if raw.gz
+    if not os.path.exists(raw_path):
+        raw_path = Path(str(raw_path) + '.gz')
+        new_raw_path = Path(str(new_raw_path) + '.gz')
     # copy the raw file
-    new_raw_path = mhd_path.replace('.mhd', '.raw')
-    shutil.copy(raw_path, new_raw_path)
-    print(f'copied {raw_path} to {new_raw_path}')
     # change the raw filename in the mhd file
     new_raw_filename = os.path.basename(new_raw_path)
-    print(f'replace {new_raw_filename} in {new_mhd_path}')
     mhd_replace_raw(new_mhd_path, new_raw_filename)
-
-
-def mhd_move(mhd_path, new_mhd_path):
-    # move mhd
-    shutil.move(mhd_path, new_mhd_path)
-    print(f'move {mhd_path} to {new_mhd_path}')
-    # get the raw file
-    raw_path = mhd_find_raw_file(mhd_path)
-    # move the raw file
-    new_raw_path = mhd_path.replace('.mhd', '.raw')
-    shutil.move(raw_path, new_raw_path)
-    print(f'move {raw_path} to {new_raw_path}')
-    # change the raw filename in the mhd file
-    new_raw_filename = os.path.basename(new_raw_path)
-    print(f'move {new_raw_filename} in {new_mhd_path}')
-    mhd_replace_raw(new_mhd_path, new_raw_filename)
+    # do it
+    if mode == "copy":
+        shutil.copy(mhd_path, new_mhd_path)
+        shutil.copy(raw_path, new_raw_path)
+        return
+    if mode == "move":
+        shutil.move(mhd_path, new_mhd_path)
+        shutil.move(raw_path, new_raw_path)
+        return
+    print(f"Copy {mhd_path} + {os.path.basename(raw_path)} "
+          f"--->   {new_mhd_path} + {os.path.basename(new_raw_path)}")
 
 
 def copy_or_move_image(source_path, dest_path, mode):
-    modes = ['move', 'copy']
+    modes = ['move', 'copy', 'dry_run', 'print_only']
     if mode not in modes:
         fatal(f'Unknown mode {mode}, available modes: {", ".join(modes)}')
+    if is_mhd_file(source_path):
+        return mhd_copy_or_move(source_path, dest_path, mode)
     if mode == 'copy':
-        if is_mhd_file(source_path):
-            mhd_copy(source_path, dest_path)
-        else:
-            shutil.copy(source_path, dest_path)
+        shutil.copy(source_path, dest_path)
     if mode == "move":
-        if is_mhd_file(source_path):
-            mhd_move(source_path, dest_path)
-        else:
-            shutil.move(source_path, dest_path)
+        shutil.move(source_path, dest_path)
+    print(f"Copy {source_path}  --->   {dest_path}")
 
 
 def get_time_from_injection_h(injection_datetime, acquisition_datetime):

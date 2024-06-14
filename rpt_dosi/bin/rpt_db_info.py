@@ -10,11 +10,12 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.argument('db_file', type=click.Path(exists=True), required=True)
+@click.option('--check', "-c", is_flag=True, help='Check folders, files etc')
 @click.option('--verbose', "-v", is_flag=True, help='Print detailed info')
 @click.option('--large_verbose', "-vv", '--vv', is_flag=True, help='Print more detailed info')
-def go(db_file, verbose, large_verbose):
+def go(db_file, verbose, large_verbose, check):
     # open db
-    db = rdb.PatientTreatment(db_file)
+    db = rdb.PatientTreatmentDatabase(db_file)
 
     # print
     print(db.info())
@@ -32,6 +33,12 @@ def go(db_file, verbose, large_verbose):
             print(rhe.indent(cycle.info()))
             for tp in cycle.timepoints.values():
                 print(rhe.indent(tp.info(), '\t\t'))
+
+    if check:
+        print(f'Checking folders : {db.check_folders()}')
+        print(f'Checking files : {db.check_files()}')
+        # db.check_files()
+        # db.check_dates() # or missing data?
 
 
 if __name__ == "__main__":
