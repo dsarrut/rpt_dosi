@@ -195,3 +195,9 @@ def run_cmd(cmd, folder=None):
     r = os.system(cmd)
     os.chdir(pwd_initial)
     return r == 0
+
+
+def indent(input_str, indentation='\t'):
+    lines = input_str.splitlines()
+    indented_lines = [indentation + line for line in lines]
+    return '\n'.join(indented_lines)

@@ -8,6 +8,7 @@ import copy
 import json
 from box import BoxList, Box
 import datetime
+import shutil
 
 
 def read_image(filename):
@@ -439,20 +440,7 @@ class ImageSPECT(ImageBase):
 
     @property
     def time_from_injection_h(self):
-        i_date = None
-        a_date = None
-        try:
-            i_date = datetime.datetime.strptime(self.injection_datetime, "%Y-%m-%d %H:%M:%S")
-        except Exception:
-            fatal(f'Cannot get the time from injection since injection_datetime '
-                  f'is {self.injection_datetime} and cannot be interpreted')
-        try:
-            a_date = datetime.datetime.strptime(self.acquisition_datetime, "%Y-%m-%d %H:%M:%S")
-        except Exception:
-            fatal(f'Cannot get the time from injection since acquisition_datetime '
-                  f'is {self.acquisition_datetime} and cannot be interpreted')
-        hours_diff = (a_date - i_date).total_seconds() / 3600
-        return hours_diff
+        return get_time_from_injection_h(self.injection_datetime, self.acquisition_datetime)
 
     @time_from_injection_h.setter
     def time_from_injection_h(self, value):
@@ -905,3 +893,92 @@ def image_roi_stats(roi, spect, resample_like=None):
         "sum": float(np.sum(p)),
         "volume_ml": float(len(d) * roi.voxel_volume_ml)
     }
+
+
+def mhd_find_raw_file(mhd_file_path):
+    with open(mhd_file_path, 'r') as mhd_file:
+        for line in mhd_file:
+            if line.startswith('ElementDataFile'):
+                return line7.split('=')[1].strip()
+
+
+def mhd_replace_raw(mhd_file_path, new_raw_filename):
+    with open(mhd_file_path, 'r') as file:
+        lines = file.readlines()
+
+    with open(mhd_file_path, 'w') as file:
+        for line in lines:
+            if line.startswith('ElementDataFile'):
+                file.write(f'ElementDataFile = {new_raw_filename}\n')
+            else:
+                file.write(line)
+
+
+def is_mhd_file(filepath):
+    _, extension = os.path.splitext(filepath)
+    return extension.lower() == '.mhd'
+
+
+def mhd_copy(mhd_path, new_mhd_path):
+    # copy mhd
+    shutil.copy(mhd_path, new_mhd_path)
+    print(f'copied {mhd_path} to {new_mhd_path}')
+    # get the raw file
+    raw_path = mhd_find_raw_file(mhd_path)
+    # copy the raw file
+    new_raw_path = mhd_path.replace('.mhd', '.raw')
+    shutil.copy(raw_path, new_raw_path)
+    print(f'copied {raw_path} to {new_raw_path}')
+    # change the raw filename in the mhd file
+    new_raw_filename = os.path.basename(new_raw_path)
+    print(f'replace {new_raw_filename} in {new_mhd_path}')
+    mhd_replace_raw(new_mhd_path, new_raw_filename)
+
+
+def mhd_move(mhd_path, new_mhd_path):
+    # move mhd
+    shutil.move(mhd_path, new_mhd_path)
+    print(f'move {mhd_path} to {new_mhd_path}')
+    # get the raw file
+    raw_path = mhd_find_raw_file(mhd_path)
+    # move the raw file
+    new_raw_path = mhd_path.replace('.mhd', '.raw')
+    shutil.move(raw_path, new_raw_path)
+    print(f'move {raw_path} to {new_raw_path}')
+    # change the raw filename in the mhd file
+    new_raw_filename = os.path.basename(new_raw_path)
+    print(f'move {new_raw_filename} in {new_mhd_path}')
+    mhd_replace_raw(new_mhd_path, new_raw_filename)
+
+
+def copy_or_move_image(source_path, dest_path, mode):
+    modes = ['move', 'copy']
+    if mode not in modes:
+        fatal(f'Unknown mode {mode}, available modes: {", ".join(modes)}')
+    if mode == 'copy':
+        if is_mhd_file(source_path):
+            mhd_copy(source_path, dest_path)
+        else:
+            shutil.copy(source_path, dest_path)
+    if mode == "move":
+        if is_mhd_file(source_path):
+            mhd_move(source_path, dest_path)
+        else:
+            shutil.move(source_path, dest_path)
+
+
+def get_time_from_injection_h(injection_datetime, acquisition_datetime):
+    i_date = None
+    a_date = None
+    try:
+        i_date = datetime.datetime.strptime(injection_datetime, "%Y-%m-%d %H:%M:%S")
+    except Exception:
+        fatal(f'Cannot get the time from injection since injection_datetime '
+              f'is {injection_datetime} and cannot be interpreted')
+    try:
+        a_date = datetime.datetime.strptime(acquisition_datetime, "%Y-%m-%d %H:%M:%S")
+    except Exception:
+        fatal(f'Cannot get the time from injection since acquisition_datetime '
+              f'is {acquisition_datetime} and cannot be interpreted')
+    hours_diff = (a_date - i_date).total_seconds() / 3600
+    return hours_diff
