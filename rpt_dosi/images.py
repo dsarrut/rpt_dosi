@@ -265,6 +265,8 @@ class ImageBase:
             self._unit = metadata['unit']
         if 'acquisition_datetime' in metadata:
             self.acquisition_datetime = metadata['acquisition_datetime']
+            if self.acquisition_datetime == "None":
+                self.acquisition_datetime = None
 
     def _gather_metadata(self):
         metadata = {
@@ -378,6 +380,8 @@ class ImageSPECT(ImageBase):
             self.injection_activity_mbq = metadata['injection_activity_mbq']
         if 'injection_datetime' in metadata:
             self.injection_datetime = metadata['injection_datetime']
+            if self.injection_datetime == "None":
+                self.injection_datetime = None
 
     def _gather_metadata(self):
         metadata = super()._gather_metadata()
@@ -905,6 +909,7 @@ def mhd_find_raw_file(mhd_file_path):
 
 
 def mhd_replace_raw(mhd_file_path, new_raw_filename):
+    new_raw_filename = new_raw_filename.replace('.gz', '')
     with open(mhd_file_path, 'r') as file:
         lines = file.readlines()
     with open(mhd_file_path, 'w') as file:

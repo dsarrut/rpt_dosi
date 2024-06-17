@@ -4,7 +4,7 @@ from . import helpers as rhe
 import shutil
 import json
 from box import Box
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 from .helpers import fatal
 import os
@@ -284,6 +284,8 @@ class TreatmentCycle:
         self.injection_activity_mbq = db["injection_activity_mbq"]
         self.injection_datetime = db["injection_datetime"]
         self.injection_radionuclide = db["injection_radionuclide"]
+        if self.injection_datetime == "None":
+            self.injection_datetime = None
         for tp in db["timepoints"]:
             tid = tp["timepoint_id"]
             timepoint = ImagingTimepoint(self, tid).from_dict(tp)
@@ -367,6 +369,8 @@ class ImagingTimepoint:
         self.ct_image_filename = db["ct_image_filename"]
         self.spect_image_filename = db["spect_image_filename"]
         self.acquisition_datetime = db["acquisition_datetime"]
+        if self.acquisition_datetime == "None":
+            self.acquisition_datetime = None
         for r in db['rois']:
             self.rois[r['roi_name']] = r['filename']
         return self
@@ -418,12 +422,11 @@ class ImagingTimepoint:
 
     @time_from_injection_h.setter
     def time_from_injection_h(self, value):
-        if self.cycle.injection_datetime is None and self.acquisition_datetime is None:
+        if self.cycle.injection_datetime is None:
             self.cycle.injection_datetime = "1970-01-01 00:00:00"
-            d = datetime.strptime(self.cycle.injection_datetime, "%Y-%m-%d %H:%M:%S")
-            self.acquisition_datetime = (d + datetime.timedelta(hours=value)).strftime("%Y-%m-%d %H:%M:%S")
-        else:
-            fatal(f'Cannot set the time from injection since injection_datetime or acquisition_datetime exists')
+        d = datetime.strptime(self.cycle.injection_datetime, "%Y-%m-%d %H:%M:%S")
+        self.acquisition_datetime = (d + timedelta(hours=value)).strftime("%Y-%m-%d %H:%M:%S")
+        # update json side car ? # FIXME
 
     def set_ct(self,
                ct_input_path,
@@ -431,11 +434,7 @@ class ImagingTimepoint:
                mode='copy',
                exist_ok=False):
         self.set_image(ct_input_path, 'ct_image', ct_filename, mode, exist_ok)
-        # set the sidecar json file
-        ct = rim.ImageCT()
-        ct.filename = str(self.ct_image_path)
-        ct.read_header()
-        ct.write_metadata()
+        self.update_ct_sidecar_json()
 
     def set_spect(self,
                   spect_input_path,
@@ -444,12 +443,7 @@ class ImagingTimepoint:
                   mode='copy',
                   exist_ok=False):
         self.set_image(spect_input_path, 'spect_image', spect_filename, mode, exist_ok)
-        # set the sidecar json file
-        spect = rim.ImageSPECT()
-        spect.filename = str(self.spect_image_path)
-        spect.unit = unit
-        spect.read_header()
-        spect.write_metadata()
+        self.update_spect_sidecar_json(unit=unit)
 
     def set_rois(self, roi_list, mode='copy', exist_ok=False):
         for roi in roi_list:
@@ -467,6 +461,30 @@ class ImagingTimepoint:
         if not exist_ok and os.path.exists(dest_path):
             fatal(f'File image {dest_path} already exists')
         rim.copy_or_move_image(input_path, dest_path, mode)
+        self.update_roi_sidecar_json(roi_name)
+
+    def update_ct_sidecar_json(self):
+        if os.path.exists(self.ct_image_path):
+            ct = rim.ImageCT()
+            ct.filename = str(self.ct_image_path)
+            ct.read_header()
+            ct.write_metadata()
+
+    def update_spect_sidecar_json(self, unit):
+        if os.path.exists(self.spect_image_path):
+            spect = rim.ImageSPECT()
+            spect.filename = str(self.spect_image_path)
+            spect.unit = unit
+            spect.read_header()
+            spect.write_metadata()
+
+    def update_roi_sidecar_json(self, roi_name):
+        dest_path = self.get_roi_path(roi_name)
+        if os.path.exists(dest_path):
+            spect = rim.ImageROI(roi_name)
+            spect.filename = str(dest_path)
+            spect.read_header()
+            spect.write_metadata()
 
     def set_image(self,
                   input_image_path,
@@ -478,7 +496,10 @@ class ImagingTimepoint:
         Copy or move a ct or a spect
         """
         # get the image filename
-        setattr(self, f"{attribute_name}_filename", os.path.basename(input_image_path))
+        if image_filename is None:
+            setattr(self, f"{attribute_name}_filename", os.path.basename(input_image_path))
+        else:
+            setattr(self, f"{attribute_name}_filename", image_filename)
         # create the dirs if needed
         path = os.path.dirname(getattr(self, f"{attribute_name}_path"))
         os.makedirs(path, exist_ok=True)
@@ -512,4 +533,5 @@ class ImagingTimepoint:
                 print(f'Error the roi {self.get_roi_path(roi)} '
                       f'does not exist')
                 is_ok = False
+        # TODO check mhd raw files !!
         return is_ok

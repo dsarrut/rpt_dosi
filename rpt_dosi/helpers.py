@@ -211,4 +211,5 @@ def get_basename_and_extension(filename):
     while os.path.splitext(base)[1]:
         base, ext = os.path.splitext(base)
         extensions.append(ext)
+    extensions.reverse()
     return os.path.basename(base), ''.join(extensions)

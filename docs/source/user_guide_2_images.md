@@ -1,9 +1,14 @@
 
 ## Basic Image Manipulation with Associated Metadata (sidecar JSON file)
 
-This section delves into handling and manipulating medical imaging data within the toolkit. DICOM is the standard format for such data. For advanced processing, DICOM images should first be converted to more flexible formats like .mhd (MetaImage) or .nii (NIfTI).
+This section delves into handling and manipulating medical imaging data within the toolkit. We propose functions and classes to manage images, on disk and o memory, together with the associated metadata that are needed for dose computation (such as injected activity of acquisition time) and image units: Bq, SUV, etc. 
 
-**Principle.** Dosimetry involves various imaging modalities, each requiring specific handling and analysis protocols. The  primary types of images used are CT (Computed Tomography) and SPECT (Single Photon Emission Computed Tomography). Each type of imaging class is associated with distinct characteristics and units, which are crucial for accurate processing and analysis. 
+**Image file format** DICOM is the standard format. However, for advanced processing, DICOM images are sometimes converted to more flexible formats like .mhd (MetaImage) or .nii (NIfTI).
+
+**Image in memory** We choose SimpleITK images. However, 
+
+
+Dosimetry involves various imaging modalities, each requiring specific handling and analysis protocols. The  primary types of images used are CT (Computed Tomography) and SPECT (Single Photon Emission Computed Tomography). Each type of imaging class is associated with distinct characteristics and units, which are crucial for accurate processing and analysis. 
 
 **CT Images** are typically stored in units of Hounsfield Units (HU), which measure the relative density of tissue. The analysis of CT images often requires adjustments in resolution or alignment, necessitating specific tools and commands to resample or crop images based on anatomical features.
 
@@ -39,7 +44,7 @@ Conversion from DICOM to other image file format can be done with the command li
   ```
 
 - **rpt_spect_update**
-  Updates SPECT image content, allowing conversion to different units and scaling of pixel values. The metadata are still stored in a file call `updated_image.nii.gz.json`. 
+  Updates SPECT image content, allowing conversion to different units and scaling of pixel values. The metadata are still stored in a file called `updated_image.nii.gz.json`. 
 
   **Usage:**
   ```
@@ -78,7 +83,7 @@ Conversion from DICOM to other image file format can be done with the command li
 
   **Usage:**
   ```
-  rpt_image_info -i path/to/image.mhd
+  rpt_image_info path/to/image.mhd
   ```
 
 ### Python functions and classes for images handling
@@ -93,15 +98,15 @@ The following functions are designed to perform advanced computations and transf
   **Usage example:**
   ```
   import rpt_dosi.images as rim
-  spect_data = rim.read_spect('path/to/spect_file.dcm')
+  spect = rim.read_spect('path/to/spect_file.mhd')
   ```
 
 - **compute_total_activity()**
-  Calculates the total radioactive activity within a SPECT image, an essential metric in dosimetric calculations.
+  Calculates the total radioactive activity within a SPECT image.
 
   **Usage example:**
   ```
-  total_activity = spect_data.compute_total_activity()
+  total_activity = spect.compute_total_activity()
   ```
 
 - **convert_to_suv()**
