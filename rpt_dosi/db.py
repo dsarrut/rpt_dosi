@@ -1,6 +1,7 @@
-from . import dicom_utils as rdicom
+from . import dicom_utils as rdcm
 from . import images as rim
 from . import helpers as rhe
+from . import metadata as rmd
 import shutil
 import json
 from box import Box
@@ -9,11 +10,12 @@ import numpy as np
 from .helpers import fatal
 import os
 from pathlib import Path
+from typing import Dict, List, Union, Type
 
 
 def db_update_injection(db, dicom_ds, cycle_id):
     # extract injection
-    rad = rdicom.dicom_read_injection(dicom_ds)
+    rad = rdcm.dicom_read_injection(dicom_ds)
 
     # create cycle if not exist
     if cycle_id not in db["cycles"]:
@@ -29,7 +31,7 @@ def db_update_injection(db, dicom_ds, cycle_id):
 
 def db_update_acquisition(db, dicom_ds, cycle_id, tp_id):
     # extract the date/time
-    dt = rdicom.dicom_read_acquisition_datetime(dicom_ds)
+    dt = rdcm.dicom_read_acquisition_datetime(dicom_ds)
 
     cycle = db["cycles"][cycle_id]
 
@@ -93,7 +95,7 @@ def db_get_tac(cycle, roi_name):
     return np.array(times), np.array(activities)
 
 
-class PatientTreatmentDatabase:
+class PatientTreatmentDatabase(rmd.ClassWithMetaData):
     """
     Store information about a patient treatment:
     - all cycles, all imaging timepoints
@@ -111,12 +113,19 @@ class PatientTreatmentDatabase:
             cycle2/ ...
     """
 
+    _metadata_fields = {'patient_id': str,
+                        'body_weight_kg': float}
+
     def __init__(self, filename, create=False):
+        # metadata
         self.patient_id = None
         self.body_weight_kg = None
         self.cycles = {}
+        # db_folder is the base folder where the data should be
         self._db_folder = None
-        self.json_path = filename
+        # json_path store the initial json file path (only used in write)
+        self.json_filepath = filename
+        # read or create json file
         if os.path.exists(filename):
             self.read(filename)
         else:
@@ -173,42 +182,29 @@ class PatientTreatmentDatabase:
 
     def write(self, filename=None):
         if filename is None:
-            filename = self.json_path
+            filename = self.json_filepath
+        self.save_to_json(filename)
         self._db_folder = Path(os.path.dirname(filename))
         os.makedirs(self._db_folder, exist_ok=True)
-        with open(filename, "w") as f:
-            db = self.as_dict()
-            json.dump(db, f, indent=2)
-        self.json_path = filename
+        self.json_filepath = filename
 
     def read(self, filename):
-        with open(filename, "r") as f:
-            db = json.load(f)
-            self.from_dict(db)
+        if not os.path.exists(filename):
+            fatal(f'Database file {filename} does not exist')
+        self.load_from_json(filename)
         self._db_folder = Path(os.path.dirname(filename))
-        self.json_path = filename
+        self.json_filepath = filename
         # self.check_folders()
         # self.check_files()
 
-    def as_dict(self):
-        db = {
-            "patient_id": self.patient_id,
-            "body_weight_kg": self.body_weight_kg,
-            "cycles": [cycle.as_dict() for cycle in self.cycles.values()]
-        }
-        return db
+    def to_dict(self):
+        data = super().to_dict()
+        data["cycles"] = [cycle.to_dict() for cycle in self.cycles.values()]
+        return data
 
-    def from_dict(self, db):
-        av = ["patient_id",
-              "body_weight_kg",
-              "cycles"]
-        for a in av:
-            if a not in db:
-                fatal(f'Error loading Timepoint, dict MUST contains "{a}", '
-                      f'while is is {db}')
-        self.patient_id = db["patient_id"]
-        self.body_weight_kg = db["body_weight_kg"]
-        for cycle in db["cycles"]:
+    def from_dict(self, data):
+        super().from_dict(data)
+        for cycle in data["cycles"]:
             cid = cycle["cycle_id"]
             tc = TreatmentCycle(self, cid).from_dict(cycle)
             self.cycles[cid] = tc
@@ -226,15 +222,22 @@ class PatientTreatmentDatabase:
         return is_ok
 
 
-class TreatmentCycle:
+class TreatmentCycle(rmd.ClassWithMetaData):
+    _metadata_fields = {'cycle_id': str,
+                        'injection_activity_mbq': float,
+                        'injection_datetime': str,
+                        'injection_radionuclide': str
+                        }
 
     def __init__(self, db, cycle_id):
+        # this cycle belong to this db
         self.db = db
+        # metadata
         self.cycle_id = cycle_id
-        self.timepoints = {}
         self.injection_activity_mbq = None
         self.injection_datetime = None
         self.injection_radionuclide = None
+        self.timepoints = {}
 
     def info(self):
         s = (f'Cycle id = {self.cycle_id}\n'
@@ -263,30 +266,14 @@ class TreatmentCycle:
     def cycle_path(self):
         return self.db.db_path / self.cycle_id
 
-    def as_dict(self):
-        return {
-            "cycle_id": self.cycle_id,
-            "injection_activity_mbq": self.injection_activity_mbq,
-            "injection_datetime": self.injection_datetime,
-            "injection_radionuclide": self.injection_radionuclide,
-            "timepoints": [tp.as_dict() for tp in self.timepoints.values()]
-        }
+    def to_dict(self):
+        data = super().to_dict()
+        data["timepoints"] = [tp.to_dict() for tp in self.timepoints.values()]
+        return data
 
-    def from_dict(self, db):
-        av = ["injection_activity_mbq",
-              "injection_datetime",
-              "injection_radionuclide",
-              "timepoints"]
-        for a in av:
-            if a not in db:
-                fatal(f'Error loading Cycle, dict MUST contains "{a}", '
-                      f'while is is {db}')
-        self.injection_activity_mbq = db["injection_activity_mbq"]
-        self.injection_datetime = db["injection_datetime"]
-        self.injection_radionuclide = db["injection_radionuclide"]
-        if self.injection_datetime == "None":
-            self.injection_datetime = None
-        for tp in db["timepoints"]:
+    def from_dict(self, data):
+        super().from_dict(data)
+        for tp in data["timepoints"]:
             tid = tp["timepoint_id"]
             timepoint = ImagingTimepoint(self, tid).from_dict(tp)
             self.timepoints[tid] = timepoint
@@ -309,14 +296,22 @@ class TreatmentCycle:
         return is_ok
 
 
-class ImagingTimepoint:
+class ImagingTimepoint(rmd.ClassWithMetaData):
     """
         Store filenames, not paths, paths are computed on the fly.
         The folders are build from db/cycle/timepoint
     """
+    _metadata_fields = {
+        'timepoint_id': str,
+        'acquisition_datetime': str,
+        'ct_image_filename': str,
+        'spect_image_filename': str,
+    }
 
     def __init__(self, cycle, tp_id):
+        # this timepoint belong to this cycle
         self.cycle = cycle
+        # metadata
         self.timepoint_id = tp_id
         self.acquisition_datetime = None
         self._ct_image_filename = None
@@ -342,36 +337,17 @@ class ImagingTimepoint:
                 f'{self.spect_image_filename} - '
                 f' {len(self.rois)} roi{s}')
 
-    def as_dict(self):
-        return {
-            "timepoint_id": self.timepoint_id,
-            "ct_image_filename": self.ct_image_filename,
-            "spect_image_filename": self.spect_image_filename,
-            "acquisition_datetime": self.acquisition_datetime,
-            "rois": [
-                {'roi_name': r,
-                 'filename': self.rois[r]}
-                for r in self.rois.keys()]
-        }
+    def to_dict(self):
+        data = super().to_dict()
+        data["rois"] = [
+            {'roi_name': r,
+             'filename': self.rois[r]}
+            for r in self.rois.keys()]
+        return data
 
-    def from_dict(self, db):
-        av = ["timepoint_id",
-              "ct_image_filename",
-              "spect_image_filename",
-              "acquisition_datetime",
-              "rois"]
-        for a in av:
-            if a not in db:
-                fatal(f'Error loading Timepoint, dict MUST contains "{a}", '
-                      f'while is is {db}')
-
-        self.timepoint_id = db['timepoint_id']
-        self.ct_image_filename = db["ct_image_filename"]
-        self.spect_image_filename = db["spect_image_filename"]
-        self.acquisition_datetime = db["acquisition_datetime"]
-        if self.acquisition_datetime == "None":
-            self.acquisition_datetime = None
-        for r in db['rois']:
+    def from_dict(self, data):
+        super().from_dict(data)
+        for r in data['rois']:
             self.rois[r['roi_name']] = r['filename']
         return self
 

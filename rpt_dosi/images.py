@@ -30,7 +30,7 @@ def read_image(filename):
 
 def delete_metadata(filename):
     im = ImageBase()
-    im.filename = filename
+    im._filename = filename
     f = im._get_metadata_filename()
     os.remove(f)
 
@@ -161,7 +161,7 @@ class ImageBase(rmd.ClassWithMetaData):
         self.image = None
         # metadata infos
         self.description = ""
-        self.filename = None
+        self._filename = None
         self.acquisition_datetime = None
         # internal parameters
         self._image_path = None
@@ -203,7 +203,16 @@ class ImageBase(rmd.ClassWithMetaData):
     @image_path.setter
     def image_path(self, value):
         self._image_path = value
-        self.filename = os.path.basename(value)
+        self._filename = os.path.basename(value)
+
+    @property
+    def filename(self):
+        return self._filename
+
+    @filename.setter
+    def filename(self, value):
+        self._filename = os.path.basename(value)
+        self._image_path = Path(os.path.dirname(value)) / self._filename
 
     def require_unit(self, unit):
         if unit != self.unit:
@@ -256,8 +265,9 @@ class ImageBase(rmd.ClassWithMetaData):
                   f'metadata "{self.image_type}" in the file {json_filename}')
 
     def read_image_header(self):
+        print(f'Reading image header from {self.image_path}')
         reader = sitk.ImageFileReader()
-        reader.SetFileName(self.image_path)
+        reader.SetFileName(str(self.image_path))
         reader.LoadPrivateTagsOn()
         reader.ReadImageInformation()
         self._image_header = Box()
@@ -280,7 +290,7 @@ class ImageBase(rmd.ClassWithMetaData):
         js = f'(metadata: {self.get_metadata_filepath()})'
         if not os.path.exists(json_filename):
             js = '(no metadata available)'
-        s = f'Image:   {self.filename} {js}\n'
+        s = f'Image:   {self._filename} {js}\n'
         s += f'Type:    {self.image_type}\n'
         s += f'Loaded:  {self.image is not None}\n'
         s += f'Unit:    {self.unit}\n'
@@ -360,11 +370,11 @@ class ImageSPECT(ImageBase):
 
     def convert_to_bq(self):
         if self.unit == 'Bq/mL':
-            self.image = self.image * self.voxel_volume_ml
+            self.image = self.image * self.voxel_volume_cc
             self._unit = 'Bq'
         if self.unit == "SUV":
             arr = sitk.GetArrayFromImage(self.image)
-            arr = arr * self.voxel_volume_ml * (self.injection_activity_mbq * self.body_weight_kg)
+            arr = arr * self.voxel_volume_cc * (self.injection_activity_mbq * self.body_weight_kg)
             im = sitk.GetImageFromArray(arr)
             im.CopyInformation(self.image)
             self.image = im
@@ -372,7 +382,7 @@ class ImageSPECT(ImageBase):
 
     def convert_to_bqml(self):
         if self.unit == 'Bq':
-            self.image = self.image / self.voxel_volume_ml
+            self.image = self.image / self.voxel_volume_cc
             self._unit = "Bq/mL"
         if self.unit == "SUV":
             self.convert_to_bq()
@@ -380,9 +390,9 @@ class ImageSPECT(ImageBase):
 
     def convert_to_suv(self):
         if self.body_weight_kg is None:
-            fatal(f'To convert to SUV, body_weight_kg cannot be None (SPECT image {self.filename})')
+            fatal(f'To convert to SUV, body_weight_kg cannot be None (SPECT image {self._filename})')
         if self.injection_activity_mbq is None:
-            fatal(f'To convert to SUV, injection_activity_MBq cannot be None (SPECT image {self.filename})')
+            fatal(f'To convert to SUV, injection_activity_MBq cannot be None (SPECT image {self._filename})')
         arr = sitk.GetArrayFromImage(self.image)
         # convert to Bq/mL first
         self.convert_to_bqml()

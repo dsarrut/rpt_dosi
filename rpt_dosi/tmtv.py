@@ -258,7 +258,7 @@ def find_foci(tmtv, tmtv_mask, min_size_cm3=1, percentage_threshold=0.001):
     print(f'Number of labels = {stats.GetNumberOfLabels()}')
 
     # Keep only labels with more than a given size
-    volume = tmtv_mask.voxel_volume_ml
+    volume = tmtv_mask.voxel_volume_cc
     max_size = int(min_size_cm3 / volume)
     print(f'{min_size_cm3=} -> {max_size=} pixels')
     foci = sitk.RelabelComponent(foci, minimumObjectSize=max_size)
