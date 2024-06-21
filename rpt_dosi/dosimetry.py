@@ -352,12 +352,12 @@ class DoseMadsen2018(DoseComputation, DoseComputationWithPhantom):
                 fatal(f'Effective time must be provided for: {roi}')
             roi = resample_roi_like(roi, like)
             roi_arr = sitk.GetArrayViewFromImage(roi.image)
-            svalue, mass_scaling, roi.mass_g, roi.volume_ml = get_svalue_and_mass_scaling(
+            svalue, mass_scaling, roi.mass_g, roi.volume_cc = get_svalue_and_mass_scaling(
                 self.icrp_phantom_name,
                 roi_arr,
                 roi.name,
                 self.icrp_radionuclide,
-                spect.voxel_volume_ml,
+                spect.voxel_volume_cc,
                 sitk.GetArrayViewFromImage(density_ct.image),
                 verbose=False,
             )
@@ -369,7 +369,7 @@ class DoseMadsen2018(DoseComputation, DoseComputationWithPhantom):
                                    roi.effective_time_h)
             results[roi.name] = {"dose_Gy": dose,
                                  "mass_g": roi.mass_g,
-                                 "volume_ml": roi.volume_ml}
+                                 "volume_ml": roi.volume_cc}
 
         return results
 
@@ -397,12 +397,12 @@ class DoseHanscheid2017(DoseComputation):
             dose = dose_hanscheid2017(sitk.GetArrayViewFromImage(spect.image),
                                       sitk.GetArrayViewFromImage(roi.image),
                                       spect.time_from_injection_h,
-                                      spect.voxel_volume_ml,
+                                      spect.voxel_volume_cc,
                                       roi.effective_time_h)
 
             results[roi.name] = {"dose_Gy": dose,
                                  "mass_g": roi.mass_g,
-                                 "volume_ml": roi.volume_ml}
+                                 "volume_ml": roi.volume_cc}
 
         return results
 
@@ -431,12 +431,12 @@ class DoseHanscheid2018(DoseComputation, DoseComputationWithPhantom):
         for roi in rois:
             roi = resample_roi_like(roi, like)
             roi_arr = sitk.GetArrayViewFromImage(roi.image)
-            svalue, mass_scaling, roi.mass_g, roi.volume_ml = get_svalue_and_mass_scaling(
+            svalue, mass_scaling, roi.mass_g, roi.volume_cc = get_svalue_and_mass_scaling(
                 self.icrp_phantom_name,
                 roi_arr,
                 roi.name,
                 self.icrp_radionuclide,
-                spect.voxel_volume_ml,
+                spect.voxel_volume_cc,
                 sitk.GetArrayViewFromImage(density_ct.image),
                 verbose=True,#False,
             )
@@ -448,7 +448,7 @@ class DoseHanscheid2018(DoseComputation, DoseComputationWithPhantom):
 
             results[roi.name] = {"dose_Gy": dose,
                                  "mass_g": roi.mass_g,
-                                 "volume_ml": roi.volume_ml}
+                                 "volume_ml": roi.volume_cc}
 
         return results
 
@@ -482,7 +482,7 @@ class DoseMadsen2018DoseRate(DoseComputationWithDoseRate):
             dose = dose * self.scaling
             results[roi.name] = {"dose_Gy": dose,
                                  "mass_g": roi.mass_g,
-                                 "volume_ml": roi.volume_ml}
+                                 "volume_ml": roi.volume_cc}
 
         return results
 
@@ -513,7 +513,7 @@ class DoseHanscheid2018DoseRate(DoseComputationWithDoseRate):
             dose = dose * self.scaling
             results[roi.name] = {"dose_Gy": dose,
                                  "mass_g": roi.mass_g,
-                                 "volume_ml": roi.volume_ml}
+                                 "volume_ml": roi.volume_cc}
 
         return results
 
@@ -547,7 +547,7 @@ class DoseHanscheid2017DoseRate(DoseComputationWithDoseRate):
             dose = dose * self.scaling
             results[roi.name] = {"dose_Gy": dose,
                                  "mass_g": roi.mass_g,
-                                 "volume_ml": roi.volume_ml}
+                                 "volume_ml": roi.volume_cc}
 
         return results
 

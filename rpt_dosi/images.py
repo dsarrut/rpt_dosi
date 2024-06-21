@@ -28,6 +28,13 @@ def read_image(filename):
     return im
 
 
+def delete_metadata(filename):
+    im = ImageBase()
+    im.filename = filename
+    f = im._get_metadata_filename()
+    os.remove(f)
+
+
 def read_image_header_only(filepath):
     # try to find the image type
     image_type = read_image_type_from_metadata(filepath)
@@ -152,7 +159,7 @@ class ImageBase(rmd.ClassWithMetaData):
     def __init__(self):
         super().__init__()
         self.image = None
-        # basics metadata infos
+        # metadata infos
         self.description = ""
         self.filename = None
         self.acquisition_datetime = None
@@ -211,7 +218,7 @@ class ImageBase(rmd.ClassWithMetaData):
         getattr(self, f)()
 
     @property
-    def voxel_volume_ml(self):
+    def voxel_volume_cc(self):
         if self.image is not None:
             v = np.prod(self.image.GetSpacing()) / 1000
             return v
@@ -291,9 +298,6 @@ class ImageBase(rmd.ClassWithMetaData):
                 s += f'Pixel:   {self._image_header.pixel_type}'
         return s
 
-    # def __str__(self):
-    #    return f"Image: type={self.image_type} unit={self.unit}"
-
 
 class ImageCT(ImageBase):
     authorized_units = ['HU', 'g/cm3']  # FIXME add attenuation
@@ -303,9 +307,6 @@ class ImageCT(ImageBase):
     def __init__(self):
         super().__init__()
         self.unit = 'HU'
-
-    # def __str__(self):
-    #    return f"CT: unit={self.unit}"
 
     def compute_densities(self):  # FIXME to remove ?
         if self.unit != 'HU':
@@ -347,13 +348,6 @@ class ImageSPECT(ImageBase):
             'Bq/mL': "convert_to_bqml",
             'SUV': "convert_to_suv",
         }
-
-    # def __str__(self):
-    #    return (f"SPECT: unit={self.unit}, "
-    #            f"body_weight={self.body_weight_kg}, "
-    #            f"acquisition_datetime={self.acquisition_datetime}, "
-    #            f"injection_datetime={self.injection_datetime}, "
-    #            f"injection_activity_mbq={self.injection_activity_mbq}")
 
     def info(self):
         s = super().info() + '\n'
@@ -446,13 +440,13 @@ class ImageROI(ImageBase):
         self._unit = 'label'
         self.effective_time_h = None
         self.mass_g = None
-        self.volume_ml = None
+        self.volume_cc = None
 
     def info(self):
         s = super().info() + '\n'
         s += f'Teff:   {self.effective_time_h} h\n'
         s += f'Mass:   {self.mass_g} g\n'
-        s += f'Volume: {self.volume_ml} mL'
+        s += f'Volume: {self.volume_cc} cc'
         return s
 
     def update_mass_and_volume(self, density_ct):
@@ -460,8 +454,8 @@ class ImageROI(ImageBase):
         a = sitk.GetArrayViewFromImage(self.image)
         da = sitk.GetArrayViewFromImage(density_ct.image)
         d = da[a == 1]
-        self.mass_g = np.sum(d) * self.voxel_volume_ml
-        self.volume_ml = len(d) * self.voxel_volume_ml
+        self.mass_g = np.sum(d) * self.voxel_volume_cc
+        self.volume_cc = len(d) * self.voxel_volume_cc
 
 
 class ImageDose(ImageBase):
@@ -472,10 +466,6 @@ class ImageDose(ImageBase):
     def __init__(self):
         super().__init__()
         self._unit = None
-
-    # def __str__(self):
-    #    s = f"Dose: unit={self.unit}"
-    #    return s
 
 
 image_builders = {
@@ -749,7 +739,7 @@ def OLD_resample_roi_like_spect(spect, roi, convert_to_np=True, verbose=True):
 def get_stats_in_rois(spect, ct, rois_list):
     # load spect
     spect = sitk.ReadImage(spect)
-    volume_voxel_mL = np.prod(spect.GetSpacing()) / 1000
+    volume_voxel_cc = np.prod(spect.GetSpacing()) / 1000
     spect_a = sitk.GetArrayFromImage(spect)
     # load ct
     ct = sitk.ReadImage(ct)
@@ -766,7 +756,7 @@ def get_stats_in_rois(spect, ct, rois_list):
         s = image_roi_stats_OLD(spect_a, roi_a)
         # compute mass
         d = densities[roi_a == 1]
-        mass = np.sum(d) * volume_voxel_mL
+        mass = np.sum(d) * volume_voxel_cc
         s["mass_g"] = mass
         # set in the db
         res[roi.roi_name] = s
@@ -841,32 +831,43 @@ def mip(img, dim3=False):
     return mip_image
 
 
-def image_roi_stats(roi, spect, resample_like=None):
-    if resample_like is None:
-        if not image_has_this_spacing(roi, spect):
-            fatal(f"Cannot compute roi stats, the images have different sizes: {roi} and {spect}")
-    else:
-        if resample_like not in ['spect', 'roi']:
-            fatal(f"the option resample_like, must be 'spect' or 'roi', while it is {resample_like}")
+def image_roi_stats(roi, spect, ct=None, resample_like="spect"):
+    # resample
+    m = {'spect': spect, 'roi': roi}
+    if ct is not None:
+        m['ct'] = ct
+    if resample_like not in m:
+        fatal(f"the option resample_like, must be {m}, while it is {resample_like}")
+    resample_like = m[resample_like]
+    spect = resample_spect_like(spect, resample_like)
+    roi = resample_roi_like(roi, resample_like)
 
-        if resample_like == "spect":
-            roi = resample_roi_like(roi, spect)
-        if resample_like == "roi":
-            spect = resample_spect_like(spect, roi)
+    # convert to np
     spect_a = sitk.GetArrayViewFromImage(spect.image)
     roi_a = sitk.GetArrayViewFromImage(roi.image)
+
     # select pixels
     d = roi_a == 1
     p = spect_a[d]
+
     # compute stats
-    return {
+    res = {
         "mean": float(np.mean(p)),
         "std": float(np.std(p)),
         "min": float(np.min(p)),
         "max": float(np.max(p)),
         "sum": float(np.sum(p)),
-        "volume_ml": float(len(d) * roi.voxel_volume_ml)
+        "volume_cc": float(len(p) * roi.voxel_volume_cc)
     }
+
+    # for ct (densities)
+    if ct is not None:
+        ct = resample_ct_like(ct, resample_like)
+        densities = ct.compute_densities()
+        roi.update_mass_and_volume(densities)
+        res["mass_g"] = roi.mass_g
+
+    return res
 
 
 def mhd_find_raw_file(mhd_file_path):
