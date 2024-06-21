@@ -349,7 +349,7 @@ class DoseMadsen2018(DoseComputation, DoseComputationWithPhantom):
         # loop on roi
         for roi in rois:
             if roi.effective_time_h is None:
-                fatal(f'Effective time must be provided for ROI {roi}.')
+                fatal(f'Effective time must be provided for: {roi}')
             roi = resample_roi_like(roi, like)
             roi_arr = sitk.GetArrayViewFromImage(roi.image)
             svalue, mass_scaling, roi.mass_g, roi.volume_cc = get_svalue_and_mass_scaling(
@@ -438,7 +438,7 @@ class DoseHanscheid2018(DoseComputation, DoseComputationWithPhantom):
                 self.icrp_radionuclide,
                 spect.voxel_volume_cc,
                 sitk.GetArrayViewFromImage(density_ct.image),
-                verbose=False,
+                verbose=True,#False,
             )
             dose = dose_hanscheid2018(spect_arr,
                                       roi_arr,

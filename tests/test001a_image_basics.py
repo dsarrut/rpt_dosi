@@ -25,8 +25,8 @@ if __name__ == "__main__":
     print()
     print('Read image with metadata (CT)')
     im = rim.read_ct(ct_output)
-    print(im._get_metadata_filename())
-    with open(im._get_metadata_filename()) as f:
+    print(im.get_metadata_filepath())
+    with open(im.get_metadata_filepath()) as f:
         print(f.read())
     b = im.image_type == 'CT' and im.unit == 'HU'
     he.print_tests(b, f'OK, image metadata is CT and HU {im}')
@@ -41,11 +41,11 @@ if __name__ == "__main__":
 
     # Read image with wrong type
     print()
-    print('Read image with wrong type')
+    print('Read image with wrong type (expect exception)')
     b = False
     try:
         im = rim.read_spect(ct_output)
-    except he.Error:
+    except he.Rpt_Error:
         b = True
     he.print_tests(b, "     Correct, cannot read CT as SPECT")
     is_ok = b and is_ok
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     b = False
     try:
         im = rim.read_roi(ct_output, 'toto')
-    except he.Error:
+    except he.Rpt_Error:
         b = True
     he.print_tests(b, "     Correct, cannot read CT as ROI")
     is_ok = b and is_ok

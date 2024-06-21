@@ -5,6 +5,7 @@ import rpt_dosi.images as rim
 import rpt_dosi.helpers as he
 import shutil
 import os
+import json
 
 if __name__ == "__main__":
     # folders
@@ -33,10 +34,34 @@ if __name__ == "__main__":
     spect = rim.read_image(spect_output)
     try:
         spect.unit = 'Bq/mL'
-    except he.Error:
+        is_ok = False
+    except he.Rpt_Error:
         he.print_tests(is_ok, f'OK cannot set unit because already there {is_ok}')
     is_ok = spect.image_type == 'SPECT' and spect.unit == 'Bq' and is_ok
     he.print_tests(is_ok, f'(read image) Set metadata read SPECT and Bq ? {is_ok}')
+
+    # check filename in the json file
+    fn = spect.get_metadata_filepath()
+    print(fn)
+    with open(fn, 'r') as f:
+        data = json.load(f)
+        data['filename'] = "titi.nii.gz"
+    with open(fn, 'w') as f:
+        json.dump(data, f)
+    try:
+        spect = rim.read_image(spect_output)
+        is_ok = False
+    except he.Rpt_Error:
+        he.print_tests(is_ok, f'OK cannot read with wrong filename tag {is_ok}')
+
+    # check wrong but existing json file
+    open(fn, 'w').close()
+    try:
+        spect = rim.read_image(spect_output)
+        is_ok = False
+    except he.Rpt_Error:
+        he.print_tests(is_ok, f'OK cannot read wrong file {is_ok}')
+
 
     # set meta unit Bq/mL
     print()
@@ -73,37 +98,41 @@ if __name__ == "__main__":
     try:
         spect.time_from_injection_h = 12.4
         is_ok = False
-    except he.Error:
+    except he.Rpt_Error:
         he.print_tests(is_ok, f'OK cannot set time from injection tag {is_ok}')
 
     # set wrong tag
     print()
     spect = rim.read_image(spect_output)
     try:
-        spect.set_tag("toto", 'titi')
+        spect.set_metadata("toto", 'titi')
         is_ok = False
-    except he.Error:
-        he.print_tests(is_ok, f'OK cannot set tag {is_ok}')
+        he.print_tests(is_ok, f'ERROR can set wrong tag  {is_ok}')
+    except he.Rpt_Error:
+        he.print_tests(is_ok, f'OK cannot set wrong tag {is_ok}')
 
     # set wrong tag
     print()
     ct_input = data_folder / "ct_8mm.nii.gz"
     ct = rim.read_ct(ct_input)
     try:
-        ct.set_tag("injection_datetime", 'titi')
+        ct.set_metadata("injection_datetime", 'titi')
         is_ok = False
-    except he.Error:
-        he.print_tests(is_ok, f'OK cannot set tag {is_ok}')
+        he.print_tests(is_ok, f'ERROR can set tag date to wrong value {is_ok}')
+    except he.Rpt_Error:
+        he.print_tests(is_ok, f'OK cannot set tag date to wrong value {is_ok}')
 
     # set wrong tag type
     print()
     spect = rim.read_image(spect_output)
     try:
-        spect.set_tag("injection_activity_mbq", 'tutu')
+        spect.set_metadata("injection_activity_mbq", 'tutu')
+        spect.set_metadata("body_weight_kg", 'tutu')
         is_ok = False
+        he.print_tests(is_ok, f'ERROR can set tag float to wrong value {is_ok}')
         print(spect.info())
-    except he.Error:
-        he.print_tests(is_ok, f'OK cannot set tag {is_ok}')
+    except he.Rpt_Error:
+        he.print_tests(is_ok, f'OK cannot set tag float to wrong value {is_ok}')
 
     # end
     he.test_ok(is_ok)

@@ -6,6 +6,7 @@ from tqdm import tqdm
 from box import Box
 import questionary
 from rpt_dosi.helpers import fatal
+import gatetools as gt
 
 
 def dicom_read_acquisition_datetime(ds):
@@ -290,3 +291,15 @@ def update_selected(cycle, series, tp_id, selected_ids):
             print("Error ! Must be one CT and one NM")
             return False
     return True
+
+
+def convert_ct_dicom_to_image(dicom_folder, output_filename):
+    print(dicom_folder, output_filename)
+    series = gt.separate_series(dicom_folder)
+    series = gt.separate_sequenceName_series(series)
+    print(series)
+    if len(series) >= 1:
+        fatal(f'Cannot read DICOM folder, it contains several series')
+    files = series[0]
+    print(files)
+    itk_image = gt.read_dicom(files)

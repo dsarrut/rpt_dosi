@@ -20,18 +20,25 @@ except AttributeError:
     color_ok = colored.fore("green")
 
 
-class Error(Exception):
+class Rpt_Error(Exception):
     pass
 
 
-def fatal(s):
+def fatal(s, stop_and_exit=False):
     caller = inspect.getframeinfo(inspect.stack()[1][0])
     ss = f"(in {caller.filename} line {caller.lineno})"
     ss = colored.stylize(ss, color_error)
     print(ss)
     s = colored.stylize(s, color_error)
     print(s)
-    raise Error(s)
+    if stop_and_exit:
+        exit()
+    raise Rpt_Error(s)
+
+
+def warning(s):
+    s = colored.stylize(s, color_warning)
+    print(s)
 
 
 def read_and_check_input_infos(json_file):
@@ -195,3 +202,19 @@ def run_cmd(cmd, folder=None):
     r = os.system(cmd)
     os.chdir(pwd_initial)
     return r == 0
+
+
+def indent(input_str, indentation='\t'):
+    lines = input_str.splitlines()
+    indented_lines = [indentation + line for line in lines]
+    return '\n'.join(indented_lines)
+
+
+def get_basename_and_extension(filename):
+    base = filename
+    extensions = []
+    while os.path.splitext(base)[1]:
+        base, ext = os.path.splitext(base)
+        extensions.append(ext)
+    extensions.reverse()
+    return os.path.basename(base), ''.join(extensions)

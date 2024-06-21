@@ -51,7 +51,7 @@ def go(spect, ct, rad, resample_like, output_folder, sigma, activity_bq, number_
     source.activity = source.activity / sim.number_of_threads
 
     # compute the scaling factor
-    scaling = s.compute_scaling(sim)
+    scaling = s.compute_scaling(sim, 'Bq')
 
     # go
     sim.run()
