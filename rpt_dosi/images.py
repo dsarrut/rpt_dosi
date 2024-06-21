@@ -57,10 +57,13 @@ def read_image_type_from_metadata(filepath):
     json_path = str(filepath) + ".json"
     if not os.path.exists(json_path):
         return None
-    with open(json_path, 'r') as f:
-        data = json.load(f)
-    if 'image_type' not in data:
-        fatal(f'No image type in metadata {json_path}')
+    try:
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+        if 'image_type' not in data:
+            fatal(f'No image type in metadata {json_path}')
+    except:
+        fatal(f'Could not read image metadata file {json_path}. Not a json ?')
     return data['image_type']
 
 
