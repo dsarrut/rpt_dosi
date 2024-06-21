@@ -43,6 +43,7 @@ dependencies = [
     "questionary",
     "pandas",
     "openpyxl",
+    "gatetools"
 ]
 requires-python = ">=3.8"
 
