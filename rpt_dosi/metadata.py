@@ -34,16 +34,24 @@ class ClassWithMetaData:
         """
         Save the metadata attributes to a JSON file.
         """
-        with open(filepath, 'w') as f:
-            json.dump(self.to_dict(), f, indent=4)
+        try:
+            with open(filepath, 'w') as f:
+                json.dump(self.to_dict(), f, indent=4)
+        except Exception as e:
+            fatal(f"Unexpected Error while writing {filepath}: {e}")
 
     def load_from_json(self, filepath):
         """
         Load metadata attributes from a JSON file.
         """
-        with open(filepath, 'r') as f:
-            data = json.load(f)
-            self.from_dict(data)
+        try:
+            with open(filepath, 'r') as f:
+                data = json.load(f)
+                self.from_dict(data)
+        except ValueError as e:
+            fatal(f"Invalid JSON file: {filepath} {e}")
+        except Exception as e:
+            fatal(f"Unexpected Error while reading {filepath}: {e}")
 
     def set_metadata(self, key, value):
         if key not in self._metadata_fields:

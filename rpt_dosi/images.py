@@ -30,8 +30,8 @@ def read_image(filename):
 
 def delete_metadata(filename):
     im = ImageBase()
-    im._filename = filename
-    f = im._get_metadata_filename()
+    im._image_filename = filename
+    f = im.get_metadata_filepath()
     os.remove(f)
 
 
@@ -161,13 +161,13 @@ class ImageBase(rmd.ClassWithMetaData):
         self.image = None
         # metadata infos
         self.description = ""
-        self._filename = None
         self.acquisition_datetime = None
         # internal parameters
+        self._image_filename = None
         self._image_path = None
+        self._image_header = None
         self._unit = None
         self._unit_default_value = 0
-        self._image_header = None
         # unit converter
         self.unit_converter = {}
 
@@ -202,17 +202,17 @@ class ImageBase(rmd.ClassWithMetaData):
 
     @image_path.setter
     def image_path(self, value):
-        self._image_path = value
-        self._filename = os.path.basename(value)
+        self._image_path = os.path.abspath(value)
+        self._image_filename = os.path.basename(value)
 
     @property
     def filename(self):
-        return self._filename
+        return self._image_filename
 
     @filename.setter
     def filename(self, value):
-        self._filename = os.path.basename(value)
-        self._image_path = Path(os.path.dirname(value)) / self._filename
+        self._image_filename = os.path.basename(value)
+        self._image_path = os.path.abspath(value)
 
     def require_unit(self, unit):
         if unit != self.unit:
@@ -221,7 +221,7 @@ class ImageBase(rmd.ClassWithMetaData):
     def convert_to_unit(self, new_unit):
         if new_unit not in self.unit_converter:
             fatal(f"I dont know how to convert to '{new_unit}'")
-        # get the function name
+        # get the function's name
         f = self.unit_converter[new_unit]
         # and call it (probably there is a better way)
         getattr(self, f)()
@@ -258,14 +258,20 @@ class ImageBase(rmd.ClassWithMetaData):
     def read_metadata(self):
         json_filename = self.get_metadata_filepath()
         current_image_type = self.image_type
+        p = self.image_path
         if os.path.exists(json_filename):
             self.load_from_json(json_filename)
+        # put back image path and check image filename
+        read_filename = self._image_filename
+        self.image_path = p
+        if self._image_filename != read_filename:
+            fatal(f'Error: the filename in the sidecar json is "{read_filename}" '
+                  f'while we expected "{self.filename}"')
         if self.image_type != current_image_type:
             fatal(f'Image type is "{current_image_type}" but reading '
                   f'metadata "{self.image_type}" in the file {json_filename}')
 
     def read_image_header(self):
-        print(f'Reading image header from {self.image_path}')
         reader = sitk.ImageFileReader()
         reader.SetFileName(str(self.image_path))
         reader.LoadPrivateTagsOn()
@@ -288,9 +294,9 @@ class ImageBase(rmd.ClassWithMetaData):
     def info(self):
         json_filename = self.get_metadata_filepath()
         js = f'(metadata: {self.get_metadata_filepath()})'
-        if not os.path.exists(json_filename):
+        if json_filename is not None and not os.path.exists(json_filename):
             js = '(no metadata available)'
-        s = f'Image:   {self._filename} {js}\n'
+        s = f'Image:   {self._image_filename} {js}\n'
         s += f'Type:    {self.image_type}\n'
         s += f'Loaded:  {self.image is not None}\n'
         s += f'Unit:    {self.unit}\n'
@@ -390,9 +396,9 @@ class ImageSPECT(ImageBase):
 
     def convert_to_suv(self):
         if self.body_weight_kg is None:
-            fatal(f'To convert to SUV, body_weight_kg cannot be None (SPECT image {self._filename})')
+            fatal(f'To convert to SUV, body_weight_kg cannot be None (SPECT image {self._image_filename})')
         if self.injection_activity_mbq is None:
-            fatal(f'To convert to SUV, injection_activity_MBq cannot be None (SPECT image {self._filename})')
+            fatal(f'To convert to SUV, injection_activity_MBq cannot be None (SPECT image {self._image_filename})')
         arr = sitk.GetArrayFromImage(self.image)
         # convert to Bq/mL first
         self.convert_to_bqml()
