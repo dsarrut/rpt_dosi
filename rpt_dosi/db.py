@@ -467,7 +467,7 @@ class ImagingTimepoint:
         if os.path.exists(self.ct_image_path):
             ct = rim.ImageCT()
             ct.filename = str(self.ct_image_path)
-            ct.read_header()
+            ct.read_image_header()
             ct.write_metadata()
 
     def update_spect_sidecar_json(self, unit):
@@ -475,7 +475,7 @@ class ImagingTimepoint:
             spect = rim.ImageSPECT()
             spect.filename = str(self.spect_image_path)
             spect.unit = unit
-            spect.read_header()
+            spect.read_image_header()
             spect.write_metadata()
 
     def update_roi_sidecar_json(self, roi_name):
@@ -483,7 +483,7 @@ class ImagingTimepoint:
         if os.path.exists(dest_path):
             spect = rim.ImageROI(roi_name)
             spect.filename = str(dest_path)
-            spect.read_header()
+            spect.read_image_header()
             spect.write_metadata()
 
     def set_image(self,

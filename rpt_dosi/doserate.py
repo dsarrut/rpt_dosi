@@ -135,6 +135,7 @@ def simu_add_activity_source(
         source.position.translation = get_translation_between_images_center(
             ct.image, activity_filename
         )
+    print(f'translation source', source.position.translation)
     return source
 
 
@@ -148,6 +149,7 @@ def simu_add_dose_actor(sim, ct, source):
     dose.spacing = source_info.spacing
     # translate the dose the same way as the source
     dose.translation = source.position.translation
+    print(f'translation dose', dose.translation)
     # set the origin of the dose like the source
     if not sim.user_info.visu:
         dose.img_coord_system = True
@@ -260,8 +262,8 @@ class DoseRateSimulation():
 
         return source
 
-    def compute_scaling(self, sim):
-        spect = rim.read_spect(self.resampled_activity_filename)
+    def compute_scaling(self, sim, unit=None):
+        spect = rim.read_spect(self.resampled_activity_filename, input_unit=unit)
         spect.require_unit('Bq')
         total_activity_bq = spect.compute_total_activity()
         scaling = total_activity_bq / float(self.activity_bq)

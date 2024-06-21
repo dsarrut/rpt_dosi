@@ -1,4 +1,5 @@
 from . import helpers as rhe
+from . import metadata as rmd
 import SimpleITK as sitk
 import math
 from .helpers import fatal
@@ -27,36 +28,41 @@ def read_image(filename):
     return im
 
 
-def delete_metadata(filename):
-    im = ImageBase()
-    im.filename = filename
-    f = im._get_metadata_filename()
-    os.remove(f)
-
-
-def read_image_header_only(filename):
+def read_image_header_only(filepath):
     # try to find the image type
-    image_type = read_image_type_from_metadata(filename)
+    image_type = read_image_type_from_metadata(filepath)
     if image_type is not None:
         # create the correct class if it is found
         im = build_image_from_type(image_type)
-        im.filename = filename
+        im.image_path = filepath
         im.read_metadata()
     else:
         # else create a generic image
         im = ImageBase()
-        im.filename = filename
+        im.image_path = filepath
         im.read_metadata()
     # read the image header (size, spacing, etc.)
-    im.read_header()
+    im.read_image_header()
     return im
 
 
-def read_image_type_from_metadata(filename):
+def read_image_type_from_metadata(filepath):
+    json_path = str(filepath) + ".json"
+    if not os.path.exists(json_path):
+        return None
+    with open(json_path, 'r') as f:
+        data = json.load(f)
+    if 'image_type' not in data:
+        fatal(f'No image type in metadata {json_path}')
+    return data['image_type']
+
+
+def delete_image_metadata(filepath):
     im = ImageBase()
-    im.filename = filename
-    im.read_metadata()
-    return im.image_type
+    im._image_path = filepath
+    f = im.get_metadata_filepath()
+    if os.path.exists(f):
+        os.remove(f)
 
 
 def build_image_from_type(image_type):
@@ -78,19 +84,22 @@ def read_spect(filename, input_unit=None):
     spect = ImageSPECT()
     spect.read(filename)
     if spect.unit is None and input_unit is None:
-        fatal(f"Error: no image unit is specified while reading {filename} (considered as SPECT)")
+        fatal(f"Error: no image unit is specified while reading"
+              f" {filename} (considered as SPECT)")
     if input_unit is not None:
         spect.unit = input_unit
     else:
         if spect.unit is None:
-            fatal(f"Error: no image unit is specified while reading {filename} (considered as SPECT)")
+            fatal(f"Error: no image unit is specified while reading"
+                  f" {filename} (considered as SPECT)")
     return spect
 
 
 def read_roi(filename, name, effective_time_h=None):
     roi = ImageROI(name)
     roi.read(filename)
-    roi.effective_time_h = effective_time_h
+    if effective_time_h is not None:
+        roi.effective_time_h = effective_time_h
     return roi
 
 
@@ -106,7 +115,8 @@ def read_dose(filename, input_unit=None):
     else:
         if d.image_type is not None:
             if d.unit != input_unit:
-                fatal(f"Image metadata have {d.unit} as pixel unit, but input unit is {input_unit}, error.")
+                fatal(f"Image metadata have {d.unit} as pixel unit, "
+                      f"but input unit is {input_unit}, error.")
     return d
 
 
@@ -116,7 +126,7 @@ def read_list_of_rois(filename, folder=None):
         rois_file = BoxList(json.load(f))
         for roi in rois_file:
             Teff = None
-            if "time_eff_h" in roi:
+            if "time_eff_h" in roi:  # FIXME change to effective_time_h ?
                 Teff = roi["time_eff_h"]
             fn = roi.roi_filename
             if folder is not None:
@@ -126,27 +136,33 @@ def read_list_of_rois(filename, folder=None):
     return rois
 
 
-class ImageBase:
+class ImageBase(rmd.ClassWithMetaData):
     authorized_units = []
     unit_default_values = {}
     image_type = None
 
+    # the metadata members are attributes that will be
+    # stored/loaded on disk (in json file)
+    _metadata_fields = {'image_type': str,
+                        'description': str,
+                        'filename': str,
+                        'acquisition_datetime': str,
+                        'unit': str}
+
     def __init__(self):
-        # basics infos
+        super().__init__()
         self.image = None
+        # basics metadata infos
         self.description = ""
         self.filename = None
         self.acquisition_datetime = None
         # internal parameters
+        self._image_path = None
         self._unit = None
         self._unit_default_value = 0
-        self._header = None
+        self._image_header = None
         # unit converter
         self.unit_converter = {}
-        # list of tag
-        self.available_tags = {
-            'description': str,
-            'acquisition_datetime': str}
 
     @property
     def unit(self):
@@ -158,16 +174,29 @@ class ImageBase:
         Only change the unit when it is not known (equal to None).
         Otherwise, user "convert"
         """
+        if self._unit == value:
+            return
         if self.image_type is None:
             fatal("Cannot set the unit, the image type is not known "
                   f"(use change_image_type function, with one "
                   f"of {[k for k in image_builders]})")
-        if value not in self.authorized_units:
+        if len(self.authorized_units) < 1 and value not in self.authorized_units:
             fatal(f"Unauthorized unit {value}. Must be one of {self.authorized_units}")
         if self._unit is not None:
-            fatal(f"Cannot set the unit to {value}, it is {self._unit} ; Use convert functions or delete metadata")
+            fatal(
+                f"Cannot set the unit to {value} (current value is {self._unit}) ; Use convert functions or delete metadata")
         self._unit = value
-        self._unit_default_value = self.unit_default_values[value]
+        if value in self.unit_default_values:
+            self._unit_default_value = self.unit_default_values[value]
+
+    @property
+    def image_path(self):
+        return self._image_path
+
+    @image_path.setter
+    def image_path(self, value):
+        self._image_path = value
+        self.filename = os.path.basename(value)
 
     def require_unit(self, unit):
         if unit != self.unit:
@@ -181,21 +210,6 @@ class ImageBase:
         # and call it (probably there is a better way)
         getattr(self, f)()
 
-    def copy_info_from(self, image):
-        self.description = image.description
-        self.filename = image.filename
-        self.acquisition_datetime = image.acquisition_datetime
-
-    def set_tag(self, key, value):
-        print(f'set tag {key} to {value}')
-        if key not in self.available_tags:
-            fatal(f"No such tag '{key}' in {self.available_tags}")
-        tag_type = self.available_tags[key]
-        try:
-            setattr(self, key, tag_type(value))
-        except ValueError:
-            fatal(f"Tag {key} = {value} cannot be converted to {tag_type}")
-
     @property
     def voxel_volume_ml(self):
         if self.image is not None:
@@ -208,79 +222,55 @@ class ImageBase:
     def unit_default_value(self):
         return self._unit_default_value
 
-    def read(self, filename):
-        self.filename = filename
-        if not os.path.exists(filename):
-            fatal(f'Image: the filename {filename} does not exist.')
-        self.image = sitk.ReadImage(filename)
+    def read(self, filepath):
+        self.image_path = filepath
+        if not os.path.exists(filepath):
+            fatal(f'Image: the filename {filepath} does not exist.')
+        self.image = sitk.ReadImage(filepath)
         self.read_metadata()
 
-    def write(self, filename=None):
-        if filename is None:
-            filename = self.filename
+    def write(self, filepath=None):
+        if filepath is None:
+            filepath = self.image_path
+            if filepath is not None:
+                fatal(f'Provide the filepath to write the image to.')
+        self.image_path = filepath
         if self.image is not None:
-            sitk.WriteImage(self.image, filename)
-        self.filename = filename
+            sitk.WriteImage(self.image, filepath)
         self.write_metadata()
 
     def read_metadata(self):
-        json_filename = self._get_metadata_filename()
+        json_filename = self.get_metadata_filepath()
+        current_image_type = self.image_type
         if os.path.exists(json_filename):
-            with open(json_filename, 'r') as json_file:
-                metadata = json.load(json_file)
-                self._apply_metadata(metadata)
+            self.load_from_json(json_filename)
+        if self.image_type != current_image_type:
+            fatal(f'Image type is "{current_image_type}" but reading '
+                  f'metadata "{self.image_type}" in the file {json_filename}')
 
-    def read_header(self):
+    def read_image_header(self):
         reader = sitk.ImageFileReader()
-        reader.SetFileName(self.filename)
+        reader.SetFileName(self.image_path)
         reader.LoadPrivateTagsOn()
         reader.ReadImageInformation()
-        self._header = Box()
-        self._header.size = reader.GetSize()
-        self._header.spacing = reader.GetSpacing()
-        self._header.origin = reader.GetOrigin()
-        self._header.pixel_type = sitk.GetPixelIDValueAsString(reader.GetPixelID())
+        self._image_header = Box()
+        self._image_header.size = reader.GetSize()
+        self._image_header.spacing = reader.GetSpacing()
+        self._image_header.origin = reader.GetOrigin()
+        self._image_header.pixel_type = sitk.GetPixelIDValueAsString(reader.GetPixelID())
 
     def write_metadata(self):
-        metadata = self._gather_metadata()
-        json_filename = self._get_metadata_filename()
-        with open(json_filename, 'w') as json_file:
-            json.dump(metadata, json_file, indent=2)
+        json_filename = self.get_metadata_filepath()
+        self.save_to_json(json_filename)
 
-    def _get_metadata_filename(self):
-        if self.filename:
-            return str(self.filename) + '.json'
+    def get_metadata_filepath(self):
+        if self.image_path is not None:
+            return str(self.image_path) + '.json'
         return None
 
-    def _apply_metadata(self, metadata):
-        if 'image_type' in metadata:
-            if (self.image_type is not None and
-                    self.image_type != metadata['image_type']):
-                fatal(f'This expected image type is {self.image_type} '
-                      f'but the metadata has type {metadata["image_type"]}')
-            self.image_type = metadata['image_type']
-        if 'description' in metadata:
-            self.description = metadata['description']
-        if 'unit' in metadata:
-            self._unit = metadata['unit']
-        if 'acquisition_datetime' in metadata:
-            self.acquisition_datetime = metadata['acquisition_datetime']
-            if self.acquisition_datetime == "None":
-                self.acquisition_datetime = None
-
-    def _gather_metadata(self):
-        metadata = {
-            'filename': str(os.path.basename(self.filename)),
-            'image_type': self.image_type,
-            'description': self.description,
-            'unit': self.unit,
-            'acquisition_datetime': str(self.acquisition_datetime)
-        }
-        return metadata
-
     def info(self):
-        json_filename = self._get_metadata_filename()
-        js = f'(metadata: {self._get_metadata_filename()})'
+        json_filename = self.get_metadata_filepath()
+        js = f'(metadata: {self.get_metadata_filepath()})'
         if not os.path.exists(json_filename):
             js = '(no metadata available)'
         s = f'Image:   {self.filename} {js}\n'
@@ -294,15 +284,15 @@ class ImageBase:
             s += f'Origin:  {self.image.GetOrigin()}\n'
             s += f'Pixel :  {sitk.GetPixelIDValueAsString(self.image.GetPixelID())}'
         else:
-            if self._header is not None:
-                s += f'Size:    {self._header.size}\n'
-                s += f'Spacing: {self._header.spacing}\n'
-                s += f'Origin:  {self._header.origin}\n'
-                s += f'Pixel:   {self._header.pixel_type}'
+            if self._image_header is not None:
+                s += f'Size:    {self._image_header.size}\n'
+                s += f'Spacing: {self._image_header.spacing}\n'
+                s += f'Origin:  {self._image_header.origin}\n'
+                s += f'Pixel:   {self._image_header.pixel_type}'
         return s
 
-    def __str__(self):
-        return f"Image: type={self.image_type} unit={self.unit}"
+    # def __str__(self):
+    #    return f"Image: type={self.image_type} unit={self.unit}"
 
 
 class ImageCT(ImageBase):
@@ -312,11 +302,10 @@ class ImageCT(ImageBase):
 
     def __init__(self):
         super().__init__()
-        # set HU by default
         self.unit = 'HU'
 
-    def __str__(self):
-        return f"CT: unit={self.unit}"
+    # def __str__(self):
+    #    return f"CT: unit={self.unit}"
 
     def compute_densities(self):  # FIXME to remove ?
         if self.unit != 'HU':
@@ -338,10 +327,17 @@ class ImageSPECT(ImageBase):
     unit_default_values = {'Bq': 0, 'Bq/mL': 0, "SUV": 0}
     image_type = "SPECT"
 
+    _metadata_fields = {
+        **ImageBase._metadata_fields,  # Inherit base class fields
+        'injection_datetime': str,
+        'injection_activity_mbq': float,
+        'body_weight_kg': float
+    }
+
     def __init__(self):
         super().__init__()
         self._unit = None
-        # tags
+        # metadata
         self.injection_datetime = None
         self.injection_activity_mbq = None
         self.body_weight_kg = None
@@ -351,17 +347,13 @@ class ImageSPECT(ImageBase):
             'Bq/mL': "convert_to_bqml",
             'SUV': "convert_to_suv",
         }
-        # list of tag
-        self.available_tags.update({'injection_datetime': str})
-        self.available_tags.update({"injection_activity_mbq": float})
-        self.available_tags.update({'body_weight_kg': float})
 
-    def __str__(self):
-        return (f"SPECT: unit={self.unit}, "
-                f"body_weight={self.body_weight_kg}, "
-                f"acquisition_datetime={self.acquisition_datetime}, "
-                f"injection_datetime={self.injection_datetime}, "
-                f"injection_activity_mbq={self.injection_activity_mbq}")
+    # def __str__(self):
+    #    return (f"SPECT: unit={self.unit}, "
+    #            f"body_weight={self.body_weight_kg}, "
+    #            f"acquisition_datetime={self.acquisition_datetime}, "
+    #            f"injection_datetime={self.injection_datetime}, "
+    #            f"injection_activity_mbq={self.injection_activity_mbq}")
 
     def info(self):
         s = super().info() + '\n'
@@ -371,27 +363,6 @@ class ImageSPECT(ImageBase):
         if self.image is not None:
             s += f'Total activity: {self.compute_total_activity()} MBq\n'
         return s
-
-    def _apply_metadata(self, metadata):
-        super()._apply_metadata(metadata)
-        if 'body_weight_kg' in metadata:
-            self.body_weight_kg = metadata['body_weight_kg']
-        if 'injection_activity_mbq' in metadata:
-            self.injection_activity_mbq = metadata['injection_activity_mbq']
-        if 'injection_datetime' in metadata:
-            self.injection_datetime = metadata['injection_datetime']
-            if self.injection_datetime == "None":
-                self.injection_datetime = None
-
-    def _gather_metadata(self):
-        metadata = super()._gather_metadata()
-        m = {
-            'body_weight_kg': self.body_weight_kg,
-            'injection_activity_mbq': self.injection_activity_mbq,
-            'injection_datetime': self.injection_datetime
-        }
-        metadata.update(m)
-        return metadata
 
     def convert_to_bq(self):
         if self.unit == 'Bq/mL':
@@ -463,22 +434,19 @@ class ImageROI(ImageBase):
     unit_default_values = {'label': 0}
     image_type = "ROI"
 
+    _metadata_fields = {
+        **ImageBase._metadata_fields,  # Inherit base class fields
+        'name': str,
+        'effective_time_h': float
+    }
+
     def __init__(self, name):
         super().__init__()
         self.name = name
-        self.unit = 'label'
+        self._unit = 'label'
         self.effective_time_h = None
         self.mass_g = None
         self.volume_ml = None
-
-    def __str__(self):
-        s = f"ROI: {self.name} unit={self.unit}"
-        s += f", Teff = {self.effective_time_h} h"
-        if self.mass_g is not None:
-            s += f", mass={self.mass_g} g"
-        if self.volume_ml is not None:
-            s += f", volume={self.volume_ml} ml"
-        return s
 
     def info(self):
         s = super().info() + '\n'
@@ -505,9 +473,9 @@ class ImageDose(ImageBase):
         super().__init__()
         self._unit = None
 
-    def __str__(self):
-        s = f"Dose: unit={self.unit}"
-        return s
+    # def __str__(self):
+    #    s = f"Dose: unit={self.unit}"
+    #    return s
 
 
 image_builders = {

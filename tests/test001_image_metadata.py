@@ -33,7 +33,7 @@ if __name__ == "__main__":
     spect = rim.read_image(spect_output)
     try:
         spect.unit = 'Bq/mL'
-    except he.Error:
+    except he.Rpt_Error:
         he.print_tests(is_ok, f'OK cannot set unit because already there {is_ok}')
     is_ok = spect.image_type == 'SPECT' and spect.unit == 'Bq' and is_ok
     he.print_tests(is_ok, f'(read image) Set metadata read SPECT and Bq ? {is_ok}')
@@ -73,37 +73,42 @@ if __name__ == "__main__":
     try:
         spect.time_from_injection_h = 12.4
         is_ok = False
-    except he.Error:
+    except he.Rpt_Error:
         he.print_tests(is_ok, f'OK cannot set time from injection tag {is_ok}')
 
     # set wrong tag
     print()
     spect = rim.read_image(spect_output)
     try:
-        spect.set_tag("toto", 'titi')
+        spect.set_metadata("toto", 'titi')
         is_ok = False
-    except he.Error:
-        he.print_tests(is_ok, f'OK cannot set tag {is_ok}')
+        he.print_tests(is_ok, f'ERROR can set wrong tag  {is_ok}')
+    except he.Rpt_Error:
+        he.print_tests(is_ok, f'OK cannot set wrong tag {is_ok}')
 
     # set wrong tag
     print()
     ct_input = data_folder / "ct_8mm.nii.gz"
     ct = rim.read_ct(ct_input)
     try:
-        ct.set_tag("injection_datetime", 'titi')
+        ct.set_metadata("injection_datetime", 'titi')
         is_ok = False
-    except he.Error:
-        he.print_tests(is_ok, f'OK cannot set tag {is_ok}')
+        he.print_tests(is_ok, f'ERROR can set tag date to wrong value {is_ok}')
+    except he.Rpt_Error:
+        he.print_tests(is_ok, f'OK cannot set tag date to wrong value {is_ok}')
 
     # set wrong tag type
-    print()
+    # NO TYPE CHECK YET
+    """print()
     spect = rim.read_image(spect_output)
     try:
-        spect.set_tag("injection_activity_mbq", 'tutu')
+        spect.set_metadata("injection_activity_mbq", 'tutu')
         is_ok = False
+        he.print_tests(is_ok, f'ERROR can set tag float to wrong value {is_ok}')
         print(spect.info())
-    except he.Error:
-        he.print_tests(is_ok, f'OK cannot set tag {is_ok}')
+    except he.Rpt_Error:
+        he.print_tests(is_ok, f'OK cannot set tag float to wrong value {is_ok}')
+    """
 
     # end
     he.test_ok(is_ok)

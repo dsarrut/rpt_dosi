@@ -23,21 +23,23 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 def go(input_image, unit, image_type, tag, verbose, force):
     # delete metadata before ?
     if force:
-        rim.delete_metadata(input_image)
+        rim.delete_image_metadata(input_image)
 
-    # read image
+    # read the image header and associated metadata
     im = rim.read_image_header_only(input_image)
     if verbose:
-        print('Input metadata')
         print(im.info())
 
-    # set image type
+    # set image type (build another Image)
     if image_type is not None:
         if image_type not in rim.image_builders.keys():
-            rim.fatal(f"Unknown image type {image_type}. Available types are {rim.image_builders.keys()}")
+            rim.fatal(f"Unknown image type {image_type}. "
+                      f"Available types are {rim.image_builders.keys()}")
+        # build a new image with the correct type
         im = rim.build_image_from_type(image_type)
-        im.filename = input_image
+        im.image_path = input_image
         im.write_metadata()
+        # read the image again, this time with the metadata
         im = rim.read_image_header_only(input_image)
 
     # convert the unit
@@ -47,7 +49,7 @@ def go(input_image, unit, image_type, tag, verbose, force):
     # set tags values
     for t in tag:
         key, value = t[0], t[1]
-        im.set_tag(key, value)
+        im.set_metadata(key, value)
 
     # verbose
     if verbose:

@@ -20,7 +20,7 @@ except AttributeError:
     color_ok = colored.fore("green")
 
 
-class Error(Exception):
+class Rpt_Error(Exception):
     pass
 
 
@@ -33,7 +33,12 @@ def fatal(s, stop_and_exit=False):
     print(s)
     if stop_and_exit:
         exit()
-    raise Error(s)
+    raise Rpt_Error(s)
+
+
+def warning(s):
+    s = colored.stylize(s, color_warning)
+    print(s)
 
 
 def read_and_check_input_infos(json_file):

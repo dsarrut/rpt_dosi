@@ -14,7 +14,7 @@ def go(input_images):
         # read image
         im = rim.read_image(input_image)
         im.read_metadata()
-        im.read_header()
+        im.read_image_header()
         print(im.info())
 
 
