@@ -145,6 +145,7 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
              f'Body weight kg = {self.body_weight_kg} kg\n'
              f'Cycles {len(self.cycles)} = {ctp}\n'
              f'Total nb of timepoints = {self.number_of_timepoints()}\n'
+             f'Total nb of images = {self.number_of_images()}\n'
              f'Total nb of rois = {self.number_of_rois()}')
         return s
 
@@ -170,6 +171,13 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
         for cycle in self.cycles.values():
             for tp in cycle.timepoints.values():
                 n += len(tp.rois)
+        return n
+
+    def number_of_images(self):
+        n = 0
+        for cycle in self.cycles.values():
+            for tp in cycle.timepoints.values():
+                n += len(tp.images)
         return n
 
     def get_cycle(self, cycle_id):
@@ -499,7 +507,7 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
         if not os.path.exists(f):
             fatal(f'The image {image_name}: {f} does not exist')
         # build a metaimage
-        im = rim.build_image_from_type(image_info.image_type)
+        im = rim.build_meta_image(image_info.image_type)
         im.filename = self.get_image_path(image_name)
         if unit is not None:
             im.unit = unit

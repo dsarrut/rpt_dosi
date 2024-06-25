@@ -1,5 +1,6 @@
 import json
 from rpt_dosi.helpers import fatal
+import rpt_dosi.helpers as he
 from typing import Dict
 
 
@@ -11,6 +12,9 @@ class ClassWithMetaData:
 
     # List of attribute names to be considered as metadata
     _metadata_fields: Dict[str, type] = {}
+
+    def __init__(self):
+        self._debug_eq = False
 
     def to_dict(self):
         """
@@ -79,5 +83,26 @@ class ClassWithMetaData:
         metadata = self.to_dict()
         for name in metadata.keys():
             v = metadata[name]
-            s += f'{v} '
+            s += f'{name}={v} '
         return s
+
+    def debug_eq(self, s):
+        if self._debug_eq is None:
+            return
+        print(he.colored.stylize(s, he.color_error))
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        for key in self._metadata_fields.keys():
+            if key not in other._metadata_fields.keys():
+                self.debug_eq(f'{key} is not in {other._metadata_fields}')
+                return False
+            if getattr(self, key) != getattr(other, key):
+                self.debug_eq(f'{key}={getattr(self, key)} is different from {getattr(other, key)}')
+                return False
+        for key in other._metadata_fields.keys():
+            if key not in self._metadata_fields.keys():
+                self.debug_eq(f'{key} is not in {self._metadata_fields}')
+                return False
+        return True

@@ -1,7 +1,6 @@
 import json
 import os
 from types import NoneType
-
 from box import Box
 import inspect
 import colored
@@ -10,6 +9,8 @@ from pathlib import Path
 import sys
 import math
 import collections.abc
+from dateutil import parser
+from datetime import datetime
 
 try:
     color_error = colored.fg("red") + colored.attr("bold")
@@ -117,6 +118,7 @@ def print_tests(is_ok, s):
     else:
         s = colored.stylize(s, color_ok)
     print(s)
+    return is_ok
 
 
 def test_ok(is_ok=False):
@@ -241,3 +243,11 @@ def get_basename_and_extension(filename):
         extensions.append(ext)
     extensions.reverse()
     return os.path.basename(base), ''.join(extensions)
+
+
+def convert_datetime(value):
+    try:
+        dt = parser.parse(value)
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+    except:
+        fatal(f"Invalid date format '{value}', we expect '%Y-%m-%d %H:%M:%S'")
