@@ -16,7 +16,6 @@ if __name__ == "__main__":
 
     # prepare image (fake one)
     im_input = data_folder / "spleen.nii.gz"
-    # im_input = data_folder / "spect_8.321mm.nii.gz"
     image_path = output_folder / f"spect.nii.gz"
     shutil.copy(im_input, image_path)
     rim.delete_metadata(image_path)
@@ -65,6 +64,8 @@ if __name__ == "__main__":
     is_ok = he.print_tests(t1 == t3, f"Total activity {t1} vs {t3}") and is_ok
 
     # unit SUV
+    print()
+    warning('Test convert SUV')
     spect.body_weight_kg = 666
     spect.injection_activity_mbq = 33
     spect.convert_to_suv()
@@ -73,6 +74,15 @@ if __name__ == "__main__":
     is_ok = he.print_tests(t1 == t4, f"Total activity {t1} vs {t4}") and is_ok
     print(spect.image_filepath)
     print(spect.metadata_filepath)
+
+    # 'force' change unit
+    print()
+    warning('Test FORCE convert SUV with _unit=None')
+    spect._unit = None
+    spect.unit = 'Bq'
+    t5 = spect.compute_total_activity()
+    print(f'{spect} Bq --> {t5}')
+    is_ok = he.print_tests(t1 != t5, f"Total activity {t1} must be different {t5}") and is_ok
 
     # end
     he.test_ok(is_ok)

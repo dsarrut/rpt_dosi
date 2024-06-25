@@ -25,8 +25,8 @@ if __name__ == "__main__":
     print()
     print('Read image with metadata (CT)')
     im = rim.read_ct(ct_output)
-    print(im.get_metadata_filepath())
-    with open(im.get_metadata_filepath()) as f:
+    print(im.metadata_filepath)
+    with open(im.metadata_filepath) as f:
         print(f.read())
     b = im.image_type == 'CT' and im.unit == 'HU'
     he.print_tests(b, f'OK, image metadata is CT and HU {im}')

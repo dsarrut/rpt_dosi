@@ -32,7 +32,8 @@ def delete_metadata(filename):
     im = MetaImageBase(filename)
     im._image_filename = filename
     f = im.metadata_filepath
-    os.remove(f)
+    if os.path.exists(f):
+        os.remove(f)
 
 
 def read_image_header_only(filepath):
@@ -195,10 +196,10 @@ class MetaImageBase(rmd.ClassWithMetaData):
         s = super().__str__()
         ss = ''
         if self.image is None:
-            ss = "(not loaded)"
-        if self._image_header is not None:
-            ss = "(header loaded)"
-        return f'{s} {ss}'
+            ss = "(image not loaded) "
+            if self._image_header is not None:
+                ss = "(header loaded) "
+        return f'{s}{ss}'
 
     def ensure_image_is_loaded(self):
         if self.image is None:
@@ -226,7 +227,7 @@ class MetaImageBase(rmd.ClassWithMetaData):
         """
         if self._unit is not None:
             fatal(f"Cannot set the unit to '{value}' while it is "
-                  f"'{self._unit}' use convert_to_unit ({self})")
+                  f"'{self.unit}' use convert_to_unit ({self})")
         if value is None:
             return
         if self.image_type is None:
@@ -237,7 +238,8 @@ class MetaImageBase(rmd.ClassWithMetaData):
             fatal(f"Unauthorized unit {value}. Must be one of {self.authorized_units}")
         if self._unit is not None:
             fatal(
-                f"Cannot set the unit to {value} (current value is {self._unit}) ; Use convert functions or delete metadata")
+                f"Cannot set the unit to {value} (current value is {self._unit})"
+                f" ; Use convert functions or delete metadata")
         self._unit = value
         if value in self.unit_default_values:
             self._unit_default_value = self.unit_default_values[value]
@@ -268,7 +270,9 @@ class MetaImageBase(rmd.ClassWithMetaData):
 
     def convert_to_unit(self, new_unit):
         if new_unit not in self.unit_converter:
-            fatal(f"I dont know how to convert to '{new_unit}'")
+            fatal(f"I dont know how to convert to the unit to '{new_unit}' "
+                  f"(current unit is {self.unit}, available units are {self.authorized_units}"
+                  f" ; maybe set the image type ?)")
         # get the function's name
         f = self.unit_converter[new_unit]
         # and call it (probably there is a better way)
@@ -455,24 +459,22 @@ class MetaImageSPECT(MetaImageBase):
         self.ensure_image_is_loaded()
         if self.unit == 'Bq/mL':
             self.image *= self.voxel_volume_cc
-            self._unit = 'Bq'
         if self.unit == "SUV":
             self.image *= self.voxel_volume_cc * (self.injection_activity_mbq / self.body_weight_kg)
-            self._unit = 'Bq'
+        self._unit = 'Bq'
 
     def convert_to_bqml(self):
-        self.ensure_image_is_loaded()
         if self.unit == 'Bq':
+            self.ensure_image_is_loaded()
             # need to cast when divide
             self.image = sitk.Cast(self.image, sitk.sitkFloat64)
             self.image /= self.voxel_volume_cc
-            self._unit = "Bq/mL"
         if self.unit == "SUV":
             self.convert_to_bq()
             self.convert_to_bqml()
+        self._unit = 'Bq/mL'
 
     def convert_to_suv(self):
-        self.ensure_image_is_loaded()
         if self.body_weight_kg is None:
             fatal(f'To convert to SUV, body_weight_kg cannot be None (SPECT image {self._image_filename})')
         if self.injection_activity_mbq is None:
