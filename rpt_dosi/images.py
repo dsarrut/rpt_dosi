@@ -205,7 +205,7 @@ class MetaImageBase(rmd.ClassWithMetaData):
             s += f' {self.image.GetSize()} {self.image.GetSpacing()}'
         else:
             if self._image_header is not None:
-                s += f' {self._image_header.GetSize()} {self._image_header.GetSpacing()}'
+                s += f' {self._image_header.size} {self._image_header.spacing}'
         return s
 
         s = super().__str__()
@@ -401,8 +401,8 @@ class MetaImageCT(MetaImageBase):
     unit_default_values = {'HU': -1000, 'g/cm3': 0}
     image_type = "CT"
 
-    def __init__(self, image_path):
-        super().__init__(image_path)
+    def __init__(self, image_path, create=False):
+        super().__init__(image_path, create)
         self.unit = 'HU'
 
     def compute_densities(self):  # FIXME to remove ?
@@ -431,8 +431,8 @@ class MetaImageSPECT(MetaImageBase):
         'injection_activity_mbq': float
     }
 
-    def __init__(self, image_path, unit=None):
-        super().__init__(image_path)
+    def __init__(self, image_path, unit=None, create=False):
+        super().__init__(image_path, create)
         # metadata
         self._injection_datetime = None
         self.injection_activity_mbq = None
@@ -552,8 +552,8 @@ class MetaImageROI(MetaImageBase):
         'effective_time_h': float
     }
 
-    def __init__(self, image_path, name=None):
-        super().__init__(image_path)
+    def __init__(self, image_path, name=None, create=False):
+        super().__init__(image_path, create)
         self.name = name
         self._unit = 'label'
         self.effective_time_h = None

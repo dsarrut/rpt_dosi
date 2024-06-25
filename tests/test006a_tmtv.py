@@ -20,7 +20,8 @@ if __name__ == "__main__":
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     output = output_folder / "tmtv.nii.gz"
     output_mask = output_folder / "tmtv_mask.nii.gz"
-    cmd = f"rpt_tmtv -i {spect_input} -o {output} -m {output_mask} -t 100000"
+    skull = data_folder / "rois" / "skull.nii.gz"
+    cmd = f"rpt_tmtv -i {spect_input} -o {output} -m {output_mask} -t 100000 --skull {skull}"
     is_ok = he.run_cmd(cmd, data_folder)
 
     # compare

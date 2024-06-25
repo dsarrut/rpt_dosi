@@ -113,6 +113,8 @@ class TMTV:
         # cut the head
         self.verbose and print(f'Cut the head with {self.cut_the_head_margin_mm} mm margin')
         if self.cut_the_head:
+            if self.cut_the_head_roi_filename is None:
+               rhe.fatal(f'You need to provide the skull filename')
             tmtv_mask_cut_the_head(itk_image,
                                    np_mask,
                                    self.cut_the_head_roi_filename,
