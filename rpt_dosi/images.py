@@ -308,10 +308,9 @@ class MetaImageBase(rmd.ClassWithMetaData):
             filepath = self.image_filepath
             if filepath is None:
                 fatal(f'Provide the filepath to write the image to.')
-        else:
-            self.image_filepath = filepath
         if self.image_is_loaded():
             sitk.WriteImage(self.image, filepath)
+        self.image_filepath = filepath
         self.write_metadata()
 
     def read_metadata(self):
