@@ -36,13 +36,16 @@ def go(input_image, unit, image_type, tag, verbose, force):
             rim.fatal(f"Unknown image type {image_type}. "
                       f"Available types are {rim.image_builders.keys()}")
         # build a new image with the correct type
-        im = rim.build_image_from_type(image_type)
-        im.image_path = input_image
+        im = rim.build_meta_image(image_type, input_image)
         im.read_image_header()
 
     # convert the unit
     if unit is not None:
-        im.unit = unit
+        # the image must be loaded to convert unit
+        im.read()
+        im.convert_to_unit(unit)
+        # write the modified image
+        im.write()
 
     # set tags values
     for t in tag:
@@ -57,7 +60,6 @@ def go(input_image, unit, image_type, tag, verbose, force):
 
     # write metadata only
     im.write_metadata()
-
 
 # --------------------------------------------------------------------------
 if __name__ == "__main__":

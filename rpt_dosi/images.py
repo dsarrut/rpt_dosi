@@ -23,13 +23,13 @@ def read_image(filepath):
         im.read(filepath)
     else:
         # else create a generic image
-        im = MetaImageBase()
+        im = MetaImageBase(filepath)
         im.read(filepath)
     return im
 
 
 def delete_metadata(filename):
-    im = MetaImageBase(filename)
+    im = MetaImageBase(filename, create=True)
     im._image_filename = filename
     f = im.metadata_filepath
     if os.path.exists(f):
@@ -73,7 +73,7 @@ def delete_image_metadata(filepath):
         os.remove(f)
 
 
-def build_meta_image(image_type, filepath):
+def build_meta_image(image_type, filepath, create=False):
     if image_type not in image_builders:
         fatal(f"This image type '{image_type}' is not known. "
               f"Known image types: {image_builders.keys()}")
@@ -84,6 +84,7 @@ def build_meta_image(image_type, filepath):
 
 def read_ct(filename):
     ct = MetaImageCT(filename)
+    ct.read()
     return ct
 
 
@@ -105,7 +106,7 @@ def read_spect(filename, input_unit=None):
 
 def read_pet(filename, input_unit=None):
     spect = MetaImagePET(filename, input_unit)
-    spect.read(filename)
+    spect.read()
     if spect.unit is None and input_unit is None:
         fatal(f"Error: no image unit is specified while reading"
               f" {filename} (considered as PET)")
@@ -121,7 +122,7 @@ def read_pet(filename, input_unit=None):
 
 def read_roi(filename, name=None, effective_time_h=None):
     roi = MetaImageROI(filename, name)
-    roi.read(filename)
+    roi.read()
     if effective_time_h is not None:
         roi.effective_time_h = effective_time_h
     return roi
@@ -129,7 +130,7 @@ def read_roi(filename, name=None, effective_time_h=None):
 
 def read_dose(filename, input_unit=None):
     d = MetaImageDose(filename)
-    d.read(filename)
+    d.read()
     if d.unit is None:
         # set Gy by default
         if input_unit is None:
@@ -174,7 +175,7 @@ class MetaImageBase(rmd.ClassWithMetaData):
                         'acquisition_datetime': str,
                         'unit': str}
 
-    def __init__(self, image_path):
+    def __init__(self, image_path, create=False):
         super().__init__()
         self.image = None
         # metadata infos
@@ -190,9 +191,23 @@ class MetaImageBase(rmd.ClassWithMetaData):
         # unit converter
         self.unit_converter = {}
         # set the filepath
-        self.image_filepath = image_path
+        if create and not os.path.exists(image_path):
+            self._image_filepath = os.path.abspath(image_path)
+            self._image_filename = os.path.basename(image_path)
+        else:
+            self.image_filepath = image_path
 
     def __str__(self):
+        s = (f'{self.image_type}: {self.description} '
+             f'{self.filename} {self.unit} '
+             f'acq_date={self.acquisition_datetime}')
+        if self.image_is_loaded():
+            s += f' {self.image.GetSize()} {self.image.GetSpacing()}'
+        else:
+            if self._image_header is not None:
+                s += f' {self._image_header.GetSize()} {self._image_header.GetSpacing()}'
+        return s
+
         s = super().__str__()
         ss = ''
         if self.image is None:

@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     # CRUD : CREATE READ UPDATE DELETE
 
-    # test: CREATE
+    # test: CREATE (file exist)
     print()
     warning("Create an image metadata")
     created_images = {}
@@ -44,6 +44,18 @@ if __name__ == "__main__":
         im._debug_eq = True
         is_ok = he.print_tests(im == im2, f'Compare im1 and im2 for {im_type}') and is_ok
         created_images[im_type] = im
+
+    # test: CREATE (file does not exist)
+    print()
+    warning("Try to create when no image")
+    for im_type in im_types:
+        a = output_folder / f"{im_type.lower()}_fake.nii.gz"
+        try:
+            im = rim.build_meta_image(im_type, a)
+            is_ok = False
+        except:
+            pass
+    he.print_tests(is_ok, f'Try to create should fail')
 
     # test: READ
     print()
@@ -118,6 +130,14 @@ if __name__ == "__main__":
     roi = rim.read_image_header_only(image_path)
     print(roi)
     is_ok = he.print_tests(not os.path.exists(roi.metadata_filepath), f'Delete json') and is_ok
+
+    # test
+    print()
+    warning("read image type only")
+    image_path = output_folder / f"spect.nii.gz"
+    it = rim.read_image_type_from_metadata(image_path)
+    b = it == "SPECT"
+    is_ok = he.print_tests(b, f'Read image type {it}') and is_ok
 
     # end
     he.test_ok(is_ok)
