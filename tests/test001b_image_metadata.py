@@ -17,6 +17,7 @@ if __name__ == "__main__":
 
     # set meta unit Bq
     print()
+    he.warning('Test command line rpt_image_set_metadata with spect')
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_8.321mm.nii.gz"
     shutil.copy(spect_input, spect_output)
@@ -31,6 +32,7 @@ if __name__ == "__main__":
 
     # set meta again with already existing metadata
     print()
+    he.warning('Test read_image')
     spect = rim.read_image(spect_output)
     try:
         spect.unit = 'Bq/mL'
@@ -41,8 +43,9 @@ if __name__ == "__main__":
     he.print_tests(is_ok, f'(read image) Set metadata read SPECT and Bq ? {is_ok}')
 
     # check filename in the json file
+    print()
+    he.warning('Test metadata json file')
     fn = spect.get_metadata_filepath()
-    print(fn)
     with open(fn, 'r') as f:
         data = json.load(f)
         data['filename'] = "titi.nii.gz"
@@ -62,9 +65,9 @@ if __name__ == "__main__":
     except he.Rpt_Error:
         he.print_tests(is_ok, f'OK cannot read wrong file {is_ok}')
 
-
     # set meta unit Bq/mL
     print()
+    he.warning('Test set unit with rpt_image_set_metadata')
     cmd = f"rpt_image_set_metadata -i {spect_output} -u Bq/mL -t SPECT -f"
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
     out_spect = rim.read_spect(spect_output)
@@ -73,6 +76,7 @@ if __name__ == "__main__":
 
     # set tags for spect
     print()
+    he.warning('Test set tags rpt_image_set_metadata')
     cmd = (f'rpt_image_set_metadata -i {spect_output}'
            f' --tag injection_datetime "2022-02-01 12:11:00"'
            f' --tag injection_activity_mbq 7504'
@@ -83,6 +87,7 @@ if __name__ == "__main__":
 
     # special case for time_from_injection_h
     print()
+    he.warning('Test acquisition_datetime')
     spect = rim.read_image(spect_output)
     spect.body_weight_kg = 80.4
     spect.acquisition_datetime = None
@@ -94,6 +99,7 @@ if __name__ == "__main__":
 
     # special case for time_from_injection_h
     print()
+    he.warning('Test time_from_injection_h')
     spect = rim.read_image(spect_output)
     try:
         spect.time_from_injection_h = 12.4
@@ -103,6 +109,7 @@ if __name__ == "__main__":
 
     # set wrong tag
     print()
+    he.warning('Test wrong metadata')
     spect = rim.read_image(spect_output)
     try:
         spect.set_metadata("toto", 'titi')
@@ -113,6 +120,7 @@ if __name__ == "__main__":
 
     # set wrong tag
     print()
+    he.warning('Test wrong tag date type')
     ct_input = data_folder / "ct_8mm.nii.gz"
     ct = rim.read_ct(ct_input)
     try:
@@ -124,6 +132,7 @@ if __name__ == "__main__":
 
     # set wrong tag type
     print()
+    he.warning('Test wrong tag float type')
     spect = rim.read_image(spect_output)
     try:
         spect.set_metadata("injection_activity_mbq", 'tutu')
@@ -133,6 +142,22 @@ if __name__ == "__main__":
         print(spect.info())
     except he.Rpt_Error:
         he.print_tests(is_ok, f'OK cannot set tag float to wrong value {is_ok}')
+
+    # PET
+    print()
+    he.warning('Test PET and convert to SUV')
+    pet = rim.read_pet(data_folder / "spect_8.321mm.nii.gz", "Bq/mL")
+    pet.body_weight_kg = 80.4
+    pet.acquisition_datetime = None
+    pet.injection_datetime = None
+    pet.injection_activity_mbq = 7504
+    pet.time_from_injection_h = 12.4
+    pet.convert_to_suv()
+    pet.write(output_folder / "pet.nii.gz")
+    pet2 = rim.read_pet(pet.image_path)
+    is_ok = he.are_dicts_equal(pet.to_dict(), pet2.to_dict()) and is_ok
+    print(pet.info())
+    he.print_tests(is_ok, f'Compare pet json')
 
     # end
     he.test_ok(is_ok)

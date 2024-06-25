@@ -1,5 +1,7 @@
 import json
 import os
+from types import NoneType
+
 from box import Box
 import inspect
 import colored
@@ -111,7 +113,7 @@ def get_tests_folders(test_name):
 
 def print_tests(is_ok, s):
     if not is_ok:
-        s = colored.stylize(s, color_error)
+        s = colored.stylize(f'TEST ERROR : {s}', color_error)
     else:
         s = colored.stylize(s, color_ok)
     print(s)
@@ -153,7 +155,8 @@ def escape_special_characters(filename):
 def are_dicts_equal(dict1, dict2, float_tolerance=1e-9):
     for key, value1 in dict1.items():
         if key not in dict2:
-            print(key + " is not in dict2")
+            s = key + " is not in dict2"
+            print(colored.stylize(s, color_error))
             return False
 
         value2 = dict2[key]
@@ -161,18 +164,23 @@ def are_dicts_equal(dict1, dict2, float_tolerance=1e-9):
         if isinstance(value1, dict) and isinstance(value2, dict):
             if not are_dicts_equal(value1, value2, float_tolerance):
                 return False
+
         elif isinstance(value1, (int, float)) and isinstance(value2, (int, float)):
             if not math.isclose(value1, value2, abs_tol=float_tolerance):
-                print("The number values are not equals: " + str(value1) + " vs. " + str(value2) + " tol= " + str(
-                    float_tolerance))
+                s = "The number values are not equals: " + str(value1) + " vs. " + str(value2) + " tol= " + str(
+                    float_tolerance)
+                print(colored.stylize(s, color_error))
                 return False
+
         elif isinstance(value1, str) and isinstance(value2, str):
             # special case on windows for path
             if "\\" in value1:
                 value1 = value1.replace("\\", "/")
             if not value1 == value2:
-                print("The strings values are not equals: " + str(value1) + " vs. " + str(value2))
+                s = "The strings values are not equals: " + str(value1) + " vs. " + str(value2)
+                print(colored.stylize(s, color_error))
                 return False
+
         elif isinstance(value1, collections.abc.Sequence) and isinstance(value2, collections.abc.Sequence):
             nbElement = len(value1)
             if not nbElement == len(value2):
@@ -181,13 +189,28 @@ def are_dicts_equal(dict1, dict2, float_tolerance=1e-9):
             for i in range(0, nbElement):
                 if not are_dicts_equal(value1[i], value2[i], float_tolerance):
                     return False
-        else:
-            print("The values are not int/float/dict/str, cannot be compared: " + str(value1) + " vs. " + str(value2))
+
+        elif isinstance(value1, NoneType) and not isinstance(value2, NoneType):
+            s = f"ERROR: '{key}' value1 is None but not value2 ({value2})"
+            print(colored.stylize(s, color_error))
+            return False
+
+        elif not isinstance(value1, NoneType) and isinstance(value2, NoneType):
+            s = f"ERROR: '{key}' value2 is None but not value1 ({value1})"
+            print(colored.stylize(s, color_error))
+            return False
+
+        elif not isinstance(value1, NoneType) and not isinstance(value2, NoneType):
+            s = (f"ERROR: the values are not int/float/dict/str, "
+                 f"cannot be compared key '{key}' : {str(value1)} vs. {str(value2)}, "
+                 f"type1 is {type(value1)} and type2 is {type(value2)}")
+            print(colored.stylize(s, color_error))
             return False
 
     for key in dict2.keys():
         if key not in dict1:
-            print(key + " is not in dict1")
+            s = key + " is not in dict1"
+            print(colored.stylize(s, color_error))
             return False
 
     return True

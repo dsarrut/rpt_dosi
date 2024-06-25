@@ -23,13 +23,13 @@ def read_image(filename):
         im.read(filename)
     else:
         # else create a generic image
-        im = ImageBase()
+        im = MetaImageBase()
         im.read(filename)
     return im
 
 
 def delete_metadata(filename):
-    im = ImageBase()
+    im = MetaImageBase()
     im._image_filename = filename
     f = im.get_metadata_filepath()
     os.remove(f)
@@ -45,7 +45,7 @@ def read_image_header_only(filepath):
         im.read_metadata()
     else:
         # else create a generic image
-        im = ImageBase()
+        im = MetaImageBase()
         im.image_path = filepath
         im.read_metadata()
     # read the image header (size, spacing, etc.)
@@ -68,7 +68,7 @@ def read_image_type_from_metadata(filepath):
 
 
 def delete_image_metadata(filepath):
-    im = ImageBase()
+    im = MetaImageBase()
     im._image_path = filepath
     f = im.get_metadata_filepath()
     if os.path.exists(f):
@@ -85,18 +85,21 @@ def build_image_from_type(image_type):
 
 
 def read_ct(filename):
-    ct = ImageCT()
+    ct = MetaImageCT()
+    print(f'ct={ct}')
     ct.read(filename)
+    print(f'ct={ct}')
     return ct
 
 
 def read_spect(filename, input_unit=None):
-    spect = ImageSPECT()
+    spect = MetaImageSPECT(input_unit)
     spect.read(filename)
     if spect.unit is None and input_unit is None:
         fatal(f"Error: no image unit is specified while reading"
               f" {filename} (considered as SPECT)")
     if input_unit is not None:
+        spect._unit = None
         spect.unit = input_unit
     else:
         if spect.unit is None:
@@ -105,8 +108,24 @@ def read_spect(filename, input_unit=None):
     return spect
 
 
+def read_pet(filename, input_unit=None):
+    spect = MetaImagePET(input_unit)
+    spect.read(filename)
+    if spect.unit is None and input_unit is None:
+        fatal(f"Error: no image unit is specified while reading"
+              f" {filename} (considered as PET)")
+    if input_unit is not None:
+        spect._unit = None
+        spect.unit = input_unit
+    else:
+        if spect.unit is None:
+            fatal(f"Error: no image unit is specified while reading"
+                  f" {filename} (considered as PET)")
+    return spect
+
+
 def read_roi(filename, name, effective_time_h=None):
-    roi = ImageROI(name)
+    roi = MetaImageROI(name)
     roi.read(filename)
     if effective_time_h is not None:
         roi.effective_time_h = effective_time_h
@@ -114,7 +133,7 @@ def read_roi(filename, name, effective_time_h=None):
 
 
 def read_dose(filename, input_unit=None):
-    d = ImageDose()
+    d = MetaImageDose()
     d.read(filename)
     if d.unit is None:
         # set Gy by default
@@ -146,7 +165,7 @@ def read_list_of_rois(filename, folder=None):
     return rois
 
 
-class ImageBase(rmd.ClassWithMetaData):
+class MetaImageBase(rmd.ClassWithMetaData):
     authorized_units = []
     unit_default_values = {}
     image_type = None
@@ -184,7 +203,10 @@ class ImageBase(rmd.ClassWithMetaData):
         Only change the unit when it is not known (equal to None).
         Otherwise, user "convert"
         """
-        if self._unit == value:
+        if self._unit is not None:
+            fatal(f"Cannot set the unit to '{value}' while it is "
+                  f"'{self._unit}' use convert_to_unit ({self})")
+        if value is None:
             return
         if self.image_type is None:
             fatal("Cannot set the unit, the image type is not known "
@@ -263,6 +285,8 @@ class ImageBase(rmd.ClassWithMetaData):
         current_image_type = self.image_type
         p = self.image_path
         if os.path.exists(json_filename):
+            # unit can only be set if it is None
+            self._unit = None
             self.load_from_json(json_filename)
         # put back image path and check image filename
         read_filename = self._image_filename
@@ -318,7 +342,7 @@ class ImageBase(rmd.ClassWithMetaData):
         return s
 
 
-class ImageCT(ImageBase):
+class MetaImageCT(MetaImageBase):
     authorized_units = ['HU', 'g/cm3']  # FIXME add attenuation
     unit_default_values = {'HU': -1000, 'g/cm3': 0}
     image_type = "CT"
@@ -342,21 +366,20 @@ class ImageCT(ImageBase):
         return density_ct
 
 
-class ImageSPECT(ImageBase):
+class MetaImageSPECT(MetaImageBase):
     authorized_units = ['Bq', 'Bq/mL', "SUV"]
     unit_default_values = {'Bq': 0, 'Bq/mL': 0, "SUV": 0}
     image_type = "SPECT"
 
     _metadata_fields = {
-        **ImageBase._metadata_fields,  # Inherit base class fields
+        **MetaImageBase._metadata_fields,  # Inherit base class fields
         'injection_datetime': str,
         'injection_activity_mbq': float,
         'body_weight_kg': float
     }
 
-    def __init__(self):
+    def __init__(self, unit=None):
         super().__init__()
-        self._unit = None
         # metadata
         self.injection_datetime = None
         self.injection_activity_mbq = None
@@ -367,6 +390,11 @@ class ImageSPECT(ImageBase):
             'Bq/mL': "convert_to_bqml",
             'SUV': "convert_to_suv",
         }
+        # set the unit
+        if unit is None:
+            self._unit = unit
+        else:
+            self.unit = unit
 
     def info(self):
         s = super().info() + '\n'
@@ -441,19 +469,30 @@ class ImageSPECT(ImageBase):
         else:
             fatal(f'Cannot set the time from injection since injection_datetime or acquisition_datetime exists')
 
+    def write_metadata(self):
+        if self.unit is None:
+            fatal(f'Cannot write metadata for this {self.image_type} image, unit is None ({self})')
+        super().write_metadata()
 
-class ImageROI(ImageBase):
+
+class MetaImagePET(MetaImageSPECT):
+    authorized_units = ['Bq/mL', "SUV"]
+    unit_default_values = {'Bq/mL': 0, "SUV": 0}
+    image_type = "PET"
+
+
+class MetaImageROI(MetaImageBase):
     authorized_units = ['label']
     unit_default_values = {'label': 0}
     image_type = "ROI"
 
     _metadata_fields = {
-        **ImageBase._metadata_fields,  # Inherit base class fields
+        **MetaImageBase._metadata_fields,  # Inherit base class fields
         'name': str,
         'effective_time_h': float
     }
 
-    def __init__(self, name):
+    def __init__(self, name=None):
         super().__init__()
         self.name = name
         self._unit = 'label'
@@ -476,8 +515,13 @@ class ImageROI(ImageBase):
         self.mass_g = np.sum(d) * self.voxel_volume_cc
         self.volume_cc = len(d) * self.voxel_volume_cc
 
+    def write_metadata(self):
+        if self.name is None:
+            fatal(f'Cannot write metadata for this ROI image, name is None ({self})')
+        super().write_metadata()
 
-class ImageDose(ImageBase):
+
+class MetaImageDose(MetaImageBase):
     authorized_units = ['Gy', 'Gy/s']
     unit_default_values = {'Gy': 0, 'Gy/s': 0}
     image_type = "Dose"
@@ -488,10 +532,11 @@ class ImageDose(ImageBase):
 
 
 image_builders = {
-    "CT": ImageCT,
-    "SPECT": ImageSPECT,
-    "ROI": ImageROI,
-    "Dose": ImageDose}
+    "CT": MetaImageCT,
+    "SPECT": MetaImageSPECT,
+    "PET": MetaImagePET,
+    "ROI": MetaImageROI,
+    "Dose": MetaImageDose}
 
 
 def images_have_same_domain(image1, image2, tolerance=1e-5):
@@ -673,7 +718,7 @@ def apply_itk_gauss_smoothing(img, sigma):
     return gauss_filter.Execute(img)
 
 
-def resample_ct_like(ct: ImageCT, like: ImageBase, gaussian_sigma=None):
+def resample_ct_like(ct: MetaImageCT, like: MetaImageBase, gaussian_sigma=None):
     if images_have_same_domain(ct.image, like.image):
         return ct
     o = copy.copy(ct)
@@ -682,7 +727,7 @@ def resample_ct_like(ct: ImageCT, like: ImageBase, gaussian_sigma=None):
     return o
 
 
-def resample_dose_like(ct: ImageDose, like: ImageBase, gaussian_sigma=None):
+def resample_dose_like(ct: MetaImageDose, like: MetaImageBase, gaussian_sigma=None):
     if images_have_same_domain(ct.image, like.image):
         return ct
     o = copy.copy(ct)
@@ -691,7 +736,7 @@ def resample_dose_like(ct: ImageDose, like: ImageBase, gaussian_sigma=None):
     return o
 
 
-def resample_ct_spacing(ct: ImageCT, spacing, gaussian_sigma=None):
+def resample_ct_spacing(ct: MetaImageCT, spacing, gaussian_sigma=None):
     if image_has_this_spacing(ct.image, spacing):
         return
     o = copy.copy(ct)
@@ -700,7 +745,7 @@ def resample_ct_spacing(ct: ImageCT, spacing, gaussian_sigma=None):
     return o
 
 
-def resample_spect_like(spect: ImageSPECT, like: ImageBase, gaussian_sigma=None):
+def resample_spect_like(spect: MetaImageSPECT, like: MetaImageBase, gaussian_sigma=None):
     if images_have_same_domain(spect.image, like.image):
         return spect
     o = copy.copy(spect)
@@ -713,7 +758,7 @@ def resample_spect_like(spect: ImageSPECT, like: ImageBase, gaussian_sigma=None)
     return o
 
 
-def resample_spect_spacing(spect: ImageSPECT, spacing, gaussian_sigma=None):
+def resample_spect_spacing(spect: MetaImageSPECT, spacing, gaussian_sigma=None):
     if image_has_this_spacing(spect.image, spacing):
         return
     o = copy.copy(spect)
@@ -727,7 +772,7 @@ def resample_spect_spacing(spect: ImageSPECT, spacing, gaussian_sigma=None):
     return o
 
 
-def resample_roi_like(roi: ImageROI, like: ImageBase):
+def resample_roi_like(roi: MetaImageROI, like: MetaImageBase):
     if images_have_same_domain(roi.image, like.image):
         return roi
     o = copy.copy(roi)
@@ -735,7 +780,7 @@ def resample_roi_like(roi: ImageROI, like: ImageBase):
     return o
 
 
-def resample_roi_spacing(roi: ImageROI, spacing):
+def resample_roi_spacing(roi: MetaImageROI, spacing):
     if image_has_this_spacing(roi.image, spacing):
         return
     o = copy.copy(roi)
@@ -947,13 +992,18 @@ def mhd_copy_or_move(mhd_path, new_mhd_path, mode="copy"):
 
 
 def copy_or_move_image(source_path, dest_path, mode):
-    modes = ['move', 'copy', 'dry_run', 'print_only']
+    modes = ['move', 'copy', 'dry_run']
     if mode not in modes:
         fatal(f'Unknown mode {mode}, available modes: {", ".join(modes)}')
+    src_ext = os.path.splitext(source_path)[1]
+    dest_ext = os.path.splitext(dest_path)[1]
+    if src_ext != dest_ext:
+        fatal(f'Cannot copy image, the extensions are different, source={source_path}, dest={dest_path}')
     if is_mhd_file(source_path):
         return mhd_copy_or_move(source_path, dest_path, mode)
     if mode == 'copy':
         shutil.copy(source_path, dest_path)
+        # FIXME copy the json sidecar also ?
         return
     if mode == "move":
         shutil.move(source_path, dest_path)

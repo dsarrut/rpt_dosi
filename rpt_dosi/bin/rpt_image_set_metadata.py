@@ -38,9 +38,7 @@ def go(input_image, unit, image_type, tag, verbose, force):
         # build a new image with the correct type
         im = rim.build_image_from_type(image_type)
         im.image_path = input_image
-        im.write_metadata()
-        # read the image again, this time with the metadata
-        im = rim.read_image_header_only(input_image)
+        im.read_image_header()
 
     # convert the unit
     if unit is not None:

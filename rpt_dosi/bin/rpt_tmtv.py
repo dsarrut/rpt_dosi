@@ -70,7 +70,7 @@ def go(input_filename,
         sitk.WriteImage(tmtv, output)
 
     # convert to image type for mask
-    roi_img = rim.ImageROI('tmtv_mask')
+    roi_img = rim.MetaImageROI('tmtv_mask')
     roi_img.image = mask
     print(roi_img)
     roi_img.write(output_mask)

@@ -25,9 +25,9 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     help="Input dose rate image",
 )
 @click.option("--input_unit", "-u",
-              type=click.Choice(rim.ImageSPECT.authorized_units + ['Gy/s']),
+              type=click.Choice(rim.MetaImageSPECT.authorized_units + ['Gy/s']),
               default=None,
-              help=f"SPECT or dose rate unit: {rim.ImageSPECT.authorized_units + ['Gy/s']}")
+              help=f"SPECT or dose rate unit: {rim.MetaImageSPECT.authorized_units + ['Gy/s']}")
 @click.option(
     "--ct",
     "-c",

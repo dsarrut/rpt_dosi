@@ -1,6 +1,6 @@
 import json
 from .images import (
-    ImageCT, ImageSPECT, ImageROI,
+    MetaImageCT, MetaImageSPECT, MetaImageROI,
     resample_ct_like,
     resample_spect_like,
     resample_roi_like,
@@ -253,7 +253,7 @@ class DoseComputation:
     # name of the method
     name = None
 
-    def __init__(self, ct: ImageCT, spect: ImageSPECT):
+    def __init__(self, ct: MetaImageCT, spect: MetaImageSPECT):
         self.ct = ct
         self.spect = spect
         self.resample_like = "ct"
@@ -268,7 +268,7 @@ class DoseComputation:
         if self.spect.time_from_injection_h is None:
             fatal(f"SPECT image must have time_from_injection_h while it is None. {self.spect}")
 
-    def run(self, rois: list[ImageROI]):
+    def run(self, rois: list[MetaImageROI]):
         fatal(f'RoiDoseComputation: run must be overwritten')
 
     def init_resampling(self):
@@ -334,7 +334,7 @@ class DoseMadsen2018(DoseComputation, DoseComputationWithPhantom):
         DoseComputation.__init__(self, ct, spect)
         DoseComputationWithPhantom.__init__(self, self.name)
 
-    def run(self, rois: list[ImageROI]):
+    def run(self, rois: list[MetaImageROI]):
         self.check_options()
         self.spect.convert_to_bq()
         ct, spect, like = self.init_resampling()
@@ -380,7 +380,7 @@ class DoseHanscheid2017(DoseComputation):
     def __init__(self, ct, spect):
         super().__init__(ct, spect)
 
-    def run(self, rois: list[ImageROI]):
+    def run(self, rois: list[MetaImageROI]):
         self.check_options()
         self.spect.convert_to_bq()
         ct, spect, like = self.init_resampling()
@@ -414,7 +414,7 @@ class DoseHanscheid2018(DoseComputation, DoseComputationWithPhantom):
         DoseComputation.__init__(self, ct, spect)
         DoseComputationWithPhantom.__init__(self, self.name)
 
-    def run(self, rois: list[ImageROI]):
+    def run(self, rois: list[MetaImageROI]):
         self.check_options()
         self.spect.convert_to_bq()
         ct, spect, like = self.init_resampling()
@@ -459,7 +459,7 @@ class DoseMadsen2018DoseRate(DoseComputationWithDoseRate):
     def __init__(self, ct, dose_rate):
         super().__init__(ct, dose_rate)
 
-    def run(self, rois: list[ImageROI]):
+    def run(self, rois: list[MetaImageROI]):
         self.check_options()
         ct, dose_rate, like = self.init_resampling()
         if dose_rate.unit != "Gy/s":
@@ -493,7 +493,7 @@ class DoseHanscheid2018DoseRate(DoseComputationWithDoseRate):
     def __init__(self, ct, dose_rate):
         super().__init__(ct, dose_rate)
 
-    def run(self, rois: list[ImageROI]):
+    def run(self, rois: list[MetaImageROI]):
         self.check_options()
         ct, dose_rate, like = self.init_resampling()
         if dose_rate.unit != "Gy/s":
@@ -524,7 +524,7 @@ class DoseHanscheid2017DoseRate(DoseComputationWithDoseRate):
     def __init__(self, ct, dose_rate):
         super().__init__(ct, dose_rate)
 
-    def run(self, rois: list[ImageROI]):
+    def run(self, rois: list[MetaImageROI]):
         self.check_options()
         ct, dose_rate, like = self.init_resampling()
         if dose_rate.unit != "Gy/s":

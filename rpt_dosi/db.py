@@ -84,12 +84,12 @@ def db_get_time_interval(cycle, acquisition):
     return hours_diff
 
 
-def db_get_tac(cycle, roi_name):
+def db_get_tac(cycle, roi_id):
     times = []
     activities = []
     for acq in cycle.acquisitions.values():
-        if roi_name in acq.activity.keys():
-            activities.append(acq.activity[roi_name].sum)
+        if roi_id in acq.activity.keys():
+            activities.append(acq.activity[roi_id].sum)
             d = db_get_time_interval(cycle, acq)
             times.append(d)
     return np.array(times), np.array(activities)
@@ -123,13 +123,15 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
         self.cycles = {}
         # db_folder is the base folder where the data should be
         self._db_folder = None
-        # json_path store the initial json file path (only used in write)
-        self.json_filepath = filename
+        # stores the initial json file path (only used in write)
+        self.db_filepath = filename
         # read or create json file
         if os.path.exists(filename):
             self.read(filename)
         else:
             if create:
+                self._db_folder = os.path.abspath(os.path.dirname(filename))
+                os.makedirs(self._db_folder, exist_ok=True)
                 self.write(filename)
             else:
                 fatal(f'The database file {filename} does not exist')
@@ -175,6 +177,21 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
             self.cycles[cycle_id] = TreatmentCycle(self, cycle_id)
         return self.cycles[cycle_id]
 
+    def add_cycle(self, cycle):
+        if cycle.cycle_id in self.cycles.keys():
+            fatal(f'The cycle "{cycle.cycle_id}" already exists in this db: {self}')
+        self.cycles[cycle.cycle_id] = cycle
+        return cycle
+
+    def remove_cycle(self, cycle_id):
+        if cycle_id not in self.cycles:
+            fatal(f'The cycle "{cycle_id}" does not exist in this db: {self.cycles.keys()}')
+        self.cycles.pop(cycle_id)
+
+    def add_new_cycle(self, cycle_id):
+        cycle = TreatmentCycle(self, cycle_id)
+        return self.add_cycle(cycle)
+
     def add_dicom_ct(self, cycle_id, tp_id, folder_path):
         cycle = self.get_cycle(cycle_id)
         tp = cycle.get_timepoint(tp_id)
@@ -182,30 +199,34 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
 
     def write(self, filename=None):
         if filename is None:
-            filename = self.json_filepath
+            filename = self.db_filepath
         self.save_to_json(filename)
         self._db_folder = Path(os.path.dirname(filename))
         os.makedirs(self._db_folder, exist_ok=True)
-        self.json_filepath = filename
+        self.db_filepath = filename
 
     def read(self, filename):
         if not os.path.exists(filename):
             fatal(f'Database file {filename} does not exist')
+        self._db_folder = Path(os.path.abspath(os.path.dirname(filename)))
+        self.db_filepath = filename
         self.load_from_json(filename)
-        self._db_folder = Path(os.path.dirname(filename))
-        self.json_filepath = filename
         # self.check_folders()
         # self.check_files()
 
     def to_dict(self):
         data = super().to_dict()
-        data["cycles"] = [cycle.to_dict() for cycle in self.cycles.values()]
+        data["cycles"] = {cycle.cycle_id: cycle.to_dict() for cycle in self.cycles.values()}
         return data
 
     def from_dict(self, data):
         super().from_dict(data)
-        for cycle in data["cycles"]:
+        """for cycle in data["cycles"]:
             cid = cycle["cycle_id"]
+            tc = TreatmentCycle(self, cid).from_dict(cycle)
+            self.cycles[cid] = tc"""
+        for cid, cycle in data["cycles"].items():
+            # cid = cycle["cycle_id"]
             tc = TreatmentCycle(self, cid).from_dict(cycle)
             self.cycles[cid] = tc
 
@@ -223,11 +244,11 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
 
 
 class TreatmentCycle(rmd.ClassWithMetaData):
-    _metadata_fields = {'cycle_id': str,
-                        'injection_activity_mbq': float,
-                        'injection_datetime': str,
-                        'injection_radionuclide': str
-                        }
+    _metadata_fields = {  # 'cycle_id': str,
+        'injection_activity_mbq': float,
+        'injection_datetime': str,
+        'injection_radionuclide': str
+    }
 
     def __init__(self, db, cycle_id):
         # this cycle belong to this db
@@ -238,6 +259,8 @@ class TreatmentCycle(rmd.ClassWithMetaData):
         self.injection_datetime = None
         self.injection_radionuclide = None
         self.timepoints = {}
+        # create folder
+        os.makedirs(self.cycle_path, exist_ok=True)
 
     def info(self):
         s = (f'Cycle id = {self.cycle_id}\n'
@@ -262,19 +285,36 @@ class TreatmentCycle(rmd.ClassWithMetaData):
             self.timepoints[tp_id] = ImagingTimepoint(self, tp_id)
         return self.timepoints[tp_id]
 
+    def add_timepoint(self, tp):
+        if tp.timepoint_id in self.timepoints.keys():
+            fatal(f'The timepoint "{tp.timepoint_id}" already exists in this db: {self.timepoints.keys()}')
+        if tp.cycle != self:
+            fatal(f'The cycle of the timepoint [{tp.cycle}] is different than this cycle: [{self}]')
+        self.timepoints[tp.timepoint_id] = tp
+        return tp
+
+    def add_new_timepoint(self, tp_id):
+        tp = ImagingTimepoint(self, tp_id)
+        return self.add_timepoint(tp)
+
     @property
     def cycle_path(self):
         return self.db.db_path / self.cycle_id
 
     def to_dict(self):
         data = super().to_dict()
-        data["timepoints"] = [tp.to_dict() for tp in self.timepoints.values()]
+        # data["timepoints"] = [tp.to_dict() for tp in self.timepoints.values()]
+        data["timepoints"] = {tp.timepoint_id: tp.to_dict() for tp in self.timepoints.values()}
         return data
 
     def from_dict(self, data):
         super().from_dict(data)
-        for tp in data["timepoints"]:
+        """for tp in data["timepoints"]:
             tid = tp["timepoint_id"]
+            timepoint = ImagingTimepoint(self, tid).from_dict(tp)
+            self.timepoints[tid] = timepoint"""
+        for tid, tp in data["timepoints"].items():
+            # tid = tp["timepoint_id"]
             timepoint = ImagingTimepoint(self, tid).from_dict(tp)
             self.timepoints[tid] = timepoint
         return self
@@ -302,10 +342,8 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
         The folders are build from db/cycle/timepoint
     """
     _metadata_fields = {
-        'timepoint_id': str,
-        'acquisition_datetime': str,
-        'ct_image_filename': str,
-        'spect_image_filename': str,
+        # 'timepoint_id': str,
+        'acquisition_datetime': str
     }
 
     def __init__(self, cycle, tp_id):
@@ -314,83 +352,79 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
         # metadata
         self.timepoint_id = tp_id
         self.acquisition_datetime = None
-        self._ct_image_filename = None
-        self._spect_image_filename = None
+        # several images
+        self.images = {}
+        # several rois (in the rois folder)
         self.rois = {}
+        # create folder
+        os.makedirs(self.timepoint_path, exist_ok=True)
+        os.makedirs(self.rois_path, exist_ok=True)
 
     def info(self):
         s = (f'Timepoint id = {self.timepoint_id}\n'
              f'Folder = {self.timepoint_path}\n'
              f'Acquisition date = {self.acquisition_datetime}\n'
-             f'CT image = {self.ct_image_path}\n'
-             f'SPECT image = {self.spect_image_path}\n'
+             f'Images = {len(self.images)} {" ".join(self.images.keys())}\n'
              f'ROIs = {len(self.rois)} {" ".join(self.rois.keys())}')
         return s
 
     def __str__(self):
-        s = ''
+        sr = ''
         if len(self.rois) > 1:
-            s = 's'
+            sr = 's'
+        si = ''
+        if len(self.images) > 1:
+            si = 's'
         return (f'{self.timepoint_id} '
-                f'{self.acquisition_datetime} '
-                f'{self.ct_image_filename} '
-                f'{self.spect_image_filename} - '
-                f' {len(self.rois)} roi{s}')
+                f'date={self.acquisition_datetime} '
+                f'-- {len(self.images)} image{si} '
+                f'-- {len(self.rois)} roi{sr}')
 
     def to_dict(self):
         data = super().to_dict()
-        data["rois"] = [
-            {'roi_name': r,
-             'filename': self.rois[r]}
-            for r in self.rois.keys()]
+        data["rois"] = {}
+        data["images"] = {}
+        for key, roi in self.rois.items():
+            data["rois"][key] = roi.to_dict()
+        for key, image in self.images.items():
+            data["images"][key] = image.to_dict()
         return data
 
     def from_dict(self, data):
         super().from_dict(data)
-        for r in data['rois']:
-            self.rois[r['roi_name']] = r['filename']
+        for key, value in data['rois'].items():
+            r = ROIInfo()
+            r.from_dict(value)
+            self.rois[key] = r
+        for key, value in data['images'].items():
+            i = ImageInfo()
+            i.from_dict(value)
+            self.images[key] = i
         return self
-
-    def get_roi_path(self, roi_name):
-        if roi_name not in self.rois:
-            fatal(f'Cannot find ROI {roi_name} in the list of rois {self.rois.keys()}')
-        return self.timepoint_path / "rois" / self.rois[roi_name]
-
-    @property
-    def ct_image_filename(self):
-        return self._ct_image_filename
-
-    @ct_image_filename.setter
-    def ct_image_filename(self, filename):
-        # check if basename only
-        if os.path.basename(filename) != filename:
-            fatal(f'CT filename must be without any path, while it is {filename} '
-                  f'(try {os.path.basename(filename)})')
-        self._ct_image_filename = filename
-
-    @property
-    def spect_image_filename(self):
-        return self._spect_image_filename
-
-    @spect_image_filename.setter
-    def spect_image_filename(self, filename):
-        # check if basename only
-        if os.path.basename(filename) != filename:
-            fatal(f'SPECT filename must be without any path, while it is {filename} '
-                  f'(try {os.path.basename(filename)})')
-        self._spect_image_filename = filename
-
-    @property
-    def ct_image_path(self):
-        return self.timepoint_path / self.ct_image_filename
-
-    @property
-    def spect_image_path(self):
-        return self.timepoint_path / self.spect_image_filename
 
     @property
     def timepoint_path(self):
         return self.cycle.cycle_path / self.timepoint_id
+
+    @property
+    def rois_path(self):
+        return self.timepoint_path / "rois"
+
+    def get_roi_info(self, roi_id):
+        if roi_id not in self.rois:
+            fatal(f'Cannot find ROI {roi_id} in the list of rois {self.rois.keys()}')
+        return self.rois[roi_id]
+
+    def get_roi_path(self, roi_id):
+        return self.rois_path / self.get_roi_info(roi_id).filename
+
+    def get_image_info(self, image_name):
+        if image_name not in self.images:
+            fatal(f'Cannot find image {image_name} in the list of images {self.images.keys()}')
+        return self.images[image_name]
+
+    def get_image_path(self, image_name):
+        return self.timepoint_path / self.get_image_info(image_name).filename
 
     @property
     def time_from_injection_h(self):
@@ -398,92 +432,98 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
 
     @time_from_injection_h.setter
     def time_from_injection_h(self, value):
-        if self.cycle.injection_datetime is None:
+        if self.cycle.injection_datetime is None and self.acquisition_datetime is None:
             self.cycle.injection_datetime = "1970-01-01 00:00:00"
-        d = datetime.strptime(self.cycle.injection_datetime, "%Y-%m-%d %H:%M:%S")
-        self.acquisition_datetime = (d + timedelta(hours=value)).strftime("%Y-%m-%d %H:%M:%S")
-        # update json side car ? # FIXME
+            d = datetime.datetime.strptime(self.cycle.injection_datetime, "%Y-%m-%d %H:%M:%S")
+            self.acquisition_datetime = (d + datetime.timedelta(hours=value)).strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            fatal(f'Cannot set the time from injection since injection_datetime or acquisition_datetime exists')
 
-    def set_ct(self,
-               ct_input_path,
-               ct_filename=None,
-               mode='copy',
-               exist_ok=False):
-        self.set_image(ct_input_path, 'ct_image', ct_filename, mode, exist_ok)
-        self.update_ct_sidecar_json()
-
-    def set_spect(self,
-                  spect_input_path,
-                  unit,
-                  spect_filename=None,
+    def add_image(self,
+                  image_name,
+                  input_path,
+                  image_type=None,
+                  filename=None,
                   mode='copy',
+                  unit=None,
                   exist_ok=False):
-        self.set_image(spect_input_path, 'spect_image', spect_filename, mode, exist_ok)
-        self.update_spect_sidecar_json(unit=unit)
+        if image_name in self.images:
+            fatal(f'Cannot add image {image_name} since it already exists')
+        if os.path.basename(filename) != filename:
+            fatal(f'Cannot add image {image_name}, the filename "{filename}" '
+                  f'is not a single filename (it must not contain path)')
+        try:
+            self.images[image_name] = ImageInfo(image_name, filename, image_type)
+            dest_path = self.get_image_path(image_name)
+            # check if already exist
+            if not exist_ok and os.path.exists(dest_path):
+                fatal(f'File image {dest_path} already exists')
+            rim.copy_or_move_image(input_path, dest_path, mode)
+            if unit is None:
+                # warning the image type is ignored, we only look for the unit
+                source_img = rim.read_image_header_only(input_path)
+                unit = source_img.unit
+            self.update_image_json_from_db_info(image_name, unit)
+        except rhe.Rpt_Error:
+            # if there is an error, remove the image and raise the error again
+            self.images.pop(image_name)
+            raise
 
-    def set_rois(self, roi_list, mode='copy', exist_ok=False):
+    def add_rois(self, roi_list, mode='copy', exist_ok=False):
         for roi in roi_list:
-            self.set_roi(roi['filename'], roi['roi_name'], mode, exist_ok)
+            self.add_roi(roi['roi_id'], roi['filename'], mode, exist_ok)
 
-    def set_roi(self, input_path, roi_name, mode, exist_ok=False):
-        # compute the new filename as roi_name.extension
+    def add_roi(self, roi_id, input_path, mode="copy", exist_ok=False):
+        print(f'add roi {roi_id} at {input_path} ')
+        # compute the new filename as roi_id.extension
         filename = os.path.basename(input_path)
         base, extension = rhe.get_basename_and_extension(filename)
-        self.rois[roi_name] = roi_name + extension
-        # get the dest path
-        dest_path = self.get_roi_path(roi_name)
-        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-        # check if already exist
-        if not exist_ok and os.path.exists(dest_path):
-            fatal(f'File image {dest_path} already exists')
-        rim.copy_or_move_image(input_path, dest_path, mode)
-        self.update_roi_sidecar_json(roi_name)
+        try:
+            self.rois[roi_id] = ROIInfo(roi_id, filename)
+            # get the dest path
+            dest_path = self.get_roi_path(roi_id)
+            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+            # check if already exist
+            if not exist_ok and os.path.exists(dest_path):
+                fatal(f'File image {dest_path} already exists')
+            rim.copy_or_move_image(input_path, dest_path, mode)
+            self.update_roi_json_from_db_info(roi_id)
+        except rhe.Rpt_Error:
+            # if there is an error, remove the image and raise the error again
+            self.rois.pop(roi_id)
+            raise
 
-    def update_ct_sidecar_json(self):
-        if os.path.exists(self.ct_image_path):
-            ct = rim.ImageCT()
-            ct.filename = str(self.ct_image_path)
-            ct.read_image_header()
-            ct.write_metadata()
+    def update_image_json_from_db_info(self, image_name, unit):
+        image_info = self.get_image_info(image_name)
+        f = self.get_image_path(image_name)
+        if not os.path.exists(f):
+            fatal(f'The image {image_name}: {f} does not exist')
+        # build a metaimage
+        im = rim.build_image_from_type(image_info.image_type)
+        im.filename = self.get_image_path(image_name)
+        if unit is not None:
+            im.unit = unit
+        im.acquisition_datetime = self.acquisition_datetime
+        # set the specific fields that are stored both in images and in the db
+        if image_info.image_type == 'SPECT':
+            im.injection_activity_mbq = self.cycle.injection_activity_mbq
+            im.injection_datetime = self.cycle.injection_datetime
+            im.body_weight_kg = self.cycle.db.body_weight_kg
+        if image_info.image_type == 'CT':
+            pass
+        if image_info.image_type == 'PET':
+            im.injection_activity_mbq = self.cycle.injection_activity_mbq
+            im.injection_datetime = self.cycle.injection_datetime
+            im.body_weight_kg = self.cycle.db.body_weight_kg
+        im.write_metadata()
 
-    def update_spect_sidecar_json(self, unit):
-        if os.path.exists(self.spect_image_path):
-            spect = rim.ImageSPECT()
-            spect.filename = str(self.spect_image_path)
-            spect.unit = unit
-            spect.read_image_header()
-            spect.write_metadata()
-
-    def update_roi_sidecar_json(self, roi_name):
-        dest_path = self.get_roi_path(roi_name)
+    def update_roi_json_from_db_info(self, roi_id):
+        dest_path = self.get_roi_path(roi_id)
         if os.path.exists(dest_path):
-            spect = rim.ImageROI(roi_name)
+            spect = rim.MetaImageROI(roi_id)
             spect.filename = str(dest_path)
             spect.read_image_header()
             spect.write_metadata()
-
-    def set_image(self,
-                  input_image_path,
-                  attribute_name,  # ct_image_filename or spect_image_filename
-                  image_filename=None,
-                  mode='copy',
-                  exist_ok=False):
-        """
-        Copy or move a ct or a spect
-        """
-        # get the image filename
-        if image_filename is None:
-            setattr(self, f"{attribute_name}_filename", os.path.basename(input_image_path))
-        else:
-            setattr(self, f"{attribute_name}_filename", image_filename)
-        # create the dirs if needed
-        path = os.path.dirname(getattr(self, f"{attribute_name}_path"))
-        os.makedirs(path, exist_ok=True)
-        # check if already exist
-        if not exist_ok and os.path.exists(path):
-            fatal(f'File image {path} already exists')
-        # copy or move the image
-        rim.copy_or_move_image(input_image_path, getattr(self, f"{attribute_name}_path"), mode)
 
     def check_folders(self):
         if not os.path.exists(self.timepoint_path):
@@ -497,12 +537,10 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
         return True
 
     def check_files(self):
-        if not os.path.exists(self.ct_image_path):
-            print(f'Error the CT image {self.ct_image_path} does not exist')
-            return False
-        if not os.path.exists(self.spect_image_path):
-            print(f'Error the SPECT image {self.spect_image_path} does not exist')
-            return False
+        for image in self.images.values():
+            if not os.path.exists(self.get_image_path(image.image_name)):
+                print(f'Error the image {image.image_name} does not exist: {self.get_image_path(image.image_name)}')
+                return False
         is_ok = True
         for roi in self.rois:
             if not os.path.exists(self.get_roi_path(roi)):
@@ -511,3 +549,21 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
                 is_ok = False
         # TODO check mhd raw files !!
         return is_ok
+
+
+class ImageInfo(rmd.ClassWithMetaData):
+    _metadata_fields = {"image_type": str,
+                        "filename": str}
+
+    def __init__(self, image_id=None, filename=None, image_type=None):
+        self.image_id = image_id
+        self.image_type = image_type
+        self.filename = filename
+
+
+class ROIInfo(rmd.ClassWithMetaData):
+    _metadata_fields = {"filename": str}
+
+    def __init__(self, roi_id=None, filename=None):
+        self.roi_id = roi_id
+        self.filename = filename
