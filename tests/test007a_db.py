@@ -86,7 +86,7 @@ if __name__ == "__main__":
     db3.remove_cycle("cycle1")
     db3.write(output_folder / "db007_db3.json")
     print(db3)
-    print(db3.db_filepath)
+    print(db3.db_file_path)
     db4 = rdb.PatientTreatmentDatabase(output_folder / "db007_db3.json")
     is_ok = he.are_dicts_equal(db4.to_dict(), db3.to_dict()) and is_ok
     he.print_tests(is_ok, f'Compare updated db')

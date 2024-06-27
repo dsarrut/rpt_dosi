@@ -122,7 +122,7 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
         self.body_weight_kg = None
         self.cycles = {}
         # stores the initial json file path (only used in write)
-        self._db_filepath = None
+        self._db_file_path = None
         # db_folder is the base folder where the data should be
         self._db_data_path = None
         # read or create json file
@@ -156,12 +156,12 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
         return Path(self._db_data_path)
 
     @property
-    def db_filepath(self):
-        return self._db_filepath
+    def db_file_path(self):
+        return self._db_file_path
 
-    @db_filepath.setter
-    def db_filepath(self, value):
-        self._db_filepath = os.path.abspath(value)
+    @db_file_path.setter
+    def db_file_path(self, value):
+        self._db_file_path = os.path.abspath(value)
         self._db_data_path = os.path.abspath(os.path.dirname(value))
         os.makedirs(self._db_data_path, exist_ok=True)
 
@@ -216,13 +216,13 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
         tp = cycle.get_timepoint(tp_id)
         tp.add_dicom_ct(folder_path)
 
-    def write(self, filename=None, sync_metadata_image=True):
+    def write(self, filename=None, sync_metadata_image=True, sync_policy="auto"):
         if filename is None:
-            filename = self.db_filepath
-        self.db_filepath = filename
+            filename = self.db_file_path
+        self.db_file_path = filename
         if sync_metadata_image:
-            self.sync_metadata_images()
-        self.save_to_json(self.db_filepath)
+            self.sync_metadata_images(sync_policy)
+        self.save_to_json(self.db_file_path)
         if sync_metadata_image:
             self.write_metadata_images()
 
@@ -230,15 +230,15 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
         for cycle in self.cycles.values():
             cycle.write_metadata_images()
 
-    def sync_metadata_images(self, force_flag="no"):
+    def sync_metadata_images(self, sync_policy="auto"):
         for cycle in self.cycles.values():
-            cycle.sync_metadata_images(force_flag)
+            cycle.sync_metadata_images(sync_policy)
 
     def read(self, filename, sync_metadata_image):
         if not os.path.exists(filename):
             fatal(f'Database file {filename} does not exist')
         self._db_data_path = Path(os.path.abspath(os.path.dirname(filename)))
-        self.db_filepath = filename
+        self.db_file_path = filename
         self.load_from_json(filename)
         if sync_metadata_image:
             for cycle in self.cycles.values():
@@ -252,7 +252,10 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
         return data
 
     def from_dict(self, data):
+        df = self._db_data_path
+        print('df', df)
         super().from_dict(data)
+        print('after df', self._db_data_path)
         for cid, cycle in data["cycles"].items():
             tc = TreatmentCycle(self, cid).from_dict(cycle)
             self.cycles[cid] = tc
@@ -355,9 +358,9 @@ class TreatmentCycle(rmd.ClassWithMetaData):
             self.timepoints[tid] = timepoint
         return self
 
-    def sync_metadata_images(self, force_flag="no"):
+    def sync_metadata_images(self, sync_policy="auto"):
         for tp in self.timepoints.values():
-            tp.sync_metadata_images(force_flag)
+            tp.sync_metadata_images(sync_policy)
 
     def write_metadata_images(self):
         for tp in self.timepoints.values():
@@ -437,13 +440,15 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
     def from_dict(self, data):
         super().from_dict(data)
         for key, value in data['rois'].items():
-            r = ROIInfo_OLD()
+            r = ROIInfo_OLD() # FIXME change to MetaImageROI
             r.from_dict(value)
             self.rois[key] = r
         for key, value in data['images'].items():
-            filepath = self.timepoint_path / value['filename']
-            im = rim.build_meta_image(value['image_type'], filepath, create=True)
+            file_path = self.timepoint_path / value['filename']
+            im = rim.build_meta_image(value['image_type'], file_path, create=True)
             im.from_dict(value)
+            # we set the image path to the current data folder
+            im.image_file_path = file_path
             self.images[key] = im
         return self
 
@@ -458,22 +463,23 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
             return
         self._acquisition_datetime = rim.convert_datetime(value)
 
-    def sync_metadata_images(self, force_flag="no"):
+    def sync_metadata_images(self, sync_policy="auto"):
         for image_name in self.images.keys():
-            self.sync_metadata_image(image_name, force_flag)
+            self.sync_metadata_image(image_name, sync_policy)
 
-    def sync_metadata_image(self, image_name, force_flag="no"):
+    def sync_metadata_image(self, image_name, sync_policy="auto"):
         image = self.get_metaimage(image_name)
-        self._update_field(image, self.cycle, 'injection_activity_mbq'), force_flag
-        self._update_field(image, self.cycle, 'injection_datetime', force_flag)
-        self._update_field(image, self.cycle.db, 'body_weight_kg', force_flag)
-        self._update_field(image, self, 'acquisition_datetime', force_flag)
+        self._update_field(image, self.cycle, 'injection_activity_mbq'), sync_policy
+        self._update_field(image, self.cycle, 'injection_datetime', sync_policy)
+        self._update_field(image, self.cycle.db, 'body_weight_kg', sync_policy)
+        self._update_field(image, self, 'acquisition_datetime', sync_policy)
 
     def write_metadata_images(self):
         for image in self.images.values():
+            print(image.image_file_path, image.metadata_file_path)
             image.write_metadata()
 
-    def _update_field(self, image, element_db, tag_name, force_flag="no"):
+    def _update_field(self, image, element_db, tag_name, sync_policy="auto"):
         # check the tag name is available in the objects
         try:
             getattr(element_db, tag_name)
@@ -487,11 +493,11 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
         if getattr(element_db, tag_name) == getattr(image, tag_name):
             return
         # force value to the image
-        if force_flag == "force_to_image":
+        if sync_policy == "force_to_image":
             setattr(image, tag_name, getattr(element_db, tag_name))
             return
         # force value to the db
-        if force_flag == "force_to_db":
+        if sync_policy == "force_to_db":
             setattr(element_db, tag_name, getattr(image, tag_name))
             return
         # if one is None
@@ -502,14 +508,14 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
             setattr(element_db, tag_name, getattr(image, tag_name))
             return
         # warning : two different values
-        if force_flag == "no":
+        if sync_policy == "auto":
             if getattr(element_db, tag_name) is not None and getattr(image, tag_name) is not None:
                 # getattr(element_db, tag_name) = getattr(image, tag_name)
                 rhe.warning(f'Warning : incoherent {tag_name}, db = {getattr(element_db, tag_name)} '
                             f'while image = {getattr(image, tag_name)} ({image})')
                 return
-        fatal(f'Cannot update {tag_name} field : force_flag = {force_flag} while must '
-              f'be "no" or "force_to_image" or "force_to_db"')
+        fatal(f'Cannot update {tag_name} field : sync_policy = {sync_policy} while must '
+              f'be "auto" or "force_to_image" or "force_to_db"')
 
     @property
     def timepoint_path(self):
@@ -532,9 +538,8 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
             fatal(f'Cannot find image {image_name} in the list of images {self.images.keys()}')
         return self.images[image_name]
 
-    def get_image_filepath(self, image_name):
-        return self.get_metaimage(image_name).image_filepath
-        # return self.timepoint_path / self.get_metaimage(image_name).filename
+    def get_image_file_path(self, image_name):
+        return self.get_metaimage(image_name).image_file_path
 
     @property
     def time_from_injection_h(self):
@@ -563,7 +568,7 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
         if not exist_ok and os.path.exists(dest_path):
             fatal(f'File image {dest_path} already exists')
         rim.copy_or_move_image(input_path, dest_path, mode)
-        im = rim.build_meta_image(image_type, filepath=dest_path, create=True)
+        im = rim.build_meta_image(image_type, file_path=dest_path, create=True)
         # manage the unit if it is not in the initial image
         if unit is None:
             # warning the image type is ignored, we only look for the unit
@@ -573,16 +578,17 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
         else:
             im.unit = unit
         # add it
-        self.add_image(image_name, im)
+        return self.add_image(image_name, im)
 
     def add_image(self, image_name, meta_image):
         if image_name in self.images:
             fatal(f'Cannot add image {image_name} since it already exists')
         # check path
-        fp = meta_image.image_filepath
+        fp = meta_image.image_file_path
         dest_path = self.timepoint_path / meta_image.filename
+        print(meta_image, meta_image.image_file_path)
         if str(fp) != str(dest_path):
-            fatal(f'Cannot add image {image_name}, the filepath "{fp}" '
+            fatal(f'Cannot add image {image_name}, the file_path "{fp}" '
                   f'is not in the db (should be {dest_path})')
         # insert
         try:
@@ -594,6 +600,7 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
             # if there is an error, remove the image and raise the error again
             self.images.pop(image_name)
             raise
+        return meta_image
 
     def add_rois(self, roi_list, mode='copy', exist_ok=False):
         for roi in roi_list:
@@ -640,8 +647,8 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
 
     def check_files(self):
         for image in self.images.values():
-            if not os.path.exists(self.get_image_filepath(image.image_name)):
-                print(f'Error the image {image.image_name} does not exist: {self.get_image_filepath(image.image_name)}')
+            if not os.path.exists(self.get_image_file_path(image.image_name)):
+                print(f'Error the image {image.image_name} does not exist: {self.get_image_file_path(image.image_name)}')
                 return False
         is_ok = True
         for roi in self.rois:
