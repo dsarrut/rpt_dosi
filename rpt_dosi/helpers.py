@@ -193,12 +193,12 @@ def are_dicts_equal(dict1, dict2, float_tolerance=1e-9):
                     return False
 
         elif isinstance(value1, NoneType) and not isinstance(value2, NoneType):
-            s = f"ERROR: '{key}' value1 is None but not value2 ({value2})"
+            s = f"ERROR: '{key}' value1 is None but  value2 = {value2}"
             print(colored.stylize(s, color_error))
             return False
 
         elif not isinstance(value1, NoneType) and isinstance(value2, NoneType):
-            s = f"ERROR: '{key}' value2 is None but not value1 ({value1})"
+            s = f"ERROR: '{key}' value2 is None but value1 = {value1}"
             print(colored.stylize(s, color_error))
             return False
 

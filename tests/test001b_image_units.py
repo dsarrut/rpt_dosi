@@ -19,35 +19,38 @@ if __name__ == "__main__":
     image_path = output_folder / f"spect.nii.gz"
     shutil.copy(im_input, image_path)
     rim.delete_metadata(image_path)
-    is_ok = True
+    ok = True
 
     # test unit error
     print()
     warning('Test if can open without unit')
     try:
         a = rim.read_spect(image_path)
-        is_ok = False
+        ok = False
     except:
-        he.print_tests(is_ok, "Cannot open without unit")
+        he.print_tests(ok, "Cannot open without unit")
     spect = rim.read_spect(image_path, input_unit='Bq')
     spect.write()
     spect2 = rim.read_spect(image_path)
     spect._debug_eq = True
-    is_ok = he.print_tests(spect == spect2, "Write with unit, read wo unit") and is_ok
+    ok = he.print_tests(spect == spect2, "Write with unit, read wo unit") and ok
 
     # test unit error
     print()
     warning('Test if wrong unit')
     try:
         spect.unit = "toto"
-        is_ok = False
+        ok = False
     except:
-        he.print_tests(is_ok, "Set wrong unit")
+        pass
+    he.print_tests(ok, "Set wrong unit")
+
     try:
         spect.unit = "Bq/mL"
-        is_ok = False
+        ok = False
     except:
-        he.print_tests(is_ok, "Set unit while expect convert")
+        pass
+    he.print_tests(ok, "Set unit while expect convert")
 
     # test unit convert
     print()
@@ -57,11 +60,11 @@ if __name__ == "__main__":
     spect.convert_to_bqml()
     t2 = spect.compute_total_activity()
     print(f'{spect} BqmL --> {t2}')
-    is_ok = he.print_tests(t1 == t2, f"Total activity {t1} vs {t2}") and is_ok
+    ok = he.print_tests(t1 == t2, f"Total activity {t1} vs {t2}") and ok
     spect.convert_to_bq()
     t3 = spect.compute_total_activity()
     print(f'{spect} Bq --> {t3}')
-    is_ok = he.print_tests(t1 == t3, f"Total activity {t1} vs {t3}") and is_ok
+    ok = he.print_tests(t1 == t3, f"Total activity {t1} vs {t3}") and ok
 
     # unit SUV
     print()
@@ -71,9 +74,9 @@ if __name__ == "__main__":
     spect.convert_to_suv()
     t4 = spect.compute_total_activity()
     print(f'{spect} SUV --> {t4}')
-    is_ok = he.print_tests(t1 == t4, f"Total activity {t1} vs {t4}") and is_ok
-    print(spect.image_filepath)
-    print(spect.metadata_filepath)
+    ok = he.print_tests(t1 == t4, f"Total activity {t1} vs {t4}") and ok
+    print(spect.image_file_path)
+    print(spect.metadata_file_path)
 
     # 'force' change unit
     print()
@@ -82,7 +85,7 @@ if __name__ == "__main__":
     spect.unit = 'Bq'
     t5 = spect.compute_total_activity()
     print(f'{spect} Bq --> {t5}')
-    is_ok = he.print_tests(t1 != t5, f"Total activity {t1} must be different {t5}") and is_ok
+    ok = he.print_tests(t1 != t5, f"Total activity {t1} must be different {t5}") and ok
 
     # end
-    he.test_ok(is_ok)
+    he.test_ok(ok)

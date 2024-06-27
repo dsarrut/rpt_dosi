@@ -72,14 +72,15 @@ if __name__ == "__main__":
         spect.unit = 'Bq/mL'
         is_ok = False
     except he.Rpt_Error:
-        he.print_tests(is_ok, f'OK cannot set unit because already there {is_ok}')
+        pass
+    he.print_tests(is_ok, f'OK cannot set unit because already there {is_ok}')
     is_ok = spect.image_type == 'SPECT' and spect.unit == 'Bq' and is_ok
     he.print_tests(is_ok, f'(read image) Set metadata read SPECT and Bq ? {is_ok}')
 
     # check filename in the json file
     print()
     warning('Test metadata json file')
-    fn = spect.metadata_filepath
+    fn = spect.metadata_file_path
     with open(fn, 'r') as f:
         data = json.load(f)
         data['filename'] = "titi.nii.gz"
@@ -89,7 +90,8 @@ if __name__ == "__main__":
         spect = rim.read_image(spect_output)
         is_ok = False
     except he.Rpt_Error:
-        he.print_tests(is_ok, f'OK cannot read with wrong filename tag {is_ok}')
+        pass
+    he.print_tests(is_ok, f'OK cannot read with wrong filename tag {is_ok}')
 
     # check wrong but existing json file
     open(fn, 'w').close()
@@ -97,7 +99,8 @@ if __name__ == "__main__":
         spect = rim.read_image(spect_output)
         is_ok = False
     except he.Rpt_Error:
-        he.print_tests(is_ok, f'OK cannot read wrong file {is_ok}')
+        pass
+    he.print_tests(is_ok, f'OK cannot read wrong file {is_ok}')
 
     # (OLD TESTS)
     # set meta unit Bq/mL
@@ -140,7 +143,8 @@ if __name__ == "__main__":
         spect.time_from_injection_h = 12.4
         is_ok = False
     except he.Rpt_Error:
-        is_ok = he.print_tests(is_ok, f'OK cannot set time from injection tag {is_ok}') and is_ok
+        pass
+    is_ok = he.print_tests(is_ok, f'OK cannot set time from injection tag {is_ok}') and is_ok
 
     # set wrong tag
     print()
@@ -149,9 +153,9 @@ if __name__ == "__main__":
     try:
         spect.set_metadata("toto", 'titi')
         is_ok = False
-        he.print_tests(is_ok, f'ERROR can set wrong tag  {is_ok}')
     except he.Rpt_Error:
-        is_ok = he.print_tests(is_ok, f'OK cannot set wrong tag {is_ok}') and is_ok
+        pass
+    is_ok = he.print_tests(is_ok, f'OK cannot set wrong tag {is_ok}') and is_ok
 
     # set wrong tag
     print()
@@ -161,9 +165,9 @@ if __name__ == "__main__":
     try:
         ct.set_metadata("injection_datetime", 'titi')
         is_ok = False
-        he.print_tests(is_ok, f'ERROR can set tag date to wrong value {is_ok}')
     except he.Rpt_Error:
-        is_ok = he.print_tests(is_ok, f'OK cannot set tag date to wrong value {is_ok}') and is_ok
+        pass
+    is_ok = he.print_tests(is_ok, f'OK cannot set tag date to wrong value {is_ok}') and is_ok
 
     # set wrong tag type
     print()
@@ -176,7 +180,8 @@ if __name__ == "__main__":
         he.print_tests(is_ok, f'ERROR can set tag float to wrong value {is_ok}')
         print(spect.info())
     except he.Rpt_Error:
-        is_ok = he.print_tests(is_ok, f'OK cannot set tag float to wrong value {is_ok}') and is_ok
+        pass
+    is_ok = he.print_tests(is_ok, f'OK cannot set tag float to wrong value {is_ok}') and is_ok
 
     # PET
     print()
@@ -189,7 +194,7 @@ if __name__ == "__main__":
     pet.time_from_injection_h = 12.4
     pet.convert_to_suv()
     pet.write(output_folder / "pet.nii.gz")
-    pet2 = rim.read_pet(pet.image_filepath)
+    pet2 = rim.read_pet(pet.image_file_path)
     is_ok = he.are_dicts_equal(pet.to_dict(), pet2.to_dict()) and is_ok
     print(pet.info())
     he.print_tests(is_ok, f'Compare pet json')

@@ -83,7 +83,8 @@ class ClassWithMetaData:
         metadata = self.to_dict()
         for name in metadata.keys():
             v = metadata[name]
-            s += f'{name}={v} '
+            #s += f'{name}={v} '
+            s += f'{v}  '
         return s
 
     def debug_eq(self, s):

@@ -14,46 +14,46 @@ import shutil
 from pathlib import Path
 
 
-def read_image(filepath):
+def read_image(file_path):
     # try to find the image type
-    image_type = read_image_type_from_metadata(filepath)
+    image_type = read_image_type_from_metadata(file_path)
     if image_type is not None:
         # create the correct class if it is found
-        im = build_meta_image(image_type, filepath)
-        im.read(filepath)
+        im = build_meta_image(image_type, file_path)
+        im.read(file_path)
     else:
         # else create a generic image
-        im = MetaImageBase(filepath)
-        im.read(filepath)
+        im = MetaImageBase(file_path)
+        im.read(file_path)
     return im
 
 
 def delete_metadata(filename):
     im = MetaImageBase(filename, create=True)
     im._image_filename = filename
-    f = im.metadata_filepath
+    f = im.metadata_file_path
     if os.path.exists(f):
         os.remove(f)
 
 
-def read_image_header_only(filepath):
+def read_image_header_only(file_path):
     # try to find the image type
-    image_type = read_image_type_from_metadata(filepath)
+    image_type = read_image_type_from_metadata(file_path)
     if image_type is not None:
         # create the correct class if it is found
-        im = build_meta_image(image_type, filepath)
+        im = build_meta_image(image_type, file_path)
         im.read_metadata()
     else:
         # else create a generic image
-        im = MetaImageBase(filepath)
+        im = MetaImageBase(file_path)
         im.read_metadata()
     # read the image header (size, spacing, etc.)
     im.read_image_header()
     return im
 
 
-def read_image_type_from_metadata(filepath):
-    json_path = str(filepath) + ".json"
+def read_image_type_from_metadata(file_path):
+    json_path = str(file_path) + ".json"
     if not os.path.exists(json_path):
         return None
     try:
@@ -66,19 +66,19 @@ def read_image_type_from_metadata(filepath):
     return data['image_type']
 
 
-def delete_image_metadata(filepath):
-    im = MetaImageBase(filepath)
-    f = im.metadata_filepath
+def delete_image_metadata(file_path):
+    im = MetaImageBase(file_path)
+    f = im.metadata_file_path
     if os.path.exists(f):
         os.remove(f)
 
 
-def build_meta_image(image_type, filepath, create=False):
+def build_meta_image(image_type, file_path, create=False):
     if image_type not in image_builders:
         fatal(f"This image type '{image_type}' is not known. "
               f"Known image types: {image_builders.keys()}")
     the_class = image_builders[image_type]
-    output = the_class(filepath)
+    output = the_class(file_path, create=create)
     return output
 
 
@@ -184,37 +184,18 @@ class MetaImageBase(rmd.ClassWithMetaData):
         self.body_weight_kg = None
         # internal parameters
         self._image_filename = None
-        self._image_filepath = None
+        self._image_file_path = None
         self._image_header = None
         self._unit = None
         self._unit_default_value = 0
         # unit converter
         self.unit_converter = {}
-        # set the filepath
+        # set the file_path
         if create and not os.path.exists(image_path):
-            self._image_filepath = os.path.abspath(image_path)
+            self._image_file_path = os.path.abspath(image_path)
             self._image_filename = os.path.basename(image_path)
         else:
-            self.image_filepath = image_path
-
-    def __str__(self):
-        s = (f'{self.image_type}: {self.description} '
-             f'{self.filename} {self.unit} '
-             f'acq_date={self.acquisition_datetime}')
-        if self.image_is_loaded():
-            s += f' {self.image.GetSize()} {self.image.GetSpacing()}'
-        else:
-            if self._image_header is not None:
-                s += f' {self._image_header.size} {self._image_header.spacing}'
-        return s
-
-        s = super().__str__()
-        ss = ''
-        if self.image is None:
-            ss = "(image not loaded) "
-            if self._image_header is not None:
-                ss = "(header loaded) "
-        return f'{s}{ss}'
+            self.image_file_path = image_path
 
     def ensure_image_is_loaded(self):
         if self.image is None:
@@ -240,6 +221,8 @@ class MetaImageBase(rmd.ClassWithMetaData):
         Only change the unit when it is not known (equal to None).
         Otherwise, user "convert"
         """
+        if value == self._unit:
+            return
         if self._unit is not None:
             fatal(f"Cannot set the unit to '{value}' while it is "
                   f"'{self.unit}' use convert_to_unit ({self})")
@@ -260,14 +243,12 @@ class MetaImageBase(rmd.ClassWithMetaData):
             self._unit_default_value = self.unit_default_values[value]
 
     @property
-    def image_filepath(self):
-        return self._image_filepath
+    def image_file_path(self):
+        return self._image_file_path
 
-    @image_filepath.setter
-    def image_filepath(self, value):
-        if not os.path.exists(value):
-            fatal(f'Cannot set the image path to {value}, file does not exist')
-        self._image_filepath = os.path.abspath(value)
+    @image_file_path.setter
+    def image_file_path(self, value):
+        self._image_file_path = os.path.abspath(value)
         self._image_filename = os.path.basename(value)
 
     @property
@@ -277,7 +258,7 @@ class MetaImageBase(rmd.ClassWithMetaData):
     @filename.setter
     def filename(self, value):
         self._image_filename = os.path.basename(value)
-        self._image_filepath = os.path.abspath(value)
+        self._image_file_path = os.path.abspath(value)
 
     def require_unit(self, unit):
         if unit != self.unit:
@@ -314,35 +295,35 @@ class MetaImageBase(rmd.ClassWithMetaData):
             return
         self._acquisition_datetime = convert_datetime(value)
 
-    def read(self, filepath=None):
-        if filepath is not None:
-            self.image_filepath = filepath
-        if not os.path.exists(self.image_filepath):
-            fatal(f'Image: the filename {self.image_filepath} does not exist.')
-        self.image = sitk.ReadImage(self.image_filepath)
+    def read(self, file_path=None):
+        if file_path is not None:
+            self.image_file_path = file_path
+        if not os.path.exists(self.image_file_path):
+            fatal(f'Image: the filename {self.image_file_path} does not exist.')
+        self.image = sitk.ReadImage(self.image_file_path)
         self.read_metadata()
 
-    def write(self, filepath=None):
-        if filepath is None:
-            filepath = self.image_filepath
-            if filepath is None:
-                fatal(f'Provide the filepath to write the image to.')
+    def write(self, file_path=None):
+        if file_path is None:
+            file_path = self.image_file_path
+            if file_path is None:
+                fatal(f'Provide the file_path to write the image to.')
         if self.image_is_loaded():
-            sitk.WriteImage(self.image, filepath)
-        self.image_filepath = filepath
+            sitk.WriteImage(self.image, file_path)
+        self.image_file_path = file_path
         self.write_metadata()
 
     def read_metadata(self):
-        json_filename = self.metadata_filepath
+        json_filename = self.metadata_file_path
         current_image_type = self.image_type
-        p = self.image_filepath
+        p = self.image_file_path
         if os.path.exists(json_filename):
             # unit can only be set if it is None
             self._unit = None
             self.load_from_json(json_filename)
         # put back image path and check image filename
         read_filename = self._image_filename
-        self.image_filepath = p
+        self.image_file_path = p
         if self._image_filename != read_filename:
             fatal(f'Error: the filename in the sidecar json is "{read_filename}" '
                   f'while we expected "{self.filename}"')
@@ -352,7 +333,7 @@ class MetaImageBase(rmd.ClassWithMetaData):
 
     def read_image_header(self):
         reader = sitk.ImageFileReader()
-        reader.SetFileName(str(self.image_filepath))
+        reader.SetFileName(str(self.image_file_path))
         reader.LoadPrivateTagsOn()
         reader.ReadImageInformation()
         self._image_header = Box()
@@ -362,18 +343,18 @@ class MetaImageBase(rmd.ClassWithMetaData):
         self._image_header.pixel_type = sitk.GetPixelIDValueAsString(reader.GetPixelID())
 
     def write_metadata(self):
-        json_filename = self.metadata_filepath
+        json_filename = self.metadata_file_path
         self.save_to_json(json_filename)
 
     @property
-    def metadata_filepath(self):
-        if self.image_filepath is not None:
-            return str(self.image_filepath) + '.json'
+    def metadata_file_path(self):
+        if self.image_file_path is not None:
+            return str(self.image_file_path) + '.json'
         return None
 
     def info(self):
-        json_filename = self.metadata_filepath
-        js = f'(metadata: {self.metadata_filepath})'
+        json_filename = self.metadata_file_path
+        js = f'(metadata: {self.metadata_file_path})'
         if json_filename is not None and not os.path.exists(json_filename):
             js = '(no metadata available)'
         s = f'Image:   {self._image_filename} {js}\n'
@@ -381,14 +362,17 @@ class MetaImageBase(rmd.ClassWithMetaData):
         s += f'Type:    {self.image_type}\n'
         s += f'Loaded:  {self.image is not None}\n'
         s += f'Unit:    {self.unit}\n'
-        s += f'Date:    {self.acquisition_datetime}\n'
+        s += f'Weight:  {self.body_weight_kg} kg\n'
+        s += f'Date:    {self.acquisition_datetime}'
         if self.image_is_loaded():
+            s += '\n'
             s += f'Size:    {self.image.GetSize()}\n'
             s += f'Spacing: {self.image.GetSpacing()}\n'
             s += f'Origin:  {self.image.GetOrigin()}\n'
             s += f'Pixel :  {sitk.GetPixelIDValueAsString(self.image.GetPixelID())}'
         else:
             if self._image_header is not None:
+                s += '\n'
                 s += f'Size:    {self._image_header.size}\n'
                 s += f'Spacing: {self._image_header.spacing}\n'
                 s += f'Origin:  {self._image_header.origin}\n'
@@ -522,12 +506,8 @@ class MetaImageSPECT(MetaImageBase):
 
     @time_from_injection_h.setter
     def time_from_injection_h(self, value):
-        if self.injection_datetime is None and self.acquisition_datetime is None:
-            self.injection_datetime = "1970-01-01 00:00:00"
-            d = datetime.datetime.strptime(self.injection_datetime, "%Y-%m-%d %H:%M:%S")
-            self.acquisition_datetime = (d + datetime.timedelta(hours=value)).strftime("%Y-%m-%d %H:%M:%S")
-        else:
-            fatal(f'Cannot set the time from injection since injection_datetime or acquisition_datetime exists')
+        self.injection_datetime, self.acquisition_datetime = (
+            set_time_from_injection_h(self.injection_datetime, self.acquisition_datetime, value))
 
     def write_metadata(self):
         if self.unit is None:
@@ -586,8 +566,8 @@ class MetaImageDose(MetaImageBase):
     unit_default_values = {'Gy': 0, 'Gy/s': 0}
     image_type = "Dose"
 
-    def __init__(self, image_path):
-        super().__init__(image_path)
+    def __init__(self, image_path, create=False):
+        super().__init__(image_path, create)
         self._unit = None
 
 
@@ -1013,8 +993,8 @@ def mhd_replace_raw(mhd_file_path, new_raw_filename):
                 file.write(line)
 
 
-def is_mhd_file(filepath):
-    _, extension = os.path.splitext(filepath)
+def is_mhd_file(file_path):
+    _, extension = rhe.get_basename_and_extension(file_path)
     return extension.lower() == '.mhd'
 
 
@@ -1086,3 +1066,23 @@ def get_time_from_injection_h(injection_datetime, acquisition_datetime):
               f'is {acquisition_datetime} and cannot be interpreted')
     hours_diff = (a_date - i_date).total_seconds() / 3600
     return hours_diff
+
+
+def set_time_from_injection_h(injection_datetime, acquisition_datetime, time_from_injection_h):
+    # fake injection date
+    if injection_datetime is None and acquisition_datetime is None:
+        injection_datetime = "1970-01-01 00:00:00"
+        return set_time_from_injection_h(injection_datetime, acquisition_datetime, time_from_injection_h)
+    # compute acquisition date
+    if injection_datetime is None and acquisition_datetime is not None:
+        d = datetime.datetime.strptime(acquisition_datetime, "%Y-%m-%d %H:%M:%S")
+        injection_datetime = (d - datetime.timedelta(hours=time_from_injection_h)).strftime("%Y-%m-%d %H:%M:%S")
+        return injection_datetime, acquisition_datetime
+    # compute injection date
+    if injection_datetime is not None and acquisition_datetime is None:
+        d = datetime.datetime.strptime(injection_datetime, "%Y-%m-%d %H:%M:%S")
+        acquisition_datetime = (d + datetime.timedelta(hours=time_from_injection_h)).strftime("%Y-%m-%d %H:%M:%S")
+        return injection_datetime, acquisition_datetime
+    # cannot do it
+    fatal(f'Cannot set the time from injection since injection_datetime or acquisition_datetime exists: '
+          f'inj={injection_datetime} acq={acquisition_datetime} time_from_inj={time_from_injection_h}')

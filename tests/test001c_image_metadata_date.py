@@ -31,24 +31,25 @@ if __name__ == "__main__":
     s2.time_from_injection_h = 24
     print(f'{s2.acquisition_datetime=}')
     print(f'{s2.injection_datetime=}')
-    is_ok = s2.time_from_injection_h == 24
-    he.print_tests(is_ok, f'Set the time from injection to 24 = {s2.time_from_injection_h}')
+    ok = s2.time_from_injection_h == 24
+    he.print_tests(ok, f'Set the time from injection to 24 = {s2.time_from_injection_h}')
 
     # set value
     print()
     warning('set the time from injection')
     try:
         s2.time_from_injection_h = 36
-        is_ok = False
+        ok = False
     except:
-        is_ok = he.print_tests(is_ok, 'OK cannot set the time from injection') and is_ok
+        pass
+    ok = he.print_tests(ok, 'OK cannot set the time from injection') and ok
 
     # change the time
     print()
     warning('set the acquisition time')
     s2.acquisition_datetime = "1970-01-02 12:00:00"
     b = s2.time_from_injection_h == 36
-    is_ok = he.print_tests(b, f'must be 36 = {s2.time_from_injection_h}') and is_ok
+    ok = he.print_tests(b, f'must be 36 = {s2.time_from_injection_h}') and ok
 
     # set time from injection
     print()
@@ -56,9 +57,10 @@ if __name__ == "__main__":
     s2.acquisition_datetime = None
     try:
         print(s2.time_from_injection_h)
-        is_ok = False
+        ok = False
     except:
-        is_ok = he.print_tests(is_ok, 'Can set the time from injection ?') and is_ok
+        pass
+    ok = he.print_tests(ok, 'Can set the time from injection ?') and ok
     s2.injection_datetime = None
 
     # set time from injection
@@ -66,7 +68,7 @@ if __name__ == "__main__":
     warning('set back the time from injection')
     s2.time_from_injection_h = 24
     b = s2.time_from_injection_h == 24
-    is_ok = he.print_tests(b, f'must be 24 = {s2.time_from_injection_h}') and is_ok
+    ok = he.print_tests(b, f'must be 24 = {s2.time_from_injection_h}') and ok
 
     # set time from injection
     print()
@@ -74,7 +76,7 @@ if __name__ == "__main__":
     s2.injection_datetime = "2020 12 03 11:00"
     s2.acquisition_datetime = "2020 12 04 11:00"
     b = s2.time_from_injection_h == 24
-    is_ok = he.print_tests(b, f'must be 24 = {s2.time_from_injection_h}') and is_ok
+    ok = he.print_tests(b, f'must be 24 = {s2.time_from_injection_h}') and ok
 
     # end
-    he.test_ok(is_ok)
+    he.test_ok(ok)

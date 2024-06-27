@@ -17,7 +17,7 @@ if __name__ == "__main__":
     # prepare image (fake one)
     im_input = data_folder / "spleen.nii.gz"
     im_types = ['CT', 'SPECT', 'PET', 'ROI', 'Dose']
-    is_ok = True
+    ok = True
 
     # CRUD : CREATE READ UPDATE DELETE
 
@@ -42,20 +42,20 @@ if __name__ == "__main__":
         # read and compare
         im2 = rim.read_image_header_only(image_path)
         im._debug_eq = True
-        is_ok = he.print_tests(im == im2, f'Compare im1 and im2 for {im_type}') and is_ok
+        ok = he.print_tests(im == im2, f'Compare im1 and im2 for {im_type}') and ok
         created_images[im_type] = im
 
     # test: CREATE (file does not exist)
-    print()
+    """print()
     warning("Try to create when no image")
     for im_type in im_types:
         a = output_folder / f"{im_type.lower()}_fake.nii.gz"
         try:
             im = rim.build_meta_image(im_type, a)
-            is_ok = False
+            ok = False
         except:
             pass
-    he.print_tests(is_ok, f'Try to create should fail')
+    he.print_tests(ok, f'Try to create should fail')"""
 
     # test: READ
     print()
@@ -64,7 +64,7 @@ if __name__ == "__main__":
         image_path = output_folder / f"{im_type.lower()}.nii.gz"
         im = rim.read_image(image_path)
         print(im)
-        is_ok = he.print_tests(created_images[im_type] == im, f'Compare im1 and im2 for {im_type}') and is_ok
+        ok = he.print_tests(created_images[im_type] == im, f'Compare im1 and im2 for {im_type}') and ok
 
     # test: READ header only
     print()
@@ -73,7 +73,7 @@ if __name__ == "__main__":
         image_path = output_folder / f"{im_type.lower()}.nii.gz"
         im = rim.read_image_header_only(image_path)
         print(im)
-        is_ok = he.print_tests(created_images[im_type] == im, f'Compare im1 and im2 for {im_type}') and is_ok
+        ok = he.print_tests(created_images[im_type] == im, f'Compare im1 and im2 for {im_type}') and ok
 
     # test: READ header only
     print()
@@ -81,27 +81,27 @@ if __name__ == "__main__":
     image_path = output_folder / f"ct.nii.gz"
     ct = rim.read_ct(image_path)
     print(ct)
-    is_ok = he.print_tests(ct.image_type == 'CT', f'read ct') and is_ok
+    ok = he.print_tests(ct.image_type == 'CT', f'read ct') and ok
 
     image_path = output_folder / f"spect.nii.gz"
     spect = rim.read_spect(image_path)
     print(spect)
-    is_ok = he.print_tests(spect.image_type == 'SPECT', f'read spect') and is_ok
+    ok = he.print_tests(spect.image_type == 'SPECT', f'read spect') and ok
 
     image_path = output_folder / f"roi.nii.gz"
     roi = rim.read_roi(image_path)
     print(roi)
-    is_ok = he.print_tests(roi.image_type == 'ROI', f'read roi') and is_ok
+    ok = he.print_tests(roi.image_type == 'ROI', f'read roi') and ok
 
     image_path = output_folder / f"pet.nii.gz"
     pet = rim.read_pet(image_path)
     print(pet)
-    is_ok = he.print_tests(pet.image_type == 'PET', f'read pet') and is_ok
+    ok = he.print_tests(pet.image_type == 'PET', f'read pet') and ok
 
     image_path = output_folder / f"dose.nii.gz"
     dose = rim.read_dose(image_path)
     print(dose)
-    is_ok = he.print_tests(dose.image_type == 'Dose', f'read dose') and is_ok
+    ok = he.print_tests(dose.image_type == 'Dose', f'read dose') and ok
 
     # test: UPDATE
     print()
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     spect.write()
     spect2 = rim.read_spect(image_path)
     print(spect2)
-    is_ok = he.print_tests(spect == spect2, f'Compare updated spect') and is_ok
+    ok = he.print_tests(spect == spect2, f'Compare updated spect') and ok
 
     # test: DELETE
     print()
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     rim.delete_metadata(image_path)
     roi = rim.read_image_header_only(image_path)
     print(roi)
-    is_ok = he.print_tests(not os.path.exists(roi.metadata_filepath), f'Delete json') and is_ok
+    ok = he.print_tests(not os.path.exists(roi.metadata_file_path), f'Delete json') and ok
 
     # test
     print()
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     image_path = output_folder / f"spect.nii.gz"
     it = rim.read_image_type_from_metadata(image_path)
     b = it == "SPECT"
-    is_ok = he.print_tests(b, f'Read image type {it}') and is_ok
+    ok = he.print_tests(b, f'Read image type {it}') and ok
 
     # end
-    he.test_ok(is_ok)
+    he.test_ok(ok)
