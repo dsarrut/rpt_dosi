@@ -253,9 +253,7 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
 
     def from_dict(self, data):
         df = self._db_data_path
-        print('df', df)
         super().from_dict(data)
-        print('after df', self._db_data_path)
         for cid, cycle in data["cycles"].items():
             tc = TreatmentCycle(self, cid).from_dict(cycle)
             self.cycles[cid] = tc
@@ -440,9 +438,12 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
     def from_dict(self, data):
         super().from_dict(data)
         for key, value in data['rois'].items():
-            r = ROIInfo_OLD() # FIXME change to MetaImageROI
-            r.from_dict(value)
-            self.rois[key] = r
+            file_path = self.rois_path / value['filename']
+            roi = rim.MetaImageROI(image_path=file_path, name=value['name'], create=True)
+            roi.from_dict(value)
+            # we set the roi path to the current data folder
+            roi.image_file_path = file_path
+            self.rois[key] = roi
         for key, value in data['images'].items():
             file_path = self.timepoint_path / value['filename']
             im = rim.build_meta_image(value['image_type'], file_path, create=True)
@@ -466,6 +467,8 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
     def sync_metadata_images(self, sync_policy="auto"):
         for image_name in self.images.keys():
             self.sync_metadata_image(image_name, sync_policy)
+        for roi_name in self.rois.keys():
+            self.sync_metadata_roi(roi_name, sync_policy)
 
     def sync_metadata_image(self, image_name, sync_policy="auto"):
         image = self.get_metaimage(image_name)
@@ -474,9 +477,31 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
         self._update_field(image, self.cycle.db, 'body_weight_kg', sync_policy)
         self._update_field(image, self, 'acquisition_datetime', sync_policy)
 
+    def sync_metadata_roi(self, roi_name, sync_policy="auto"):
+        roi = self.get_roi(roi_name)
+        if roi_name == roi.name:
+            return
+        if sync_policy == "force_to_image":
+            roi.name = roi_name
+            return
+        if sync_policy == "force_to_db":
+            self.add_roi(roi)
+            return
+        if roi_name is None:  # not possible
+            self.add_roi(roi)
+            return
+        if roi.name is None:  # not possible
+            roi.name = roi_name
+            return
+        if sync_policy == "auto":
+            rhe.warning(f'Warning : incoherent roi name {roi.name}, db = {roi_name}')
+            return
+        fatal(f'Cannot update {roi_name}: sync_policy = {sync_policy} while must '
+              f'be "auto" or "force_to_image" or "force_to_db"')
+        pass
+
     def write_metadata_images(self):
         for image in self.images.values():
-            print(image.image_file_path, image.metadata_file_path)
             image.write_metadata()
 
     def _update_field(self, image, element_db, tag_name, sync_policy="auto"):
@@ -501,20 +526,18 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
             setattr(element_db, tag_name, getattr(image, tag_name))
             return
         # if one is None
-        if getattr(element_db, tag_name) is not None and getattr(image, tag_name) is None:
+        if getattr(image, tag_name) is None:
             setattr(image, tag_name, getattr(element_db, tag_name))
             return
-        if getattr(element_db, tag_name) is None and getattr(image, tag_name) is not None:
+        if getattr(element_db, tag_name) is None:
             setattr(element_db, tag_name, getattr(image, tag_name))
             return
         # warning : two different values
         if sync_policy == "auto":
-            if getattr(element_db, tag_name) is not None and getattr(image, tag_name) is not None:
-                # getattr(element_db, tag_name) = getattr(image, tag_name)
-                rhe.warning(f'Warning : incoherent {tag_name}, db = {getattr(element_db, tag_name)} '
-                            f'while image = {getattr(image, tag_name)} ({image})')
-                return
-        fatal(f'Cannot update {tag_name} field : sync_policy = {sync_policy} while must '
+            rhe.warning(f'Warning : incoherent {tag_name}, db = {getattr(element_db, tag_name)} '
+                        f'while image = {getattr(image, tag_name)} ({image})')
+            return
+        fatal(f'Cannot update {tag_name} field: sync_policy = {sync_policy} while must '
               f'be "auto" or "force_to_image" or "force_to_db"')
 
     @property
@@ -525,13 +548,13 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
     def rois_path(self):
         return self.timepoint_path / "rois"
 
-    def get_roi_info(self, roi_id):
+    def get_roi(self, roi_id):
         if roi_id not in self.rois:
             fatal(f'Cannot find ROI {roi_id} in the list of rois {self.rois.keys()}')
         return self.rois[roi_id]
 
     def get_roi_path(self, roi_id):
-        return self.rois_path / self.get_roi_info(roi_id).filename
+        return self.rois_path / self.get_roi(roi_id).filename
 
     def get_metaimage(self, image_name):
         if image_name not in self.images:
@@ -586,7 +609,6 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
         # check path
         fp = meta_image.image_file_path
         dest_path = self.timepoint_path / meta_image.filename
-        print(meta_image, meta_image.image_file_path)
         if str(fp) != str(dest_path):
             fatal(f'Cannot add image {image_name}, the file_path "{fp}" '
                   f'is not in the db (should be {dest_path})')
@@ -604,27 +626,42 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
 
     def add_rois(self, roi_list, mode='copy', exist_ok=False):
         for roi in roi_list:
-            self.add_roi(roi['roi_id'], roi['filename'], mode, exist_ok)
+            self.add_roi_from_file(roi['roi_id'], roi['filename'], mode, exist_ok)
 
-    def add_roi(self, roi_id, input_path, mode="copy", exist_ok=False):
+    def add_roi(self, roi):
+        if roi.name in self.rois:
+            fatal(f'Cannot add roi {roi.name} since it already exists')
+        # check path
+        fp = roi.image_file_path
+        dest_path = self.rois_path / roi.filename
+        if str(fp) != str(dest_path):
+            fatal(f'Cannot add roi {roi.name}, the file_path "{fp}" '
+                  f'is not in the db (should be {dest_path})')
+        # insert
+        try:
+            self.rois[roi.name] = roi
+            # update the metadata image and db should be the same
+            self.sync_metadata_roi(roi.name)
+            roi.write_metadata()
+        except rhe.Rpt_Error:
+            # if there is an error, remove the image and raise the error again
+            self.rois.pop(roi.name)
+            raise
+        return roi
+
+    def add_roi_from_file(self, roi_id, input_path, mode="copy", exist_ok=False):
         # compute the new filename as roi_id.extension
         _, extension = rhe.get_basename_and_extension(input_path)
         filename = f'{roi_id}{extension}'
         filename = filename.replace(' ', '_')
-        try:
-            self.rois[roi_id] = ROIInfo_OLD(roi_id, filename)
-            # get the dest path
-            dest_path = self.get_roi_path(roi_id)
-            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-            # check if already exist
-            if not exist_ok and os.path.exists(dest_path):
-                fatal(f'File image {dest_path} already exists')
-            rim.copy_or_move_image(input_path, dest_path, mode)
-            self.update_roi_json_from_db_info(roi_id)
-        except rhe.Rpt_Error:
-            # if there is an error, remove the image and raise the error again
-            self.rois.pop(roi_id)
-            raise
+        # copy or move the initial image
+        dest_path = self.rois_path / filename
+        if not exist_ok and os.path.exists(dest_path):
+            fatal(f'File image {dest_path} already exists')
+        rim.copy_or_move_image(input_path, dest_path, mode)
+        roi = rim.MetaImageROI(dest_path, name=roi_id, create=True)
+        # add it
+        return self.add_roi(roi)
 
     def update_roi_json_from_db_info(self, roi_id):
         dest_path = self.get_roi_path(roi_id)
@@ -648,7 +685,8 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
     def check_files(self):
         for image in self.images.values():
             if not os.path.exists(self.get_image_file_path(image.image_name)):
-                print(f'Error the image {image.image_name} does not exist: {self.get_image_file_path(image.image_name)}')
+                print(
+                    f'Error the image {image.image_name} does not exist: {self.get_image_file_path(image.image_name)}')
                 return False
         is_ok = True
         for roi in self.rois:
@@ -659,11 +697,3 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
         # TODO check mhd raw files !!
         return is_ok
 
-
-class ROIInfo_OLD(rmd.ClassWithMetaData):
-    _metadata_fields = {"filename": str}
-
-    def __init__(self, roi_id=None, filename=None):
-        super().__init__()
-        self.roi_id = roi_id
-        self.filename = filename
