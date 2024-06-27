@@ -19,7 +19,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--output", "-o", required=True, help="Output folder")
 def go(selected_json, run, output):
     # load the dicom info
-    db = rptdb.db_load(selected_json)
+    db = rptdb.OLD_db_load(selected_json)
 
     # output folder
     output = Path(output)

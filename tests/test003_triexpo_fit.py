@@ -24,8 +24,8 @@ if __name__ == "__main__":
     # compare
     print()
     db_ref = ref_folder / "activities_fit_ref.json"
-    db1 = rtpdb.db_load(db_output)
-    db2 = rtpdb.db_load(db_ref)
+    db1 = rtpdb.OLD_db_load(db_output)
+    db2 = rtpdb.OLD_db_load(db_ref)
     d1 = db1["cycles"]["cycle1"]["tri_expo_fit"]
     d2 = db2["cycles"]["cycle1"]["tri_expo_fit"]
     print(json.dumps(d1, indent=2))

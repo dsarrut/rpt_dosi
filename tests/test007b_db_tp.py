@@ -8,13 +8,12 @@ import copy
 
 if __name__ == "__main__":
     # folders
-    data_folder, ref_folder, output_folder = he.get_tests_folders("test007")
-    ref_folder = ref_folder / "ref_json"
+    data_folder, ref_folder, output_folder = he.get_tests_folders("test007b")
     print(f"Input data folder = {data_folder}")
     print(f"Ref data folder = {ref_folder}")
     print(f"Output data folder = {output_folder}")
     print()
-    is_ok = True
+    ok = True
 
     # create a db from scratch
     print()
@@ -28,57 +27,120 @@ if __name__ == "__main__":
     tp = cycle.add_new_timepoint("tp1")
 
     # add images
-    tp.add_image("ct",
-                 data_folder / "ct_8mm.nii.gz",
-                 image_type="CT",
-                 filename="ct1.nii.gz",
-                 mode="copy",
-                 exist_ok=True)
-    tp.add_image("spect",
-                 data_folder / "spect_8.321mm.nii.gz",
-                 image_type="SPECT",
-                 filename="spect.nii.gz",
-                 mode="copy",
-                 unit='Bq',
-                 exist_ok=True)
-    tp.add_image("spect2",  # this one has a json, not need for unit
-                 data_folder / "spect_10mm_with_json.nii.gz",
-                 image_type="SPECT",
-                 filename="spect2.nii.gz",
-                 mode="copy",
-                 exist_ok=True)
-    tp.add_image("pet",  # this one has a json, not need for unit
-                 data_folder / "spect_10mm_with_json.nii.gz",
-                 image_type="PET",
-                 filename="pet.nii.gz",
-                 mode="copy",
-                 exist_ok=True)
+    tp.add_image_from_file("ct",
+                           data_folder / "ct_8mm.nii.gz",
+                           image_type="CT",
+                           filename="ct1.nii.gz",
+                           mode="copy",
+                           exist_ok=True)
+    tp.add_image_from_file("spect",
+                           data_folder / "spect_8.321mm.nii.gz",
+                           image_type="SPECT",
+                           filename="spect.nii.gz",
+                           mode="copy",
+                           unit='Bq',
+                           exist_ok=True)
+    tp.add_image_from_file("spect2",  # this one has a json, not need for unit
+                           data_folder / "spect_10mm_with_json.nii.gz",
+                           image_type="SPECT",
+                           filename="spect2.nii.gz",
+                           mode="copy",
+                           exist_ok=True)
+    tp.add_image_from_file("pet",  # this one has a json, not need for unit
+                           data_folder / "spect_10mm_with_json.nii.gz",
+                           image_type="PET",
+                           filename="pet.nii.gz",
+                           mode="copy",
+                           exist_ok=True)
+    print(tp)
+    print(tp.info())
+    print()
+    for image in tp.images.values():
+        print('=====', image)
+        print(image.info() + '\n')
 
     # try to set the same image twice
     try:
         # same image name
-        tp.add_image("ct", data_folder / "ct_8mm.nii.gz", filename="ct.nii.gz", mode="copy")
-        is_ok = False
-    except:
-        he.print_tests(is_ok, "OK, I cannot set the image two times")
+        tp.add_image_from_file("ct", data_folder / "ct_8mm.nii.gz", filename="ct.nii.gz", mode="copy")
+        ok = False
+    except he.Rpt_Error as e:
+        pass
+    he.print_tests(ok, "OK, I cannot set the image two times")
 
     # try to set the same image twice
     try:
         # same image name
-        tp.add_image("fake",  # this one has a json, not need for unit
-                     data_folder / "spect_10mm_with_json.nii.gz",
-                     image_type="CT",
-                     filename="toto.nii.gz",
-                     mode="copy",
-                     exist_ok=True)
-        is_ok = False
+        tp.add_image_from_file("fake",  # this one has a json, not need for unit
+                               data_folder / "spect_10mm_with_json.nii.gz",
+                               image_type="CT",
+                               filename="toto.nii.gz",
+                               mode="copy",
+                               exist_ok=True)
+        ok = False
     except:
-        he.print_tests(is_ok, "OK, I cannot set the unit of a spect to a CT")
+        pass
+    he.print_tests(ok, "OK, I cannot set the unit of a spect to a CT")
 
-    tp.add_roi("liver",
-               data_folder / "rois" / "liver.nii.gz",
-               mode="copy",
-               exist_ok=True)
+    # test
+    print()
+    he.warning(f"check DB body weight update when add image")
+    db.body_weight_kg = 666
+    tp.add_image_from_file("ct_bw",
+                           tp.images["ct"].image_filepath,
+                           image_type="CT",
+                           filename="ct1.nii.gz",
+                           mode="dry_run",
+                           exist_ok=True)
+    print(tp.images["ct_bw"].info())
+    b = tp.images["ct_bw"].body_weight_kg == db.body_weight_kg == 666
+    ok = he.print_tests(b, "Check body weight db and image") and ok
+
+    # test
+    print()
+    he.warning(f"check body weight IMAGE update + sync")
+    db.body_weight_kg = None
+    tp.images["ct_bw"].body_weight_kg = 333
+    print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
+    tp.sync_metadata_image("ct_bw")
+    print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
+    b = tp.images["ct_bw"].body_weight_kg == db.body_weight_kg == 333
+    ok = he.print_tests(b, "Check body weight db and image") and ok
+
+    # test
+    print()
+    he.warning(f"modify both + sync")
+    db.body_weight_kg = 111
+    tp.images["ct_bw"].body_weight_kg = 222
+    print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
+    db.sync_metadata_images()
+    print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
+    b = tp.images["ct_bw"].body_weight_kg == 222 and db.body_weight_kg == 111
+    ok = he.print_tests(b, "Check body weight db and image") and ok
+
+    # test
+    print()
+    he.warning(f"modify both + sync")
+    db.body_weight_kg = 111
+    tp.images["ct_bw"].body_weight_kg = 222
+    print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
+    db.sync_metadata_images(force_flag="force_to_image")
+    print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
+    b = tp.images["ct_bw"].body_weight_kg and db.body_weight_kg == 111
+    ok = he.print_tests(b, "Check body weight db and image") and ok
+
+    # test
+    print()
+    he.warning(f"modify DB + sync")
+    db.body_weight_kg = 222
+    tp.images["ct_bw"].body_weight_kg = None
+    print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
+    tp.sync_metadata_image("ct_bw")
+    print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
+    b = tp.images["ct_bw"].body_weight_kg == db.body_weight_kg == 222
+    ok = he.print_tests(b, "Check body weight db and image") and ok
+
+    # FIXME update body weight injection_datetime injection_activity_mbq
 
     # check
     print()
@@ -86,16 +148,82 @@ if __name__ == "__main__":
     d1 = copy.deepcopy(db.to_dict())
     db.from_dict(d1)
     d2 = copy.deepcopy(db.to_dict())
-    is_ok = he.are_dicts_equal(d1, d2) and is_ok
-    he.print_tests(is_ok, "Compare the from_dict to_dict")
+    ok = he.are_dicts_equal(d1, d2) and ok
+    he.print_tests(ok, "Compare the from_dict to_dict")
 
     # write and check
     print()
     he.warning(f"check DB write read")
+    im = db['cycle1']['tp1'].images['spect']
+    im.body_weight_kg = 999
+    print(im.info())
+    db.sync_metadata_images(force_flag="force_to_image")
+    print(im.info())
     db.write()
+    print(db.db_filepath)
     db2 = rdb.PatientTreatmentDatabase(ref_folder / "db007b.json")
-    is_ok = he.are_dicts_equal(db.to_dict(), db2.to_dict()) and is_ok
-    he.print_tests(is_ok, "Compare write and read")
+    print(db2.db_filepath)
+    ok = he.are_dicts_equal(db.to_dict(), db2.to_dict()) and ok
+    he.print_tests(ok, "Compare write and read")
+
+    # date
+    print()
+    he.warning(f"check dates I")
+    im = db['cycle1']['tp1'].images['spect']
+    im.injection_datetime = "2050 01 01"
+    db['cycle1'].injection_datetime = "2000 01 01"
+    print(db['cycle1'])
+    print('before sync', im)
+    db['cycle1']['tp1'].sync_metadata_image("spect", force_flag="force_to_image")
+    print('after sync', im)
+    im.acquisition_datetime = None
+    im.time_from_injection_h = 24.5
+    print(im)
+    b = im.acquisition_datetime == "2000-01-02 00:30:00" and im.time_from_injection_h == 24.5
+    ok = he.print_tests(b, f"Check dates: {im}") and ok
+
+    # check
+    print()
+    he.warning(f"check dates II")
+    im = db['cycle1']['tp1'].images['spect']
+    db['cycle1'].injection_datetime = "2000 01 01"
+    im.injection_datetime = "2050 01 01"
+    print(db['cycle1'])
+    db['cycle1']['tp1'].sync_metadata_image("spect", force_flag="force_to_db")
+    print(im)
+    im.acquisition_datetime = None
+    im.time_from_injection_h = 24.5
+    print(im)
+    b = im.acquisition_datetime == "2050-01-02 00:30:00" and im.time_from_injection_h == 24.5
+    ok = he.print_tests(b, f"Check dates: {im}") and ok
+
+    # check
+    print()
+    he.warning(f"check dates III")
+    im = db['cycle1']['tp1'].images['spect']
+    im.acquisition_datetime = "2099 01 01"
+    im.injection_datetime = None
+    print(im)
+    im.time_from_injection_h = 24.5
+    print(im)
+    b = im.injection_datetime == "2098-12-30 23:30:00" and im.time_from_injection_h == 24.5
+    ok = he.print_tests(b, f"Check dates: {im}") and ok
+
+    # check
+    print()
+    he.warning(f"check dates IV")
+    im = db['cycle1']['tp1'].images['spect']
+    im.acquisition_datetime = "2099 01 01"
+    im.injection_datetime = "2029 01 01"
+    print(im)
+    b = True
+    try:
+        im.time_from_injection_h = 24.5
+        b = False
+    except:
+        pass
+    print(im)
+    ok = he.print_tests(b, f"Check dates: {im}") and ok
 
     # end
-    he.test_ok(is_ok)
+    he.test_ok(ok)

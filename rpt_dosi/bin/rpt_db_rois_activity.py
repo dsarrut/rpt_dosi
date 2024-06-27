@@ -14,16 +14,16 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 )
 def go(db_file, output):
     # open db as a dict
-    db = rptdb.db_load(db_file)
+    db = rptdb.OLD_db_load(db_file)
 
     # loop on cycles
     for cycle_id in db.cycles:
         print(f"Cycle {cycle_id}")
         cycle = db.cycles[cycle_id]
-        rptdb.db_update_cycle_rois_activity(cycle)
+        rptdb.OLD_db_update_cycle_rois_activity(cycle)
 
     # save
-    rptdb.db_save(db, output, db_file)
+    rptdb.OLD_db_save(db, output, db_file)
 
 
 # --------------------------------------------------------------------------

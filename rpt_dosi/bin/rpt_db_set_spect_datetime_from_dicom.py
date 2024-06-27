@@ -19,7 +19,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 def go(db_file, output):
     # open db as a dict
-    db = rptdb.db_load(db_file)
+    db = rptdb.OLD_db_load(db_file)
 
     # loop on cycle
     for cycle_id, cycle in db["cycles"].items():
@@ -28,11 +28,11 @@ def go(db_file, output):
             dicom_file = acqui["spect_dicom"]
             ds = pydicom.read_file(dicom_file)
             # update acquisition
-            db = rptdb.db_update_acquisition(db, ds, cycle_id, tp_id)
+            db = rptdb.OLD_db_update_acquisition(db, ds, cycle_id, tp_id)
             print(f'Cycle {cycle_id}, {tp_id} : {acqui["datetime"]}')
 
     # save
-    rptdb.db_save(db, output, db_file)
+    rptdb.OLD_db_save(db, output, db_file)
 
 
 # --------------------------------------------------------------------------

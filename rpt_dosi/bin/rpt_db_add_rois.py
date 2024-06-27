@@ -22,7 +22,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--name", "-n", required=True, help="Patient initials (folder)")
 def go(db_file, roi_list, name, output):
     # open db as a dict
-    db = rptdb.db_load(db_file)
+    db = rptdb.OLD_db_load(db_file)
 
     # consider list of roi/name
     with open(roi_list, "r") as f:
@@ -40,7 +40,7 @@ def go(db_file, roi_list, name, output):
             cycle.acquisitions[acquisition]["rois"] = rois_copy
 
     # save
-    rptdb.db_save(db, output, db_file)
+    rptdb.OLD_db_save(db, output, db_file)
 
 
 # --------------------------------------------------------------------------

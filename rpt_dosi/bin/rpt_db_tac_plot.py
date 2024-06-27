@@ -13,7 +13,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--cycle_id", "-c", required=True, help="Cycle to plot")
 def go(db_file, cycle_id):
     # open db as a dict
-    db = rptdb.db_load(db_file)
+    db = rptdb.OLD_db_load(db_file)
 
     # get cycle
     cycle = db.cycles[cycle_id]
@@ -27,7 +27,7 @@ def go(db_file, cycle_id):
 
     # get tac for all rois
     for roi in roi_names:
-        t, a = rptdb.db_get_tac(cycle, roi)
+        t, a = rptdb.OLD_db_get_tac(cycle, roi)
         a = a / 1e6
         # a = a / injected_activity * 100
         plt.plot(t, a, label=f"{roi}")
