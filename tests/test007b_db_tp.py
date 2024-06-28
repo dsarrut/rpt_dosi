@@ -22,7 +22,7 @@ if __name__ == "__main__":
     if os.path.exists(db_file_path):
         os.remove(db_file_path)
     db = rdb.PatientTreatmentDatabase(db_file_path, create=True)
-    cycle = rdb.TreatmentCycle(db, "cycle1")
+    cycle = rdb.CycleTreatmentDatabase(db, "cycle1")
     db.add_cycle(cycle)
     tp = cycle.add_new_timepoint("tp1")
 

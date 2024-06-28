@@ -190,7 +190,7 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
 
     def get_cycle(self, cycle_id):
         if cycle_id not in self.cycles:
-            self.cycles[cycle_id] = TreatmentCycle(self, cycle_id)
+            self.cycles[cycle_id] = CycleTreatmentDatabase(self, cycle_id)
         return self.cycles[cycle_id]
 
     def __getitem__(self, key):
@@ -208,7 +208,7 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
         self.cycles.pop(cycle_id)
 
     def add_new_cycle(self, cycle_id):
-        cycle = TreatmentCycle(self, cycle_id)
+        cycle = CycleTreatmentDatabase(self, cycle_id)
         return self.add_cycle(cycle)
 
     def add_dicom_ct(self, cycle_id, tp_id, folder_path):
@@ -255,23 +255,28 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
         df = self._db_data_path
         super().from_dict(data)
         for cid, cycle in data["cycles"].items():
-            tc = TreatmentCycle(self, cid).from_dict(cycle)
+            tc = CycleTreatmentDatabase(self, cid).from_dict(cycle)
             self.cycles[cid] = tc
 
-    def check_folders(self):
-        is_ok = True
+    def check_folders_exist(self):
+        ok = True
+        msg = ''
         for cycle in self.cycles.values():
-            is_ok = cycle.check_folders() and is_ok
-        return is_ok
+            b, msg = cycle.check_folders_exist()
+            ok = b and ok
+        return ok, msg
 
-    def check_files(self):
-        is_ok = True
+    def check_files_exist(self):
+        ok = True
+        msg = ''
         for cycle in self.cycles.values():
-            is_ok = cycle.check_files() and is_ok
-        return is_ok
+            b, m = cycle.check_files_exist()
+            ok = b and ok
+            msg += m
+        return ok, msg
 
 
-class TreatmentCycle(rmd.ClassWithMetaData):
+class CycleTreatmentDatabase(rmd.ClassWithMetaData):
     _metadata_fields = {  # 'cycle_id': str,
         'injection_activity_mbq': float,
         'injection_datetime': str,
@@ -322,7 +327,7 @@ class TreatmentCycle(rmd.ClassWithMetaData):
 
     def get_timepoint(self, tp_id):
         if tp_id not in self.timepoints:
-            self.timepoints[tp_id] = ImagingTimepoint(self, tp_id)
+            self.timepoints[tp_id] = TimepointTreatmentDatabase(self, tp_id)
         return self.timepoints[tp_id]
 
     def __getitem__(self, key):
@@ -337,7 +342,7 @@ class TreatmentCycle(rmd.ClassWithMetaData):
         return tp
 
     def add_new_timepoint(self, tp_id):
-        tp = ImagingTimepoint(self, tp_id)
+        tp = TimepointTreatmentDatabase(self, tp_id)
         return self.add_timepoint(tp)
 
     @property
@@ -352,7 +357,7 @@ class TreatmentCycle(rmd.ClassWithMetaData):
     def from_dict(self, data):
         super().from_dict(data)
         for tid, tp in data["timepoints"].items():
-            timepoint = ImagingTimepoint(self, tid).from_dict(tp)
+            timepoint = TimepointTreatmentDatabase(self, tid).from_dict(tp)
             self.timepoints[tid] = timepoint
         return self
 
@@ -364,24 +369,30 @@ class TreatmentCycle(rmd.ClassWithMetaData):
         for tp in self.timepoints.values():
             tp.write_metadata_images()
 
-    def check_folders(self):
+    def check_folders_exist(self):
+        ok = True
+        msg = ''
         if not os.path.exists(self.cycle_path):
-            print(f'Error the folder for cycle {self.cycle_id} '
-                  f'does not exist (expected {self.cycle_path})')
-            return False
-        is_ok = True
+            msg += (f'Error the folder for cycle {self.cycle_id} '
+                    f'does not exist (expected {self.cycle_path})')
+            ok = False
         for tp in self.timepoints.values():
-            is_ok = tp.check_folders() and is_ok
-        return is_ok
+            b, m = tp.check_folders_exist()
+            msg += m
+            ok = b and ok
+        return ok, msg
 
-    def check_files(self):
-        is_ok = True
+    def check_files_exist(self):
+        ok = True
+        msg = ''
         for tp in self.timepoints.values():
-            is_ok = tp.check_files() and is_ok
-        return is_ok
+            b, m = tp.check_files_exist()
+            ok = b and ok
+            msg += m
+        return ok, msg
 
 
-class ImagingTimepoint(rmd.ClassWithMetaData):
+class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
     """
         Store filenames, not paths, paths are computed on the fly.
         The folders are build from db/cycle/timepoint
@@ -671,29 +682,30 @@ class ImagingTimepoint(rmd.ClassWithMetaData):
             spect.read_image_header()
             spect.write_metadata()
 
-    def check_folders(self):
+    def check_folders_exist(self):
+        msg = ''
+        ok = True
         if not os.path.exists(self.timepoint_path):
-            print(f'Error the folder for timepoint {self.timepoint_id} '
-                  f'does not exist (expected {self.timepoint_path})')
-            return False
+            msg += (f'Error the folder for timepoint {self.timepoint_id} '
+                    f'does not exist (expected {self.timepoint_path})')
+            ok = False
         if not os.path.exists(self.timepoint_path / "rois"):
-            print(f'Error the ROI folder for timepoint {self.timepoint_id} '
-                  f'does not exist (expected {self.timepoint_path / "rois"})')
-            return False
-        return True
+            msg += (f'Error the ROI folder for timepoint {self.timepoint_id} '
+                    f'does not exist (expected {self.timepoint_path / "rois"})')
+            ok = False
+        return ok, msg
 
-    def check_files(self):
+    def check_files_exist(self):
+        msg = ''
+        ok = True
         for image in self.images.values():
-            if not os.path.exists(self.get_image_file_path(image.image_name)):
-                print(
-                    f'Error the image {image.image_name} does not exist: {self.get_image_file_path(image.image_name)}')
-                return False
-        is_ok = True
+            if not os.path.exists(image.image_file_path):
+                msg += f'{self.cycle.cycle_id} {self.timepoint_id} The image {image.image_name} does not exist: {self.get_image_file_path(image.image_name)}'
+                ok = False
         for roi in self.rois:
             if not os.path.exists(self.get_roi_path(roi)):
-                print(f'Error the roi {self.get_roi_path(roi)} '
-                      f'does not exist')
-                is_ok = False
+                msg += (f'{self.cycle.cycle_id} {self.timepoint_id} The roi '
+                        f'{self.get_roi_path(roi)} does not exist')
+                ok = False
+        return ok, msg
         # TODO check mhd raw files !!
-        return is_ok
-

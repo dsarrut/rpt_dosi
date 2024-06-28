@@ -27,7 +27,7 @@ if __name__ == "__main__":
     db.body_weight_kg = 123
 
     # add a cycle
-    cycle = rdb.TreatmentCycle(db, "cycle1")
+    cycle = rdb.CycleTreatmentDatabase(db, "cycle1")
     cycle.injection_activity_mbq = 666
     cycle.injection_datetime = "2022-08-09"
     db.add_cycle(cycle)
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     c2.add_new_timepoint("tp1")
     c2.add_new_timepoint("tp2")
     c2.injection_activity_mbq = 777.7
-    tp = rdb.ImagingTimepoint(cycle, "tp3")
+    tp = rdb.TimepointTreatmentDatabase(cycle, "tp3")
     try:
         c2.add_timepoint(tp)
         is_ok = False
@@ -72,8 +72,8 @@ if __name__ == "__main__":
     db2 = rdb.PatientTreatmentDatabase(db_filepath)
     is_ok = db.patient_id == db2.patient_id and is_ok
     is_ok = db.body_weight_kg == db2.body_weight_kg and is_ok
-    is_ok = db.check_folders() and is_ok
-    is_ok = db2.check_folders() and is_ok
+    is_ok = db.check_folders_exist() and is_ok
+    is_ok = db2.check_folders_exist() and is_ok
     he.print_tests(is_ok, f'Compare write/read db {db_filepath}')
     print()
 

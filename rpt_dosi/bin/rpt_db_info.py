@@ -36,10 +36,8 @@ def go(db_files, verbose, large_verbose, check):
                     print(rhe.indent(tp.info(), '\t\t'))
 
         if check:
-            print(f'Checking folders : {db.check_folders()}')
-            print(f'Checking files : {db.check_files()}')
-            # db.check_files()
-            # db.check_dates() # or missing data?
+            b, m = db.check_files_exist()
+            print(f'Checking files : {b} {m}')
 
 
 if __name__ == "__main__":
