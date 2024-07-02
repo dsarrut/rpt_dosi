@@ -5,6 +5,7 @@ import os
 import rpt_dosi.utils as he
 import rpt_dosi.db as rdb
 import copy
+from rpt_dosi.utils import start_test, stop_test, end_tests
 
 if __name__ == "__main__":
     # folders
@@ -12,12 +13,9 @@ if __name__ == "__main__":
     print(f"Input data folder = {data_folder}")
     print(f"Ref data folder = {ref_folder}")
     print(f"Output data folder = {output_folder}")
-    print()
-    ok = True
 
     # create a db from scratch
-    print()
-    he.warning(f"Create a new database with cycle and TP")
+    start_test(f"Create a new database with cycle and TP")
     db_filepath = output_folder / "db007c.json"
     if os.path.exists(db_filepath):
         os.remove(db_filepath)
@@ -44,7 +42,7 @@ if __name__ == "__main__":
         b = False
     except:
         b = True
-    ok = he.print_tests(b, "Can set the ROI two times? {b}")
+    stop_test(b, "Can set the ROI two times? {b}")
 
     # try to set wrong extension
     try:
@@ -55,30 +53,27 @@ if __name__ == "__main__":
         b = False
     except:
         b = True
-    ok = he.print_tests(b, f"Can set a wrong extension? {b}") and ok
+    stop_test(b, f"Can set a wrong extension? {b}")
 
     # check
-    print()
-    he.warning(f"check DB from to dict")
+    start_test(f"check DB from to dict")
     d1 = copy.deepcopy(db.to_dict())
     db.from_dict(d1)
     d2 = copy.deepcopy(db.to_dict())
     b = he.are_dicts_equal(d1, d2)
-    ok = he.print_tests(b, f"Compare the from_dict to_dict: {b}") and ok
+    stop_test(b, f"Compare the from_dict to_dict: {b}")
 
     # write and check
-    print()
-    he.warning(f"check DB write read")
+    start_test(f"check DB write read")
     db.write()
     print(db.db_file_path)
     db2 = rdb.PatientTreatmentDatabase(output_folder / "db007c.json")
     print(db2.db_file_path)
     b = he.are_dicts_equal(db.to_dict(), db2.to_dict())
-    ok = he.print_tests(b, f"Compare write and read: {b}") and ok
+    stop_test(b, f"Compare write and read: {b}")
 
     # several rois
-    print()
-    he.warning(f"several rois")
+    start_test(f"several rois")
     tp = db['cycle1']['tp1']
     tp.rois.pop('liver')
     roi_list = [
@@ -92,7 +87,7 @@ if __name__ == "__main__":
     print(db.get_cycle('cycle1').get_timepoint('tp1'))
     print(tp.info())
     b = len(tp.rois) == 5 and 'liver' in tp.rois and 'spleen' in tp.rois
-    ok = he.print_tests(b, f"Check if 5 rois: {b}") and ok
+    stop_test(b, f"Check if 5 rois: {b}")
 
     # end
-    he.test_ok(ok)
+    end_tests()

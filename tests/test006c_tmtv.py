@@ -5,6 +5,7 @@ import rpt_dosi.utils as he
 import rpt_dosi.tmtv as rtmtv
 import rpt_dosi.images as rim
 import SimpleITK as sitk
+from rpt_dosi.utils import start_test, stop_test, end_tests
 
 if __name__ == "__main__":
     # folders
@@ -12,12 +13,9 @@ if __name__ == "__main__":
     print(f"Input data folder = {data_folder}")
     print(f"Ref data folder = {ref_folder}")
     print(f"Output data folder = {output_folder}")
-    print()
 
     # test 3 with gafita2019 threshold
-    print()
-    print()
-    print("TMTV (auto threshold)")
+    start_test("TMTV (auto threshold)")
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     output = output_folder / "tmtv_auto.nii.gz"
     output_mask = output_folder / "tmtv_mask_auto.nii.gz"
@@ -40,14 +38,12 @@ if __name__ == "__main__":
     # compare
     tmtv_ref = ref_folder / "tmtv_ref_auto_min_cc.nii.gz"
     b = rim.test_compare_images(output, tmtv_ref)
-    he.print_tests(b, f"Compare TMTV {output} vs {tmtv_ref}")
-    is_ok = b
+    stop_test(b, f"Compare TMTV {output} vs {tmtv_ref}")
 
     # compare
     tmtv_ref = ref_folder / "tmtv_mask_ref_auto_min_cc.nii.gz"
     b = rim.test_compare_images(output_mask, tmtv_ref)
-    he.print_tests(b, f"Compare TMTV mask {output_mask} vs {tmtv_ref}")
-    is_ok = b and is_ok
+    stop_test(b, f"Compare TMTV mask {output_mask} vs {tmtv_ref}")
 
     # end
-    he.test_ok(is_ok)
+    end_tests()

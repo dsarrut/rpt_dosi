@@ -5,6 +5,7 @@ import os
 import rpt_dosi.utils as he
 import rpt_dosi.db as rdb
 import shutil
+from rpt_dosi.utils import start_test, stop_test, end_tests
 
 if __name__ == "__main__":
     # folders
@@ -12,11 +13,9 @@ if __name__ == "__main__":
     print(f"Input data folder = {data_folder}")
     print(f"Ref data folder = {ref_folder}")
     print(f"Output data folder = {output_folder}")
-    ok = True
 
     # create a db from scratch
-    print()
-    he.warning(f"Create a new database with cycle and TP")
+    start_test(f"Create a new database with cycle and TP")
     db_file_path = output_folder / "db007d.json"
     if os.path.exists(db_file_path):
         os.remove(db_file_path)
@@ -50,89 +49,83 @@ if __name__ == "__main__":
     tp.add_rois(roi_list, exist_ok=True)
     print(db.info())
     ok = db.number_of_rois() == 4 and db.number_of_images() == 2
-    he.print_tests(ok, f'Create db: {ok}')
+    stop_test(ok, f'Create db: {ok}')
 
     # check if all files are there
-    print()
-    he.warning(f"Check if all folders/files are there")
+    start_test(f"Check if all folders/files are there")
     b, m = db.check_folders_exist()
-    ok = he.print_tests(b, f'Check folders {b} {m}') and ok
+    stop_test(b, f'Check folders {b} {m}')
     b, m = db.check_files_exist()
-    ok = he.print_tests(b, f'Check files {b} {m}') and ok
+    stop_test(b, f'Check files {b} {m}')
 
     # mv files
     f = tp.rois['skull'].image_file_path
     shutil.move(f, f + '.back')
     b, m = db.check_files_exist()
     b = not b
-    ok = he.print_tests(b, f'Check move file {b} {m}') and ok
+    stop_test(b, f'Check move file {b} {m}')
     shutil.move(f + '.back', f)
 
     # mv folders
     tp.timepoint_id = 'tp3'
     b, m = db.check_folders_exist()
     b = not b
-    ok = he.print_tests(b, f'Check move folders {b} {m}') and ok
+    stop_test(b, f'Check move folders {b} {m}')
     tp.timepoint_id = 'tp2'
     cycle.cycle_id = 'cycle2'
     b, m = db.check_folders_exist()
     b = not b
-    ok = he.print_tests(b, f'Check move folders {b} {m}') and ok
+    stop_test(b, f'Check move folders {b} {m}')
     cycle.cycle_id = 'cycle1'
 
     # back
     b, m = db.check_folders_exist()
-    ok = he.print_tests(b, f'Check folders {b} {m}') and ok
+    stop_test(b, f'Check folders {b} {m}')
     b, m = db.check_files_exist()
-    ok = he.print_tests(b, f'Check files {b} {m}') and ok
+    stop_test(b, f'Check files {b} {m}')
 
     # check if metadata are synchronized
-    print()
-    he.warning(f"Check metadata sync")
+    start_test(f"Check metadata sync")
     b, m = db.check_files_metadata()
-    ok = he.print_tests(b, f'Check files metadata {b} {m}') and ok
+    stop_test(b, f'Check files metadata {b} {m}')
 
     # check if metadata are synchronized
-    print()
-    he.warning(f"Check metadata sync")
+    start_test(f"Check metadata sync")
     d = tp.acquisition_datetime
     tp.acquisition_datetime = "1994 06 21"
     b, m = db.check_files_metadata()
     b = not b
-    ok = he.print_tests(b, f'Check files metadata {b} {m}') and ok
+    stop_test(b, f'Check files metadata {b} {m}')
     tp.acquisition_datetime = d
 
     # check if metadata are synchronized
-    print()
-    he.warning(f"Check metadata sync")
+    start_test(f"Check metadata sync")
     roi = tp.rois['spleen']
     roi.name = 'toto'
     b, m = db.check_files_metadata()
     b = not b
-    ok = he.print_tests(b, f'Check files metadata {b} {m}') and ok
+    stop_test(b, f'Check files metadata {b} {m}')
     roi.name = 'spleen'
 
     # check if metadata are synchronized
-    print()
-    he.warning(f"Check metadata sync")
+    start_test(f"Check metadata sync")
     roi1 = tp.rois['spleen']
     roi2 = tp.rois['liver']
     f = roi2.image_file_path
     roi2.image_file_path = roi1.image_file_path
     b, m = db.check_files_metadata()
     b = not b
-    ok = he.print_tests(b, f'Check files metadata {b} {m}') and ok
+    stop_test(b, f'Check files metadata {b} {m}')
     roi2.image_file_path = f
 
     # check if metadata are synchronized
-    print()
-    he.warning(f"Check metadata sync")
+    start_test(f"Check metadata sync")
     im1 = tp.images['ct']
     im2 = tp.images['spect']
     im1.image_file_path = im2.image_file_path
     b, m = db.check_files_metadata()
     b = not b
-    ok = he.print_tests(b, f'Check files metadata {b} {m}') and ok
+    stop_test(b, f'Check files metadata {b} {m}')
 
     # end
-    he.test_ok(ok)
+    end_tests()

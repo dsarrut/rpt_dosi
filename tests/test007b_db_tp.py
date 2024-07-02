@@ -5,6 +5,7 @@ import os
 import rpt_dosi.utils as he
 import rpt_dosi.db as rdb
 import copy
+from rpt_dosi.utils import start_test, stop_test, end_tests
 
 if __name__ == "__main__":
     # folders
@@ -12,12 +13,9 @@ if __name__ == "__main__":
     print(f"Input data folder = {data_folder}")
     print(f"Ref data folder = {ref_folder}")
     print(f"Output data folder = {output_folder}")
-    print()
-    ok = True
 
     # create a db from scratch
-    print()
-    he.warning(f"Create a new database with cycle and TP")
+    start_test(f"Create a new database with cycle and TP")
     db_file_path = output_folder / "db007b.json"
     if os.path.exists(db_file_path):
         os.remove(db_file_path)
@@ -69,7 +67,7 @@ if __name__ == "__main__":
         b = False
     except he.Rpt_Error as e:
         b = True
-    ok = he.print_tests(b, f"I cannot set the image two times: {b}") and ok
+    stop_test(b, f"I cannot set the image two times: {b}")
 
     # try to set a wrong image type
     try:
@@ -83,11 +81,10 @@ if __name__ == "__main__":
         b = False
     except:
         b = True
-    ok = he.print_tests(b, f"Can I set a spect to a CT ? {b}") and ok
+    stop_test(b, f"Can I set a spect to a CT ? {b}")
 
     # test
-    print()
-    he.warning(f"check DB body weight update when add image")
+    start_test(f"check DB body weight update when add image")
     db.body_weight_kg = 666
     tp.add_image_from_file("ct_bw",
                            tp.images["ct"].image_file_path,
@@ -98,64 +95,58 @@ if __name__ == "__main__":
     print(tp.images["ct_bw"].info())
     tp.sync_metadata_image("ct_bw", sync_policy='db_to_image')
     b = tp.images["ct_bw"].body_weight_kg == db.body_weight_kg == 666
-    ok = he.print_tests(b, f"Check body weight db and image 666 {b}") and ok
+    stop_test(b, f"Check body weight db and image 666 {b}")
 
     # test
-    print()
-    he.warning(f"check body weight IMAGE update + sync")
+    start_test(f"check body weight IMAGE update + sync")
     db.body_weight_kg = None
     tp.images["ct_bw"].body_weight_kg = 333
     print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
     tp.sync_metadata_image("ct_bw")
     print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
     b = tp.images["ct_bw"].body_weight_kg == db.body_weight_kg == 333
-    ok = he.print_tests(b, "Check body weight db and image") and ok
+    stop_test(b, "Check body weight db and image")
 
     # test
-    print()
-    he.warning(f"modify both + sync")
+    start_test(f"modify both + sync")
     db.body_weight_kg = 111
     tp.images["ct_bw"].body_weight_kg = 222
     print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
     db.sync_metadata_images()
     print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
     b = tp.images["ct_bw"].body_weight_kg == 222 and db.body_weight_kg == 111
-    ok = he.print_tests(b, "Check body weight db and image") and ok
+    stop_test(b, "Check body weight db and image")
 
     # test
-    print()
-    he.warning(f"modify both + sync")
+    start_test(f"modify both + sync")
     db.body_weight_kg = 111
     tp.images["ct_bw"].body_weight_kg = 222
     print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
     db.sync_metadata_images(sync_policy="db_to_image")
     print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
     b = tp.images["ct_bw"].body_weight_kg and db.body_weight_kg == 111
-    ok = he.print_tests(b, "Check body weight db and image") and ok
+    stop_test(b, "Check body weight db and image")
 
     # test
-    print()
-    he.warning(f"modify DB + sync")
+    start_test(f"modify DB + sync")
     db.body_weight_kg = 222
     tp.images["ct_bw"].body_weight_kg = None
     print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
     tp.sync_metadata_image("ct_bw")
     print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
     b = tp.images["ct_bw"].body_weight_kg == db.body_weight_kg == 222
-    ok = he.print_tests(b, "Check body weight db and image") and ok
+    stop_test(b, "Check body weight db and image")
 
     # check
-    print()
-    he.warning(f"check DB from-to dict")
+    start_test(f"check DB from-to dict")
     d1 = copy.deepcopy(db.to_dict())
     db.from_dict(d1)
     d2 = copy.deepcopy(db.to_dict())
     b = he.are_dicts_equal(d1, d2)
-    ok = he.print_tests(b, f"Compare the from_dict to_dict {b}") and ok
+    stop_test(b, f"Compare the from_dict to_dict {b}")
 
     # write and check
-    print()
-    he.warning(f"check DB write read")
+    start_test(f"check DB write read")
     im = db['cycle1']['tp1'].images['spect']
     im.body_weight_kg = 999
     print(im.info())
@@ -165,11 +156,10 @@ if __name__ == "__main__":
     # db2 = rdb.PatientTreatmentDatabase(ref_folder / "db007b.json")
     db2 = rdb.PatientTreatmentDatabase(output_folder / "db007b.json")
     b = he.are_dicts_equal(db.to_dict(), db2.to_dict())
-    ok = he.print_tests(b, f"Compare write and read: {b}") and ok
+    stop_test(b, f"Compare write and read: {b}")
 
     # date
-    print()
-    he.warning(f"check dates I")
+    start_test(f"check dates I")
     im = db['cycle1']['tp1'].images['spect']
     im.injection_datetime = "2050 01 01"
     db['cycle1'].injection_datetime = "2000 01 01"
@@ -177,11 +167,10 @@ if __name__ == "__main__":
     im.acquisition_datetime = None
     im.time_from_injection_h = 24.5
     b = im.acquisition_datetime == "2000-01-02 00:30:00" and im.time_from_injection_h == 24.5
-    ok = he.print_tests(b, f"Check dates: {im}") and ok
+    stop_test(b, f"Check dates: {im}")
 
     # check
-    print()
-    he.warning(f"check dates II")
+    start_test(f"check dates II")
     im = db['cycle1']['tp1'].images['spect']
     db['cycle1'].injection_datetime = "2000 01 01"
     im.injection_datetime = "2050 01 01"
@@ -191,11 +180,10 @@ if __name__ == "__main__":
     im.time_from_injection_h = 24.5
     print(im)
     b = im.acquisition_datetime == "2050-01-02 00:30:00" and im.time_from_injection_h == 24.5
-    ok = he.print_tests(b, f"Check dates: {im}") and ok
+    stop_test(b, f"Check dates: {im}")
 
     # check
-    print()
-    he.warning(f"check dates III")
+    start_test(f"check dates III")
     im = db['cycle1']['tp1'].images['spect']
     im.acquisition_datetime = "2099 01 01"
     im.injection_datetime = None
@@ -203,11 +191,10 @@ if __name__ == "__main__":
     im.time_from_injection_h = 24.5
     print(im)
     b = im.injection_datetime == "2098-12-30 23:30:00" and im.time_from_injection_h == 24.5
-    ok = he.print_tests(b, f"Check dates: {im}") and ok
+    stop_test(b, f"Check dates: {im}")
 
     # check
-    print()
-    he.warning(f"check dates IV")
+    start_test(f"check dates IV")
     im = db['cycle1']['tp1'].images['spect']
     im.acquisition_datetime = "2099 01 01"
     im.injection_datetime = "2029 01 01"
@@ -218,7 +205,7 @@ if __name__ == "__main__":
     except:
         b = True
     print(im)
-    ok = he.print_tests(b, f"Check dates: {im}") and ok
+    stop_test(b, f"Check dates: {im}")
 
     # end
-    he.test_ok(ok)
+    end_tests()
