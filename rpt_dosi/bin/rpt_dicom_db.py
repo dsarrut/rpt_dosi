@@ -3,7 +3,7 @@
 
 import click
 import rpt_dosi.db as rptdb
-import rpt_dosi.helpers as he
+import rpt_dosi.utils as he
 import json
 import os
 from pathlib import Path

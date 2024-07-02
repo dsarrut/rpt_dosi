@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-import rpt_dosi.helpers as he
+import rpt_dosi.utils as he
 import rpt_dosi.db as rdb
 import copy
 
@@ -41,9 +41,10 @@ if __name__ == "__main__":
     try:
         # same image name
         tp.add_roi_from_file("liver", data_folder / "ct_8mm.nii.gz")
-        ok = False
+        b = False
     except:
-        he.print_tests(ok, "I cannot set the ROI two times")
+        b = True
+    ok = he.print_tests(b, "Can set the ROI two times? {b}")
 
     # try to set wrong extension
     try:
@@ -51,9 +52,10 @@ if __name__ == "__main__":
         tp.add_image_from_file("ct",  # this one has a json, not need for unit
                                data_folder / "spect_10mm_with_json.nii.gz",
                                filename="toto.mhd")
-        ok = False
+        b = False
     except:
-        ok = he.print_tests(ok, "I cannot set a wrong extension") and ok
+        b = True
+    ok = he.print_tests(b, f"Can set a wrong extension? {b}") and ok
 
     # check
     print()
@@ -61,18 +63,18 @@ if __name__ == "__main__":
     d1 = copy.deepcopy(db.to_dict())
     db.from_dict(d1)
     d2 = copy.deepcopy(db.to_dict())
-    ok = he.are_dicts_equal(d1, d2) and ok
-    he.print_tests(ok, "Compare the from_dict to_dict")
+    b = he.are_dicts_equal(d1, d2)
+    ok = he.print_tests(b, f"Compare the from_dict to_dict: {b}") and ok
 
     # write and check
     print()
     he.warning(f"check DB write read")
     db.write()
     print(db.db_file_path)
-    db2 = rdb.PatientTreatmentDatabase(ref_folder / "db007c.json")
+    db2 = rdb.PatientTreatmentDatabase(output_folder / "db007c.json")
     print(db2.db_file_path)
-    ok = he.are_dicts_equal(db.to_dict(), db2.to_dict()) and ok
-    he.print_tests(ok, "Compare write and read")
+    b = he.are_dicts_equal(db.to_dict(), db2.to_dict())
+    ok = he.print_tests(b, f"Compare write and read: {b}") and ok
 
     # several rois
     print()
@@ -90,7 +92,7 @@ if __name__ == "__main__":
     print(db.get_cycle('cycle1').get_timepoint('tp1'))
     print(tp.info())
     b = len(tp.rois) == 5 and 'liver' in tp.rois and 'spleen' in tp.rois
-    ok = he.print_tests(b, "Check if 5 rois") and ok
+    ok = he.print_tests(b, f"Check if 5 rois: {b}") and ok
 
     # end
     he.test_ok(ok)

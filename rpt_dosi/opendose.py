@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 from bs4 import BeautifulSoup
 import json
-from rpt_dosi.helpers import find_closest_match, fatal
+from rpt_dosi.utils import find_closest_match, fatal
 from pathlib import Path
 import numpy as np
-from rpt_dosi.helpers import get_data_folder
+from rpt_dosi.utils import get_data_folder
 
 
 def guess_phantom_id(phantom_name):

@@ -10,7 +10,7 @@ from .opendose import (
     get_svalue_and_mass_scaling,
     guess_phantom_and_isotope,
 )
-from .helpers import print_tests, fatal
+from .utils import print_tests, fatal
 import numpy as np
 from datetime import datetime
 from box import Box

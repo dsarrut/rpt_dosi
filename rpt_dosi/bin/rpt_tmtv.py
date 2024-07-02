@@ -5,6 +5,7 @@ import click
 import json
 import rpt_dosi.tmtv as rtmtv
 import rpt_dosi.images as rim
+import rpt_dosi.utils as ru
 import SimpleITK as sitk
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
@@ -25,11 +26,13 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--skull", default=None, help="Skull roi (to remove head)")
 @click.option("--output", "-o", required=True, help="output filename TMTV")
 @click.option("--output_mask", "-m", required=True, help="output filename TMTV mask")
+@click.option("--verbose", "-v", is_flag=True, default=False, help="verbose")
 def go(input_filename,
        threshold, output, output_mask,
        roi_list, population_mean_liver,
        skull,
-       minimal_volume_cc):
+       minimal_volume_cc,
+       verbose):
     """
     Compute TMTV Total Metabolic Tumor Volume
     input:
@@ -40,8 +43,10 @@ def go(input_filename,
     """
 
     # read image (SPECT or PET)
-    image = rim.read_image(input_filename)
-    print(image)
+    try:
+        image = rim.read_spect(input_filename, unit='Bq')
+    except:
+        image = rim.read_pet(input_filename, unit='Bq/mL')
 
     # user defined list of roi and associated dilatation in mm
     # JSON file must be a list of {'filename': "liver.nii.gz", 'dilatation': 10}
@@ -62,22 +67,22 @@ def go(input_filename,
     tmtv_extractor.minimal_volume_cc = minimal_volume_cc
 
     # go
+    verbose and print(f'Input image \n{image.info()}')
     tmtv, mask = tmtv_extractor.compute_mask(image.image)
 
     # convert to image type for input image (if any)
-    if image.image_type is not None:
-        tmtv_img = rim.build_meta_image(image.image_type, output)
-        tmtv_img.image = tmtv
-        print(tmtv_img)
-        tmtv_img.write(output)
-    else:
-        sitk.WriteImage(tmtv, output)
+    sitk.WriteImage(tmtv, output)
+    tmtv_img = rim.new_metaimage(image.image_type, output, unit=image.unit)
+    tmtv_img.image = tmtv
+    tmtv_img.write_metadata()
 
     # convert to image type for mask
-    roi_img = rim.MetaImageROI(output_mask, 'tmtv_mask', create=True)
+    sitk.WriteImage(mask, output_mask)
+    roi_img = rim.MetaImageROI(output_mask, 'tmtv_mask', create=True, name='tmtv')
     roi_img.image = mask
-    print(roi_img)
-    roi_img.write(output_mask)
+    roi_img.write_metadata()
+    verbose and print(f'Output tmtv {output}')
+    verbose and print(f'Output mask {output_mask}')
 
 
 # --------------------------------------------------------------------------

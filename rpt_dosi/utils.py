@@ -154,6 +154,26 @@ def escape_special_characters(filename):
     return filename
 
 
+def compare_dict(dict1, dict2):
+    msg = ''
+    ok = True
+    for key, v in dict1.items():
+        if key not in dict2:
+            msg = f'{key}: not in dict2\n'
+            ok = False
+        else:
+            if dict2[key] != v:
+                msg = f'{key}= {v} vs {dict2[key]}\n'
+                ok = False
+    for key, v in dict2.items():
+        if key not in dict1:
+            msg = f'{key}: not in dict1\n'
+            ok = False
+    # remove final line break
+    msg = msg.rstrip('\n')
+    return ok, msg
+
+
 def are_dicts_equal(dict1, dict2, float_tolerance=1e-9):
     for key, value1 in dict1.items():
         if key not in dict2:

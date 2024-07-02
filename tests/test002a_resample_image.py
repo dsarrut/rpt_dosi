@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import rpt_dosi.images as rim
-import rpt_dosi.helpers as he
-from rpt_dosi.helpers import warning
+import rpt_dosi.utils as he
+from rpt_dosi.utils import warning
 
 if __name__ == "__main__":
     # folders
@@ -46,9 +46,9 @@ if __name__ == "__main__":
     ct_ref = ref_folder / "ct_8.321mm_ref.nii.gz"
     like_input = data_folder / "spect_8.321mm.nii.gz"
     ct = rim.read_ct(ct_input)
-    print(ct)
+    print(ct.info())
     like = rim.read_ct(like_input)
-    print(like)
+    print(like.info())
     resampled_ct = rim.resample_ct_like(ct, like, gaussian_sigma="auto")
     resampled_ct.write(ct_output)
     print(ct)

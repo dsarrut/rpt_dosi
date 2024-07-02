@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import json
-import rpt_dosi.helpers as he
+import rpt_dosi.utils as he
 import rpt_dosi.db as rtpdb
 
 if __name__ == "__main__":

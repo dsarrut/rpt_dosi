@@ -3,7 +3,7 @@
 
 import click
 import rpt_dosi.db as rdb
-import rpt_dosi.helpers as rhe
+import rpt_dosi.utils as rhe
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 

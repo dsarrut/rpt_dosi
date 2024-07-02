@@ -4,7 +4,7 @@
 import os
 import time
 import click
-import rpt_dosi.helpers as he
+import rpt_dosi.utils as he
 from pathlib import Path
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])

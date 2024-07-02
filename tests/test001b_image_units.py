@@ -3,8 +3,8 @@
 import SimpleITK
 
 import rpt_dosi.images as rim
-import rpt_dosi.helpers as he
-from rpt_dosi.helpers import warning
+import rpt_dosi.utils as he
+from rpt_dosi.utils import warning
 import shutil
 
 if __name__ == "__main__":
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     im_input = data_folder / "spleen.nii.gz"
     image_path = output_folder / f"spect.nii.gz"
     shutil.copy(im_input, image_path)
-    rim.delete_metadata(image_path)
+    rim.delete_image_metadata(image_path)
     ok = True
 
     # test unit error
@@ -29,7 +29,7 @@ if __name__ == "__main__":
         ok = False
     except:
         he.print_tests(ok, "Cannot open without unit")
-    spect = rim.read_spect(image_path, input_unit='Bq')
+    spect = rim.read_spect(image_path, unit='Bq')
     spect.write()
     spect2 = rim.read_spect(image_path)
     spect._debug_eq = True

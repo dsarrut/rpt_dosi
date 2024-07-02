@@ -1,6 +1,6 @@
-from . import helpers as rhe
+from . import utils as rhe
 from . import metadata as rmd
-from .helpers import fatal, convert_datetime
+from .utils import fatal, convert_datetime, compare_dict
 import SimpleITK as sitk
 import math
 import numpy as np
@@ -14,45 +14,52 @@ import shutil
 from pathlib import Path
 
 
-def read_image(file_path):
-    # try to find the image type
-    image_type = read_image_type_from_metadata(file_path)
-    if image_type is not None:
-        # create the correct class if it is found
-        im = build_meta_image(image_type, file_path)
-        im.read(file_path)
-    else:
-        # else create a generic image
-        im = MetaImageBase(file_path)
-        im.read(file_path)
+def read_metaimage(file_path, read_header_only=False):
+    """
+    Read an existing metaimage.
+    Need both the image and the associated metadata json sidecar file.
+    """
+    if not os.path.exists(file_path):
+        fatal(f'read_metaimage: {file_path} does not exist')
+    image_type = read_metaimage_type_from_metadata(file_path)
+    if image_type is None:
+        fatal(f'read_metaimage: {file_path} is not a metaimage')
+    # create the correct class if it is found
+    the_class = get_metaimage_class_from_type(image_type)
+    im = the_class(file_path, read_header_only=read_header_only, create=False)
     return im
 
 
-def delete_metadata(filename):
-    im = MetaImageBase(filename, create=True)
-    im._image_filename = filename
-    f = im.metadata_file_path
-    if os.path.exists(f):
-        os.remove(f)
+def metadata_exists(file_path):
+    json_path = str(file_path) + ".json"
+    return os.path.exists(json_path)
 
 
-def read_image_header_only(file_path):
-    # try to find the image type
-    image_type = read_image_type_from_metadata(file_path)
-    if image_type is not None:
-        # create the correct class if it is found
-        im = build_meta_image(image_type, file_path)
-        im.read_metadata()
-    else:
-        # else create a generic image
-        im = MetaImageBase(file_path)
-        im.read_metadata()
-    # read the image header (size, spacing, etc.)
-    im.read_image_header()
-    return im
+def new_metaimage(image_type, file_path, overwrite=False, read_header_only=False, **kwargs):
+    """
+    Create (and read) a new metaimage.
+    The filepath of the image must exist.
+    The associated metadata json sidecar file is created (or overwritten if already exist)
+    The required parameters must be given for some image_type :
+    - SPECT require 'unit'
+    - ROI require 'name'
+    """
+    the_class = get_metaimage_class_from_type(image_type)
+    if overwrite:
+        delete_image_metadata(file_path)
+    output = the_class(file_path, read_header_only=read_header_only, create=True, **kwargs)
+    return output
 
 
-def read_image_type_from_metadata(file_path):
+def get_metaimage_class_from_type(image_type):
+    if image_type not in image_builders:
+        fatal(f"This image type '{image_type}' is not known. "
+              f"Known image types: {image_builders.keys()}")
+    the_class = image_builders[image_type]
+    return the_class
+
+
+def read_metaimage_type_from_metadata(file_path):
     json_path = str(file_path) + ".json"
     if not os.path.exists(json_path):
         return None
@@ -67,82 +74,117 @@ def read_image_type_from_metadata(file_path):
 
 
 def delete_image_metadata(file_path):
-    im = MetaImageBase(file_path)
-    f = im.metadata_file_path
+    f = str(file_path) + '.json'
     if os.path.exists(f):
         os.remove(f)
 
 
-def build_meta_image(image_type, file_path, create=False):
-    if image_type not in image_builders:
-        fatal(f"This image type '{image_type}' is not known. "
-              f"Known image types: {image_builders.keys()}")
-    the_class = image_builders[image_type]
-    output = the_class(file_path, create=create)
-    return output
-
-
-def read_ct(filename):
-    ct = MetaImageCT(filename)
-    ct.read()
+def read_ct(filepath):
+    """
+    Read or create a CT image
+    """
+    image_type = read_metaimage_type_from_metadata(filepath)
+    if image_type is None:
+        ct = new_metaimage('CT',
+                           filepath,
+                           overwrite=False,
+                           read_header_only=False)
+    else:
+        if image_type == 'CT':
+            ct = read_metaimage(filepath, read_header_only=False)
+        else:
+            fatal(f'Error while reading, this is not a CT image: {filepath}')
     return ct
 
 
-def read_spect(filename, input_unit=None):
-    spect = MetaImageSPECT(filename, input_unit)
-    spect.read()
-    if spect.unit is None and input_unit is None:
-        fatal(f"Error: no image unit is specified while reading"
-              f" {filename} (considered as SPECT)")
-    if input_unit is not None:
-        spect._unit = None
-        spect.unit = input_unit
+def read_spect(filepath, unit=None):
+    """
+    Read or create a SPECT image and consider the given unit
+    """
+    image_type = read_metaimage_type_from_metadata(filepath)
+    spect = None
+    if image_type is None:
+        spect = new_metaimage('SPECT',
+                              filepath,
+                              overwrite=False,
+                              read_header_only=False,
+                              unit=unit)
     else:
-        if spect.unit is None:
-            fatal(f"Error: no image unit is specified while reading"
-                  f" {filename} (considered as SPECT)")
+        if image_type == 'SPECT':
+            spect = read_metaimage(filepath, read_header_only=False)
+        else:
+            fatal(f'Error while reading, this is not a SPECT image: {filepath}')
+    if unit is not None:
+        spect.convert_to_unit(unit)
     return spect
 
 
-def read_pet(filename, input_unit=None):
-    spect = MetaImagePET(filename, input_unit)
-    spect.read()
-    if spect.unit is None and input_unit is None:
-        fatal(f"Error: no image unit is specified while reading"
-              f" {filename} (considered as PET)")
-    if input_unit is not None:
-        spect._unit = None
-        spect.unit = input_unit
+def read_pet(filepath, unit=None):
+    """
+    Read or create a PET image and consider the given unit
+    """
+    image_type = read_metaimage_type_from_metadata(filepath)
+    pet = None
+    if image_type is None:
+        pet = new_metaimage('PET',
+                            filepath,
+                            overwrite=False,
+                            read_header_only=False,
+                            unit=unit)
     else:
-        if spect.unit is None:
-            fatal(f"Error: no image unit is specified while reading"
-                  f" {filename} (considered as PET)")
-    return spect
+        if image_type == 'PET':
+            pet = read_metaimage(filepath, read_header_only=False)
+        else:
+            fatal(f'Error while reading, this is not a PET image: {filepath}')
+    if unit is not None:
+        pet.convert_to_unit(unit)
+    return pet
 
 
-def read_roi(filename, name=None, effective_time_h=None):
-    roi = MetaImageROI(filename, name)
-    roi.read()
+def read_roi(filepath, name=None, effective_time_h=None):
+    """
+    Read or create a ROI image and consider the given unit
+    """
+    image_type = read_metaimage_type_from_metadata(filepath)
+    roi = None
+    if image_type is None:
+        roi = new_metaimage('ROI',
+                            filepath,
+                            overwrite=False,
+                            read_header_only=False,
+                            name=name)
+    else:
+        if image_type == 'ROI':
+            roi = read_metaimage(filepath, read_header_only=False)
+        else:
+            fatal(f'Error while reading, this is not a ROI image: {filepath}')
+        if name is not None:
+            roi.name = name
     if effective_time_h is not None:
         roi.effective_time_h = effective_time_h
     return roi
 
 
-def read_dose(filename, input_unit=None):
-    d = MetaImageDose(filename)
-    d.read()
-    if d.unit is None:
-        # set Gy by default
-        if input_unit is None:
-            d.unit = 'Gy'
-        else:
-            d.unit = input_unit
+def read_dose(filepath, unit=None):
+    """
+    Read or create a Dose image and consider the given unit
+    """
+    # dose = new_metaimage('Dose', filepath, overwrite=False, read_header_only=False, unit=input_unit)
+    image_type = read_metaimage_type_from_metadata(filepath)
+    if image_type is None:
+        dose = new_metaimage('Dose',
+                             filepath,
+                             overwrite=False,
+                             read_header_only=False,
+                             unit=unit)
     else:
-        if d.image_type is not None:
-            if d.unit != input_unit:
-                fatal(f"Image metadata have {d.unit} as pixel unit, "
-                      f"but input unit is {input_unit}, error.")
-    return d
+        if image_type == 'Dose':
+            dose = read_metaimage(filepath, read_header_only=False)
+        else:
+            fatal(f'Error while reading, this is not a Dose image: {filepath}')
+    if unit is not None:
+        dose.convert_to_unit(unit)
+    return dose
 
 
 def read_list_of_rois(filename, folder=None):
@@ -165,6 +207,7 @@ class MetaImageBase(rmd.ClassWithMetaData):
     authorized_units = []
     unit_default_values = {}
     image_type = None
+    unit_converter = {}
 
     # the metadata members are attributes that will be
     # stored/loaded on disk (in json file)
@@ -175,8 +218,9 @@ class MetaImageBase(rmd.ClassWithMetaData):
                         'acquisition_datetime': str,
                         'unit': str}
 
-    def __init__(self, image_path, create=False):
+    def __init__(self, image_path, read_header_only=False, create=False, **kwargs):
         super().__init__()
+        # init
         self.image = None
         # metadata infos
         self.description = ""
@@ -188,14 +232,24 @@ class MetaImageBase(rmd.ClassWithMetaData):
         self._image_header = None
         self._unit = None
         self._unit_default_value = 0
-        # unit converter
-        self.unit_converter = {}
-        # set the file_path
-        if create and not os.path.exists(image_path):
-            self._image_file_path = os.path.abspath(image_path)
-            self._image_filename = os.path.basename(image_path)
+        self.image_file_path = image_path
+        # check filename
+        if not os.path.exists(image_path):
+            fatal(f"Cannot create a MetaImage, {image_path} does not exist")
+        # special case to create the metadata if it does not exist
+        if not os.path.exists(self.metadata_file_path) and create:
+            self._init_required_metadata(**kwargs)
+        # read metadata
+        if read_header_only:
+            self.read_metadata()
+            self.read_image_header()
         else:
-            self.image_file_path = image_path
+            self.read()
+        return
+
+    def _init_required_metadata(self, **kwargs):
+        # specific required metadata for this image type
+        pass
 
     def ensure_image_is_loaded(self):
         if self.image is None:
@@ -265,6 +319,11 @@ class MetaImageBase(rmd.ClassWithMetaData):
             fatal(f"The unit '{unit}' is required while it is {self.unit}")
 
     def convert_to_unit(self, new_unit):
+        if self.unit == new_unit:
+            return
+        if self.unit is None:
+            self._unit = new_unit
+            return
         if new_unit not in self.unit_converter:
             fatal(f"I dont know how to convert to the unit to '{new_unit}' "
                   f"(current unit is {self.unit}, available units are {self.authorized_units}"
@@ -317,10 +376,13 @@ class MetaImageBase(rmd.ClassWithMetaData):
         json_filename = self.metadata_file_path
         current_image_type = self.image_type
         p = self.image_file_path
-        if os.path.exists(json_filename):
-            # unit can only be set if it is None
-            self._unit = None
-            self.load_from_json(json_filename)
+        if not os.path.exists(json_filename):
+            return
+        # unit can only be set if it is None
+        self._unit = None
+        self.load_from_json(json_filename)
+        # else:
+        #    fatal(f'Error: no metadata file {json_filename}"')
         # put back image path and check image filename
         read_filename = self._image_filename
         self.image_file_path = p
@@ -379,14 +441,31 @@ class MetaImageBase(rmd.ClassWithMetaData):
                 s += f'Pixel:   {self._image_header.pixel_type}'
         return s
 
+    def check_file_metadata(self):
+        # get the current metadata
+        memory_dict = self.to_dict()
+        # read the metadata in the file
+        try:
+            im = read_metaimage(self.image_file_path)
+            disk_dict = im.to_dict()
+            # compare
+            ok, msg = compare_dict(memory_dict, disk_dict)
+        except Exception as e:
+            ok = False
+            msg = f'Error while reading {e}'
+        if msg != '':
+            msg = f'{self._image_filename} metadata error : {msg}'
+        return ok, msg
+
 
 class MetaImageCT(MetaImageBase):
-    authorized_units = ['HU', 'g/cm3']  # FIXME add attenuation
+    authorized_units = ['HU', 'g/cm3']  # FIXME separate attenuation
     unit_default_values = {'HU': -1000, 'g/cm3': 0}
     image_type = "CT"
 
-    def __init__(self, image_path, create=False):
-        super().__init__(image_path, create)
+    def __init__(self, image_path, read_header_only=False, create=False, **kwargs):
+        super().__init__(image_path, read_header_only, create, **kwargs)
+        # must set the unit after to get the unit_default_values right
         self.unit = 'HU'
 
     def compute_densities(self):  # FIXME to remove ?
@@ -408,6 +487,11 @@ class MetaImageSPECT(MetaImageBase):
     authorized_units = ['Bq', 'Bq/mL', "SUV"]
     unit_default_values = {'Bq': 0, 'Bq/mL': 0, "SUV": 0}
     image_type = "SPECT"
+    unit_converter = {
+        'Bq': "convert_to_bq",
+        'Bq/mL': "convert_to_bqml",
+        'SUV': "convert_to_suv",
+    }
 
     _metadata_fields = {
         **MetaImageBase._metadata_fields,  # Inherit base class fields
@@ -415,22 +499,18 @@ class MetaImageSPECT(MetaImageBase):
         'injection_activity_mbq': float
     }
 
-    def __init__(self, image_path, unit=None, create=False):
-        super().__init__(image_path, create)
+    def __init__(self, image_path, read_header_only=False, create=False, **kwargs):
         # metadata
         self._injection_datetime = None
         self.injection_activity_mbq = None
-        # unit converter
-        self.unit_converter = {
-            'Bq': "convert_to_bq",
-            'Bq/mL': "convert_to_bqml",
-            'SUV': "convert_to_suv",
-        }
-        # set the unit
-        if unit is None:
-            self._unit = unit
-        else:
-            self.unit = unit
+        super().__init__(image_path, read_header_only, create, **kwargs)
+
+    def _init_required_metadata(self, **kwargs):
+        if 'unit' not in kwargs:
+            fatal(f'Unit is required to create a MetaImageSPECT')
+        if kwargs['unit'] not in self.authorized_units:
+            fatal(f'Unit for MetaImageSPECT must be in {self.authorized_units}, while it is {kwargs["unit"]}')
+        self._unit = kwargs['unit']
 
     @property
     def injection_datetime(self):
@@ -520,6 +600,19 @@ class MetaImagePET(MetaImageSPECT):
     unit_default_values = {'Bq/mL': 0, "SUV": 0}
     image_type = "PET"
 
+    def __init__(self, image_path, read_header_only=False, create=False, **kwargs):
+        # metadata
+        self._injection_datetime = None
+        self.injection_activity_mbq = None
+        super().__init__(image_path, read_header_only, create, **kwargs)
+
+    def _init_required_metadata(self, **kwargs):
+        if 'unit' not in kwargs:
+            fatal(f'Unit is required to create a MetaImagePET')
+        if kwargs['unit'] not in self.authorized_units:
+            fatal(f'Unit for MetaImagePET must be in {self.authorized_units}, while it is {kwargs["unit"]}')
+        self._unit = kwargs['unit']
+
 
 class MetaImageROI(MetaImageBase):
     authorized_units = ['label']
@@ -532,22 +625,29 @@ class MetaImageROI(MetaImageBase):
         'effective_time_h': float
     }
 
-    def __init__(self, image_path, name=None, create=False):
-        super().__init__(image_path, create)
-        self.name = name
+    def __init__(self, image_path, read_header_only=False, create=False, **kwargs):
+        self.name = None
         self._unit = 'label'
         self.effective_time_h = None
         self.mass_g = None
         self.volume_cc = None
+        super().__init__(image_path, read_header_only, create, **kwargs)
+
+    def _init_required_metadata(self, **kwargs):
+        if 'name' not in kwargs:
+            fatal(f'Name is required to create a MetaImageROI')
+        self.name = kwargs['name']
 
     def info(self):
         s = super().info() + '\n'
+        s += f'Name:   {self.name}\n'
         s += f'Teff:   {self.effective_time_h} h\n'
         s += f'Mass:   {self.mass_g} g\n'
         s += f'Volume: {self.volume_cc} cc'
         return s
 
     def update_mass_and_volume(self, density_ct):
+        self.ensure_image_is_loaded()
         # compute mass
         a = sitk.GetArrayViewFromImage(self.image)
         da = sitk.GetArrayViewFromImage(density_ct.image)
@@ -566,9 +666,13 @@ class MetaImageDose(MetaImageBase):
     unit_default_values = {'Gy': 0, 'Gy/s': 0}
     image_type = "Dose"
 
-    def __init__(self, image_path, create=False):
-        super().__init__(image_path, create)
-        self._unit = None
+    def __init__(self, image_path, read_header_only=False, create=False, **kwargs):
+        super().__init__(image_path, read_header_only, create, **kwargs)
+
+    def _init_required_metadata(self, **kwargs):
+        if 'unit' not in kwargs:
+            fatal(f'Unit is required to create a MetaImageDose')
+        self._unit = kwargs['unit']
 
 
 image_builders = {

@@ -5,7 +5,7 @@ from collections import defaultdict
 from tqdm import tqdm
 from box import Box
 import questionary
-from rpt_dosi.helpers import fatal
+from rpt_dosi.utils import fatal
 import gatetools as gt
 
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-import rpt_dosi.helpers as he
+import rpt_dosi.utils as he
 import rpt_dosi.db as rdb
 import copy
 
@@ -47,10 +47,11 @@ if __name__ == "__main__":
                            filename="spect2.nii.gz",
                            mode="copy",
                            exist_ok=True)
-    tp.add_image_from_file("pet",  # this one has a json, not need for unit
-                           data_folder / "spect_10mm_with_json.nii.gz",
+    tp.add_image_from_file("pet",
+                           data_folder / "ct_8mm.nii.gz",
                            image_type="PET",
                            filename="pet.nii.gz",
+                           unit='Bq/mL',
                            mode="copy",
                            exist_ok=True)
 
@@ -65,12 +66,12 @@ if __name__ == "__main__":
     try:
         # same image name
         tp.add_image_from_file("ct", data_folder / "ct_8mm.nii.gz", filename="ct.nii.gz", mode="copy")
-        ok = False
+        b = False
     except he.Rpt_Error as e:
-        pass
-    he.print_tests(ok, "OK, I cannot set the image two times")
+        b = True
+    ok = he.print_tests(b, f"I cannot set the image two times: {b}") and ok
 
-    # try to set the same image twice
+    # try to set a wrong image type
     try:
         # same image name
         tp.add_image_from_file("fake",  # this one has a json, not need for unit
@@ -79,10 +80,10 @@ if __name__ == "__main__":
                                filename="toto.nii.gz",
                                mode="copy",
                                exist_ok=True)
-        ok = False
+        b = False
     except:
-        pass
-    he.print_tests(ok, "OK, I cannot set the unit of a spect to a CT")
+        b = True
+    ok = he.print_tests(b, f"Can I set a spect to a CT ? {b}") and ok
 
     # test
     print()
@@ -95,8 +96,9 @@ if __name__ == "__main__":
                            mode="dry_run",
                            exist_ok=True)
     print(tp.images["ct_bw"].info())
+    tp.sync_metadata_image("ct_bw", sync_policy='db_to_image')
     b = tp.images["ct_bw"].body_weight_kg == db.body_weight_kg == 666
-    ok = he.print_tests(b, "Check body weight db and image") and ok
+    ok = he.print_tests(b, f"Check body weight db and image 666 {b}") and ok
 
     # test
     print()
@@ -126,7 +128,7 @@ if __name__ == "__main__":
     db.body_weight_kg = 111
     tp.images["ct_bw"].body_weight_kg = 222
     print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
-    db.sync_metadata_images(sync_policy="force_to_image")
+    db.sync_metadata_images(sync_policy="db_to_image")
     print(f'db = {db.body_weight_kg} and im = {tp.images["ct_bw"].body_weight_kg}')
     b = tp.images["ct_bw"].body_weight_kg and db.body_weight_kg == 111
     ok = he.print_tests(b, "Check body weight db and image") and ok
@@ -144,12 +146,12 @@ if __name__ == "__main__":
 
     # check
     print()
-    he.warning(f"check DB from to dict")
+    he.warning(f"check DB from-to dict")
     d1 = copy.deepcopy(db.to_dict())
     db.from_dict(d1)
     d2 = copy.deepcopy(db.to_dict())
-    ok = he.are_dicts_equal(d1, d2) and ok
-    he.print_tests(ok, "Compare the from_dict to_dict")
+    b = he.are_dicts_equal(d1, d2)
+    ok = he.print_tests(b, f"Compare the from_dict to_dict {b}") and ok
 
     # write and check
     print()
@@ -157,11 +159,13 @@ if __name__ == "__main__":
     im = db['cycle1']['tp1'].images['spect']
     im.body_weight_kg = 999
     print(im.info())
-    db.sync_metadata_images(sync_policy="force_to_image")
+    db.sync_metadata_images(sync_policy="db_to_image")
     db.write()
-    db2 = rdb.PatientTreatmentDatabase(ref_folder / "db007b.json")
-    ok = he.are_dicts_equal(db.to_dict(), db2.to_dict()) and ok
-    he.print_tests(ok, "Compare write and read")
+    print('write done')
+    # db2 = rdb.PatientTreatmentDatabase(ref_folder / "db007b.json")
+    db2 = rdb.PatientTreatmentDatabase(output_folder / "db007b.json")
+    b = he.are_dicts_equal(db.to_dict(), db2.to_dict())
+    ok = he.print_tests(b, f"Compare write and read: {b}") and ok
 
     # date
     print()
@@ -169,7 +173,7 @@ if __name__ == "__main__":
     im = db['cycle1']['tp1'].images['spect']
     im.injection_datetime = "2050 01 01"
     db['cycle1'].injection_datetime = "2000 01 01"
-    db['cycle1']['tp1'].sync_metadata_image("spect", sync_policy="force_to_image")
+    db['cycle1']['tp1'].sync_metadata_image("spect", sync_policy="db_to_image")
     im.acquisition_datetime = None
     im.time_from_injection_h = 24.5
     b = im.acquisition_datetime == "2000-01-02 00:30:00" and im.time_from_injection_h == 24.5
@@ -181,7 +185,7 @@ if __name__ == "__main__":
     im = db['cycle1']['tp1'].images['spect']
     db['cycle1'].injection_datetime = "2000 01 01"
     im.injection_datetime = "2050 01 01"
-    db['cycle1']['tp1'].sync_metadata_image("spect", sync_policy="force_to_db")
+    db['cycle1']['tp1'].sync_metadata_image("spect", sync_policy="image_to_db")
     print(im)
     im.acquisition_datetime = None
     im.time_from_injection_h = 24.5
@@ -208,12 +212,11 @@ if __name__ == "__main__":
     im.acquisition_datetime = "2099 01 01"
     im.injection_datetime = "2029 01 01"
     print(im)
-    b = True
     try:
         im.time_from_injection_h = 24.5
         b = False
     except:
-        pass
+        b = True
     print(im)
     ok = he.print_tests(b, f"Check dates: {im}") and ok
 

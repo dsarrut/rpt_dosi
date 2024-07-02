@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import rpt_dosi.images as rim
-import rpt_dosi.helpers as he
+import rpt_dosi.utils as he
 import json
 
 if __name__ == "__main__":

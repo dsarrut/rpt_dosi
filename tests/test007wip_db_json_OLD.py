@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import rpt_dosi.helpers as he
+import rpt_dosi.utils as he
 import rpt_dosi.db as rtpdb
 
 # rpt_db_set_spect_datetime_from_dicom --db db.json -o db_datetime.json
@@ -28,8 +28,8 @@ if __name__ == "__main__":
     is_ok = he.run_cmd(cmd, data_folder)
 
     # compare
-    db1 = rtpdb.db_load(db_output)
-    db2 = rtpdb.db_load(db_ref)
+    db1 = rtpdb.OLD_db_load(db_output)
+    db2 = rtpdb.OLD_db_load(db_ref)
     b = he.are_dicts_equal(db1, db2)
     he.print_tests(b, f"Compare JSON {db_output} vs {db_ref}")
     is_ok = b and is_ok
@@ -44,8 +44,8 @@ if __name__ == "__main__":
     cmd_ok = he.run_cmd(cmd, data_folder)
 
     # compare
-    db1 = rtpdb.db_load(db_output)
-    db2 = rtpdb.db_load(db_ref)
+    db1 = rtpdb.OLD_db_load(db_output)
+    db2 = rtpdb.OLD_db_load(db_ref)
     b = he.are_dicts_equal(db1, db2) and cmd_ok
     he.print_tests(b, f"Compare JSON {db_output} vs {db_ref}")
     is_ok = b and is_ok
@@ -61,8 +61,8 @@ if __name__ == "__main__":
     cmd_ok = he.run_cmd(cmd, data_folder)
 
     # compare
-    db1 = rtpdb.db_load(db_output)
-    db2 = rtpdb.db_load(db_ref)
+    db1 = rtpdb.OLD_db_load(db_output)
+    db2 = rtpdb.OLD_db_load(db_ref)
     b = he.are_dicts_equal(db1, db2) and cmd_ok
     he.print_tests(b, f"Compare JSON {db_output} vs {db_ref}")
     is_ok = b and is_ok

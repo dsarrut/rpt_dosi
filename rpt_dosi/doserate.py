@@ -1,6 +1,6 @@
 import json
 from box import Box
-from .helpers import check_required_keys
+from .utils import check_required_keys
 from pathlib import Path
 import os
 import opengate as gate
@@ -11,7 +11,7 @@ import pkg_resources
 import SimpleITK as sitk
 import numpy as np
 import rpt_dosi.images as rim
-import rpt_dosi.helpers as he
+import rpt_dosi.utils as he
 
 
 def read_dose_rate_options(json_file):
@@ -263,7 +263,7 @@ class DoseRateSimulation():
         return source
 
     def compute_scaling(self, sim, unit=None):
-        spect = rim.read_spect(self.resampled_activity_filename, input_unit=unit)
+        spect = rim.read_spect(self.resampled_activity_filename, unit=unit)
         spect.require_unit('Bq')
         total_activity_bq = spect.compute_total_activity()
         scaling = total_activity_bq / float(self.activity_bq)

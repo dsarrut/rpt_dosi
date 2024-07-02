@@ -1,7 +1,7 @@
 import SimpleITK as sitk
 import numpy as np
 import rpt_dosi.images as rim
-import rpt_dosi.helpers as rhe
+import rpt_dosi.utils as rhe
 from pathlib import Path
 
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-import rpt_dosi.helpers as he
+import rpt_dosi.utils as he
 import rpt_dosi.db as rdb
 import shutil
 
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     tp.add_rois(roi_list, exist_ok=True)
     print(db.info())
     ok = db.number_of_rois() == 4 and db.number_of_images() == 2
-    he.print_tests(ok, f'Create db {ok}')
+    he.print_tests(ok, f'Create db: {ok}')
 
     # check if all files are there
     print()
@@ -87,6 +87,52 @@ if __name__ == "__main__":
     ok = he.print_tests(b, f'Check files {b} {m}') and ok
 
     # check if metadata are synchronized
+    print()
+    he.warning(f"Check metadata sync")
+    b, m = db.check_files_metadata()
+    ok = he.print_tests(b, f'Check files metadata {b} {m}') and ok
+
+    # check if metadata are synchronized
+    print()
+    he.warning(f"Check metadata sync")
+    d = tp.acquisition_datetime
+    tp.acquisition_datetime = "1994 06 21"
+    b, m = db.check_files_metadata()
+    b = not b
+    ok = he.print_tests(b, f'Check files metadata {b} {m}') and ok
+    tp.acquisition_datetime = d
+
+    # check if metadata are synchronized
+    print()
+    he.warning(f"Check metadata sync")
+    roi = tp.rois['spleen']
+    roi.name = 'toto'
+    b, m = db.check_files_metadata()
+    b = not b
+    ok = he.print_tests(b, f'Check files metadata {b} {m}') and ok
+    roi.name = 'spleen'
+
+    # check if metadata are synchronized
+    print()
+    he.warning(f"Check metadata sync")
+    roi1 = tp.rois['spleen']
+    roi2 = tp.rois['liver']
+    f = roi2.image_file_path
+    roi2.image_file_path = roi1.image_file_path
+    b, m = db.check_files_metadata()
+    b = not b
+    ok = he.print_tests(b, f'Check files metadata {b} {m}') and ok
+    roi2.image_file_path = f
+
+    # check if metadata are synchronized
+    print()
+    he.warning(f"Check metadata sync")
+    im1 = tp.images['ct']
+    im2 = tp.images['spect']
+    im1.image_file_path = im2.image_file_path
+    b, m = db.check_files_metadata()
+    b = not b
+    ok = he.print_tests(b, f'Check files metadata {b} {m}') and ok
 
     # end
     he.test_ok(ok)

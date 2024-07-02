@@ -1,13 +1,13 @@
 from . import dicom_utils as rdcm
 from . import images as rim
-from . import helpers as rhe
+from . import utils as rhe
 from . import metadata as rmd
 import shutil
 import json
 from box import Box
 from datetime import datetime
 import numpy as np
-from .helpers import fatal
+from .utils import fatal
 import os
 from pathlib import Path
 
@@ -275,6 +275,15 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
             msg += m
         return ok, msg
 
+    def check_files_metadata(self):
+        ok = True
+        msg = ''
+        for cycle in self.cycles.values():
+            b, m = cycle.check_files_metadata()
+            ok = b and ok
+            msg += m
+        return ok, msg
+
 
 class CycleTreatmentDatabase(rmd.ClassWithMetaData):
     _metadata_fields = {  # 'cycle_id': str,
@@ -391,6 +400,15 @@ class CycleTreatmentDatabase(rmd.ClassWithMetaData):
             msg += m
         return ok, msg
 
+    def check_files_metadata(self):
+        ok = True
+        msg = ''
+        for tp in self.timepoints.values():
+            b, m = tp.check_files_metadata()
+            ok = b and ok
+            msg += m
+        return ok, msg
+
 
 class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
     """
@@ -457,7 +475,8 @@ class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
             self.rois[key] = roi
         for key, value in data['images'].items():
             file_path = self.timepoint_path / value['filename']
-            im = rim.build_meta_image(value['image_type'], file_path, create=True)
+            # im = rim.new_metaimage(value['image_type'], file_path)
+            im = rim.read_metaimage(file_path)  # value['image_type'], file_path)
             im.from_dict(value)
             # we set the image path to the current data folder
             im.image_file_path = file_path
@@ -483,10 +502,10 @@ class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
 
     def sync_metadata_image(self, image_name, sync_policy="auto"):
         image = self.get_metaimage(image_name)
-        self._update_field(image, self.cycle, 'injection_activity_mbq'), sync_policy
-        self._update_field(image, self.cycle, 'injection_datetime', sync_policy)
-        self._update_field(image, self.cycle.db, 'body_weight_kg', sync_policy)
-        self._update_field(image, self, 'acquisition_datetime', sync_policy)
+        rmd.sync_field_image_db(image, self.cycle, 'injection_activity_mbq', sync_policy)
+        rmd.sync_field_image_db(image, self.cycle, 'injection_datetime', sync_policy)
+        rmd.sync_field_image_db(image, self.cycle.db, 'body_weight_kg', sync_policy)
+        rmd.sync_field_image_db(image, self, 'acquisition_datetime', sync_policy)
 
     def sync_metadata_roi(self, roi_name, sync_policy="auto"):
         roi = self.get_roi(roi_name)
@@ -514,42 +533,6 @@ class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
     def write_metadata_images(self):
         for image in self.images.values():
             image.write_metadata()
-
-    def _update_field(self, image, element_db, tag_name, sync_policy="auto"):
-        # check the tag name is available in the objects
-        try:
-            getattr(element_db, tag_name)
-        except:
-            return
-        try:
-            getattr(image, tag_name)
-        except:
-            return
-        # do nothing if the value is the same
-        if getattr(element_db, tag_name) == getattr(image, tag_name):
-            return
-        # force value to the image
-        if sync_policy == "force_to_image":
-            setattr(image, tag_name, getattr(element_db, tag_name))
-            return
-        # force value to the db
-        if sync_policy == "force_to_db":
-            setattr(element_db, tag_name, getattr(image, tag_name))
-            return
-        # if one is None
-        if getattr(image, tag_name) is None:
-            setattr(image, tag_name, getattr(element_db, tag_name))
-            return
-        if getattr(element_db, tag_name) is None:
-            setattr(element_db, tag_name, getattr(image, tag_name))
-            return
-        # warning : two different values
-        if sync_policy == "auto":
-            rhe.warning(f'Warning : incoherent {tag_name}, db = {getattr(element_db, tag_name)} '
-                        f'while image = {getattr(image, tag_name)} ({image})')
-            return
-        fatal(f'Cannot update {tag_name} field: sync_policy = {sync_policy} while must '
-              f'be "auto" or "force_to_image" or "force_to_db"')
 
     @property
     def timepoint_path(self):
@@ -602,15 +585,15 @@ class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
         if not exist_ok and os.path.exists(dest_path):
             fatal(f'File image {dest_path} already exists')
         rim.copy_or_move_image(input_path, dest_path, mode)
-        im = rim.build_meta_image(image_type, file_path=dest_path, create=True)
-        # manage the unit if it is not in the initial image
-        if unit is None:
-            # warning the image type is ignored, we only look for the unit
-            source_img = rim.read_image_header_only(input_path)
-            if source_img.unit is not None:
-                im.unit = source_img.unit
+        # with initial metadata?
+        if rim.metadata_exists(input_path):
+            im = rim.read_metaimage(input_path, read_header_only=True)
+            im.image_file_path = dest_path
+            if image_type is not None and image_type != im.image_type:
+                fatal(f'Cannot add the read image, the image type is {im.image_type}'
+                      f' while {image_type} is expected')
         else:
-            im.unit = unit
+            im = rim.new_metaimage(image_type, file_path=dest_path, unit=unit)
         # add it
         return self.add_image(image_name, im)
 
@@ -627,7 +610,7 @@ class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
         try:
             self.images[image_name] = meta_image
             # update the metadata image and db should be the same
-            self.sync_metadata_image(image_name)
+            self.sync_metadata_image(image_name, sync_policy='auto')
             meta_image.write_metadata()
         except rhe.Rpt_Error:
             # if there is an error, remove the image and raise the error again
@@ -670,17 +653,15 @@ class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
         if not exist_ok and os.path.exists(dest_path):
             fatal(f'File image {dest_path} already exists')
         rim.copy_or_move_image(input_path, dest_path, mode)
-        roi = rim.MetaImageROI(dest_path, name=roi_id, create=True)
+        # with initial metadata?
+        if rim.metadata_exists(input_path):
+            roi = rim.read_roi(input_path)
+            roi.image_file_path = dest_path
+            roi.name = roi_id
+        else:
+            roi = rim.new_metaimage('ROI', file_path=dest_path, name=roi_id)
         # add it
         return self.add_roi(roi)
-
-    def update_roi_json_from_db_info(self, roi_id):
-        dest_path = self.get_roi_path(roi_id)
-        if os.path.exists(dest_path):
-            spect = rim.MetaImageROI(dest_path, roi_id)
-            spect.filename = str(dest_path)
-            spect.read_image_header()
-            spect.write_metadata()
 
     def check_folders_exist(self):
         msg = ''
@@ -709,3 +690,30 @@ class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
                 ok = False
         return ok, msg
         # TODO check mhd raw files !!
+
+    def check_files_metadata(self):
+        msg = ''
+        ok = True
+        # check images
+        for k, image in self.images.items():
+            o, m = image.check_file_metadata()
+            if m != '':
+                m = f'[{k}: {m}] '
+            msg += m
+            ok = o and ok
+            ok, msg = rmd.sync_field_image_db_check(image, self.cycle, 'injection_activity_mbq', ok, msg)
+            ok, msg = rmd.sync_field_image_db_check(image, self.cycle, 'injection_datetime', ok, msg)
+            ok, msg = rmd.sync_field_image_db_check(image, self.cycle.db, 'body_weight_kg', ok, msg)
+            ok, msg = rmd.sync_field_image_db_check(image, self, 'acquisition_datetime', ok, msg)
+        # check roi
+        for k, roi in self.rois.items():
+            o, m = roi.check_file_metadata()
+            if m != '':
+                m = f'[{k}: {m}] '
+            msg += m
+            ok = o and ok
+            if roi.name != k:
+                ok = False
+                msg += f'The roi name {k} is different in the file {roi.name}\n'
+        msg = msg.rstrip('\n')
+        return ok, msg

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import rpt_dosi.images as rim
-import rpt_dosi.helpers as he
+import rpt_dosi.utils as he
 import SimpleITK as sitk
 import numpy as np
 
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     print()
     sp = rim.read_spect(spect_input, 'Bq')
     sp.convert_to_bqml()
-    like = rim.read_image(spect_output)
+    like = rim.read_metaimage(spect_output)
     sp = rim.resample_spect_like(sp, like, "auto")
     sp.write(spect_output)
     spect2 = rim.read_spect(spect_output)

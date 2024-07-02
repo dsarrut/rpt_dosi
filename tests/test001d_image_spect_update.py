@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import rpt_dosi.images as rim
-import rpt_dosi.helpers as he
-from rpt_dosi.helpers import warning
+import rpt_dosi.utils as he
+from rpt_dosi.utils import warning
 import math
+import shutil
 
 if __name__ == "__main__":
     # folders
@@ -18,7 +19,8 @@ if __name__ == "__main__":
     warning(f'set metadata Bq, SPECT and scaling')
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_activity.nii.gz"
-    spect = rim.read_spect(spect_input, "Bq")
+    shutil.copy(spect_input, spect_output)
+    spect = rim.read_spect(spect_output, "Bq")
     print(f'total activity', spect.compute_total_activity())
     t1 = spect.compute_total_activity()
     s = spect.voxel_volume_cc / 0.666

@@ -12,7 +12,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 def go(input_images):
     for input_image in input_images:
         # read image
-        im = rim.read_image_header_only(input_image)
+        im = rim.read_metaimage(input_image, read_header_only=True)
         im.read_metadata()
         im.read_image_header()
         print(im.info())

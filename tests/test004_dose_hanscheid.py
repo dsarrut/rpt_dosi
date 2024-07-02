@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import rpt_dosi.helpers as he
+import rpt_dosi.utils as he
 import rpt_dosi.dosimetry as rd
 
 if __name__ == "__main__":

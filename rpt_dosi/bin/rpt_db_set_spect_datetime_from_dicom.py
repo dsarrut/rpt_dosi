@@ -5,7 +5,7 @@ import click
 import pydicom
 import rpt_dosi.db as rptdb
 import os
-from rpt_dosi.helpers import fatal
+from rpt_dosi.utils import fatal
 from pathlib import Path
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])

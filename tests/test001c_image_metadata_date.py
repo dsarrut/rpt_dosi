@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import rpt_dosi.images as rim
-import rpt_dosi.helpers as he
-from rpt_dosi.helpers import warning
+import rpt_dosi.utils as he
+from rpt_dosi.utils import warning
 
 if __name__ == "__main__":
     # folders

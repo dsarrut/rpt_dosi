@@ -1,6 +1,6 @@
 import json
-from rpt_dosi.helpers import fatal
-import rpt_dosi.helpers as he
+from rpt_dosi.utils import fatal, warning
+import rpt_dosi.utils as he
 from typing import Dict
 
 
@@ -83,7 +83,7 @@ class ClassWithMetaData:
         metadata = self.to_dict()
         for name in metadata.keys():
             v = metadata[name]
-            #s += f'{name}={v} '
+            # s += f'{name}={v} '
             s += f'{v}  '
         return s
 
@@ -107,3 +107,79 @@ class ClassWithMetaData:
                 self.debug_eq(f'{key} is not in {self._metadata_fields}')
                 return False
         return True
+
+
+def sync_field_image_db(image, element_db, tag_name, sync_policy="auto"):
+    if sync_policy == "auto":
+        return sync_field_image_db_auto(image, element_db, tag_name)
+    if sync_policy == "image_to_db":
+        return sync_field_image_to_db(image, element_db, tag_name)
+    if sync_policy == "db_to_image":
+        return sync_field_db_to_image(image, element_db, tag_name)
+    fatal(f"Unexpected value for sync_policy: {sync_policy}, "
+          f"expected 'auto' or 'image_to_db' or 'db_to_image'")
+
+
+def sync_field_image_to_db(image, element_db, tag_name):
+    # check is key exist ?
+    try:
+        getattr(image, tag_name)
+    except:
+        setattr(image, tag_name, None)
+    # set the image value to the db
+    setattr(element_db, tag_name, getattr(image, tag_name))
+
+
+def sync_field_db_to_image(image, element_db, tag_name):
+    # check is key exist ?
+    try:
+        getattr(element_db, tag_name)
+    except:
+        setattr(element_db, tag_name, None)
+    # set the db value to the image
+    setattr(image, tag_name, getattr(element_db, tag_name))
+
+
+def sync_field_image_db_auto(image, element_db, tag_name):
+    # check is key exist ? If not, set it to None
+    try:
+        getattr(element_db, tag_name)
+    except:
+        setattr(element_db, tag_name, None)
+    try:
+        getattr(image, tag_name)
+    except:
+        setattr(image, tag_name, None)
+    # do nothing if the value is the same
+    if getattr(element_db, tag_name) == getattr(image, tag_name):
+        return
+    # set it if one is None
+    if getattr(image, tag_name) is None:
+        setattr(image, tag_name, getattr(element_db, tag_name))
+        return
+    if getattr(element_db, tag_name) is None:
+        setattr(element_db, tag_name, getattr(image, tag_name))
+        return
+    # warning : two different values
+    warning(f'Warning : incoherent {tag_name}, db = {getattr(element_db, tag_name)} '
+            f'while image = {getattr(image, tag_name)} ({image})')
+
+
+def sync_field_image_db_check(image, element_db, tag_name, ok=True, msg=''):
+    try:
+        getattr(element_db, tag_name)
+    except:
+        msg += f'{tag_name} does not exist in {element_db}/n'
+        return False, msg
+    try:
+        getattr(image, tag_name)
+    except:
+        msg += f'{tag_name} does not exist in {image}\n'
+        return False, msg
+    # do nothing if the value is the same
+    v_db = getattr(element_db, tag_name)
+    v_im = getattr(image, tag_name)
+    if v_db == v_im:
+        return ok, msg
+    msg += f'Different {tag_name}: db="{v_db}" vs image="{v_im}"'
+    return False, msg

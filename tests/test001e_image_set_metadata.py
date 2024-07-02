@@ -2,11 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import rpt_dosi.images as rim
-import rpt_dosi.helpers as he
-from rpt_dosi.helpers import warning
+import rpt_dosi.utils as he
+from rpt_dosi.utils import warning
 import math
 import shutil
-import os
 import json
 
 if __name__ == "__main__":
@@ -21,7 +20,7 @@ if __name__ == "__main__":
     # prepare
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_activity.nii.gz"
-    rim.delete_metadata(spect_output)
+    rim.delete_image_metadata(spect_output)
     spect = rim.read_spect(spect_input, 'Bq')
     spect.write(spect_output)
 
@@ -55,9 +54,7 @@ if __name__ == "__main__":
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_8.321mm.nii.gz"
     shutil.copy(spect_input, spect_output)
-    a = str(spect_output) + '.json'
-    if os.path.exists(a):
-        os.remove(a)
+    rim.delete_image_metadata(spect_output)
     cmd = f"rpt_image_set_metadata -i {spect_output} -u Bq -t SPECT"
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
     out_spect = rim.read_spect(spect_output)
@@ -67,7 +64,7 @@ if __name__ == "__main__":
     # set meta again with already existing metadata
     print()
     warning('Test read_image')
-    spect = rim.read_image(spect_output)
+    spect = rim.read_metaimage(spect_output)
     try:
         spect.unit = 'Bq/mL'
         is_ok = False
@@ -87,7 +84,7 @@ if __name__ == "__main__":
     with open(fn, 'w') as f:
         json.dump(data, f)
     try:
-        spect = rim.read_image(spect_output)
+        spect = rim.read_metaimage(spect_output)
         is_ok = False
     except he.Rpt_Error:
         pass
@@ -96,7 +93,7 @@ if __name__ == "__main__":
     # check wrong but existing json file
     open(fn, 'w').close()
     try:
-        spect = rim.read_image(spect_output)
+        spect = rim.read_metaimage(spect_output)
         is_ok = False
     except he.Rpt_Error:
         pass
@@ -112,8 +109,27 @@ if __name__ == "__main__":
     is_ok = out_spect.image_type == 'SPECT' and out_spect.unit == 'Bq/mL' and cmd_ok
     is_ok = he.print_tests(is_ok, f'(read spect) Set metadata read SPECT and Bq/mL ? {is_ok}') and is_ok
 
+    # set for a roi
+    print()
+    warning('Test set roi info')
+    cmd = f"rpt_image_set_metadata -i {spect_output} --tag name liver -t ROI -f"
+    cmd_ok = he.run_cmd(cmd, data_folder / "..")
+    out_roi = rim.read_roi(spect_output)
+    is_ok = out_roi.image_type == 'ROI' and out_roi.name == 'liver' and cmd_ok
+    is_ok = he.print_tests(is_ok, f'(read roi) Set metadata read ROI and liver ? {is_ok}') and is_ok
+
+    # set for a roi wo name
+    print()
+    warning('Test set roi info (trial wrong)')
+    cmd = f"rpt_image_set_metadata -i {spect_output} -u Bq -t ROI -f"
+    cmd_ok = he.run_cmd(cmd, data_folder / "..")
+    is_ok = he.print_tests(not cmd_ok, f'(read roi) name is required ? {is_ok}') and is_ok
+
     # set tags for spect
     print()
+    rim.delete_image_metadata(spect_output)
+    spect = rim.read_spect(spect_output, unit='Bq')
+    spect.write_metadata()
     warning('Test set tags rpt_image_set_metadata')
     cmd = (f'rpt_image_set_metadata -i {spect_output}'
            f' --tag injection_datetime "2022-02-01 12:11:00"'
@@ -126,7 +142,7 @@ if __name__ == "__main__":
     # special case for time_from_injection_h
     print()
     warning('Test acquisition_datetime')
-    spect = rim.read_image(spect_output)
+    spect = rim.read_metaimage(spect_output)
     spect.body_weight_kg = 80.4
     spect.acquisition_datetime = None
     spect.injection_datetime = None
@@ -138,7 +154,7 @@ if __name__ == "__main__":
     # special case for time_from_injection_h
     print()
     warning('Test time_from_injection_h')
-    spect = rim.read_image(spect_output)
+    spect = rim.read_metaimage(spect_output)
     try:
         spect.time_from_injection_h = 12.4
         is_ok = False
@@ -149,7 +165,7 @@ if __name__ == "__main__":
     # set wrong tag
     print()
     warning('Test wrong metadata')
-    spect = rim.read_image(spect_output)
+    spect = rim.read_metaimage(spect_output)
     try:
         spect.set_metadata("toto", 'titi')
         is_ok = False
@@ -172,7 +188,7 @@ if __name__ == "__main__":
     # set wrong tag type
     print()
     warning('Test wrong tag float type')
-    spect = rim.read_image(spect_output)
+    spect = rim.read_metaimage(spect_output)
     try:
         spect.set_metadata("injection_activity_mbq", 'tutu')
         spect.set_metadata("body_weight_kg", 'tutu')
@@ -186,7 +202,8 @@ if __name__ == "__main__":
     # PET
     print()
     warning('Test PET and convert to SUV')
-    pet = rim.read_pet(data_folder / "spect_8.321mm.nii.gz", "Bq/mL")
+    rim.delete_image_metadata(spect_output)
+    pet = rim.read_pet(spect_output, "Bq/mL")
     pet.body_weight_kg = 80.4
     pet.acquisition_datetime = None
     pet.injection_datetime = None

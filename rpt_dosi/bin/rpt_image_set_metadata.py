@@ -3,6 +3,7 @@
 
 import click
 import rpt_dosi.images as rim
+from rpt_dosi.utils import fatal
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -26,18 +27,16 @@ def go(input_image, unit, image_type, tag, verbose, force):
         rim.delete_image_metadata(input_image)
 
     # read the image header and associated metadata
-    im = rim.read_image_header_only(input_image)
-    if verbose:
-        print(im.info())
-
-    # set image type (build another Image)
-    if image_type is not None:
-        if image_type not in rim.image_builders.keys():
-            rim.fatal(f"Unknown image type {image_type}. "
-                      f"Available types are {rim.image_builders.keys()}")
-        # build a new image with the correct type
-        im = rim.build_meta_image(image_type, input_image)
-        im.read_image_header()
+    if rim.metadata_exists(input_image):
+        im = rim.read_metaimage(input_image, read_header_only=True)
+    else:
+        if image_type is None:
+            fatal('No image type specified, and no metadata found.')
+        arg = {'unit': unit}
+        for t in tag:
+            arg[t[0]] = t[1]
+        im = rim.new_metaimage(image_type, input_image, read_header_only=True, **arg)
+        im.write_metadata()
 
     # convert the unit
     if unit is not None:
@@ -54,12 +53,11 @@ def go(input_image, unit, image_type, tag, verbose, force):
 
     # verbose
     if verbose:
-        print()
-        print('Output metadata')
         print(im.info())
 
     # write metadata only
     im.write_metadata()
+
 
 # --------------------------------------------------------------------------
 if __name__ == "__main__":
