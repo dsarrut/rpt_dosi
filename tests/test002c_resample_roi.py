@@ -3,6 +3,7 @@
 
 import rpt_dosi.images as im
 import rpt_dosi.utils as he
+from rpt_dosi.utils import start_test, stop_test, end_tests
 
 if __name__ == "__main__":
     # folders
@@ -14,16 +15,18 @@ if __name__ == "__main__":
 
     # test resample (with gauss)
     # rpt_resample_roi -i data/roi.nii.gz -o data/test001/roi_9mm.nii.gz -s 9
+    start_test('cmd line resample')
     roi_input = data_folder / "rois" / "liver.nii.gz"
     roi_output = output_folder / "roi_test.nii.gz"
     cmd = f"rpt_resample_roi -i {roi_input} -o {roi_output} -s 7.5"
-    is_ok = he.run_cmd(cmd, data_folder / "..")
+    b = he.run_cmd(cmd, data_folder / "..")
+    stop_test(b, 'cmd line resample')
 
     # compare
+    start_test('compare with ref')
     roi_ref = ref_folder / "liver_7.5mm_ref.nii.gz"
     b = im.test_compare_images(roi_output, roi_ref)
-    he.print_tests(b, f"Resample ROI {roi_output} vs {roi_ref}")
-    is_ok = b and is_ok
+    stop_test(b, f"Resample ROI {roi_output} vs {roi_ref}")
 
     # end
-    he.test_ok(is_ok)
+    end_tests()

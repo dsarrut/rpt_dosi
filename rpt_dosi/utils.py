@@ -10,7 +10,6 @@ import sys
 import math
 import collections.abc
 from dateutil import parser
-from datetime import datetime
 
 try:
     color_error = colored.fg("red") + colored.attr("bold")
@@ -123,7 +122,7 @@ def print_tests(is_ok, s):
 
 def test_ok(is_ok=False):
     if is_ok:
-        s = "Great, tests are ok."
+        s = "Great, all tests are ok."
         s = "\n" + colored.stylize(s, color_ok)
         print(s)
         # sys.exit(0)
@@ -131,6 +130,59 @@ def test_ok(is_ok=False):
         s = "Error during the tests !"
         s = "\n" + colored.stylize(s, color_error)
         print(s)
+        sys.exit(-1)
+
+
+class SimpleTest:
+    _test_num = 1
+    _global_ok_flag = True
+    _first_failing_test = None
+
+    def __init__(self, msg):
+        print()
+        print('-' * 80)
+        warning(f'[{self._test_num}] {msg}')
+
+    @staticmethod
+    def stop_current_test(ok, msg):
+        print_tests(ok, f'{msg}: {ok}')
+        SimpleTest._global_ok_flag = SimpleTest._global_ok_flag and ok
+        if not ok and SimpleTest._first_failing_test is None:
+            SimpleTest._first_failing_test = SimpleTest._test_num
+        SimpleTest._test_num += 1
+
+    @staticmethod
+    def get_final_ok():
+        return SimpleTest._global_ok_flag
+
+    @staticmethod
+    def get_number_of_tests():
+        return SimpleTest._test_num-1
+
+    @staticmethod
+    def get_first_failing_test():
+        return SimpleTest._first_failing_test
+
+
+def start_test(msg):
+    return SimpleTest(msg)
+
+
+def stop_test(ok, msg, ):
+    SimpleTest.stop_current_test(ok, msg)
+
+
+def end_tests():
+    ok = SimpleTest.get_final_ok()
+    print()
+    if ok:
+        s = f"Great, all {SimpleTest.get_number_of_tests()} tests are ok."
+        print(colored.stylize(s, color_ok))
+        # sys.exit(0)
+    else:
+        s = ("Error during the tests !\n"
+             f"First fail test is {SimpleTest.get_first_failing_test()}")
+        print(colored.stylize(s, color_error))
         sys.exit(-1)
 
 

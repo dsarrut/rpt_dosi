@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import SimpleITK
 
 import rpt_dosi.images as rim
 import rpt_dosi.utils as he
-from rpt_dosi.utils import warning
+from rpt_dosi.utils import start_test, stop_test, end_tests
 import shutil
 
 if __name__ == "__main__":
@@ -19,73 +18,73 @@ if __name__ == "__main__":
     image_path = output_folder / f"spect.nii.gz"
     shutil.copy(im_input, image_path)
     rim.delete_image_metadata(image_path)
-    ok = True
 
     # test unit error
-    print()
-    warning('Test if can open without unit')
+    start_test('Test if can open without unit')
     try:
         a = rim.read_spect(image_path)
-        ok = False
+        b = False
     except:
-        he.print_tests(ok, "Cannot open without unit")
+        b = True
+    stop_test(b, "Cannot open without unit")
+
+    start_test('Test if can open with unit')
     spect = rim.read_spect(image_path, unit='Bq')
     spect.write()
     spect2 = rim.read_spect(image_path)
     spect._debug_eq = True
-    ok = he.print_tests(spect == spect2, "Write with unit, read wo unit") and ok
+    stop_test(spect == spect2, "Write with unit, read wo unit")
 
     # test unit error
-    print()
-    warning('Test if wrong unit')
+    start_test('Test if wrong unit')
     try:
         spect.unit = "toto"
-        ok = False
+        b = False
     except:
-        pass
-    he.print_tests(ok, "Set wrong unit")
+        b = True
+    stop_test(b, "Set wrong unit")
 
     try:
         spect.unit = "Bq/mL"
-        ok = False
+        b = False
     except:
-        pass
-    he.print_tests(ok, "Set unit while expect convert")
+        b = True
+    stop_test(b, "Set unit while expect convert")
 
     # test unit convert
-    print()
-    warning('Test convert unit and check total activity')
+    start_test('Test convert unit and check total activity')
     t1 = spect.compute_total_activity()
     print(f'{spect} Bq --> {t1}')
     spect.convert_to_bqml()
     t2 = spect.compute_total_activity()
     print(f'{spect} BqmL --> {t2}')
-    ok = he.print_tests(t1 == t2, f"Total activity {t1} vs {t2}") and ok
+    stop_test(t1 == t2, f"Total activity {t1} vs {t2}")
+
+    # test
+    start_test('Test convert_to_bq')
     spect.convert_to_bq()
     t3 = spect.compute_total_activity()
     print(f'{spect} Bq --> {t3}')
-    ok = he.print_tests(t1 == t3, f"Total activity {t1} vs {t3}") and ok
+    stop_test(t1 == t3, f"Total activity {t1} vs {t3}")
 
     # unit SUV
-    print()
-    warning('Test convert SUV')
+    start_test('Test convert SUV')
     spect.body_weight_kg = 666
     spect.injection_activity_mbq = 33
     spect.convert_to_suv()
     t4 = spect.compute_total_activity()
     print(f'{spect} SUV --> {t4}')
-    ok = he.print_tests(t1 == t4, f"Total activity {t1} vs {t4}") and ok
+    stop_test(t1 == t4, f"Total activity {t1} vs {t4}")
     print(spect.image_file_path)
     print(spect.metadata_file_path)
 
     # 'force' change unit
-    print()
-    warning('Test FORCE convert SUV with _unit=None')
+    start_test('Test FORCE convert SUV with _unit=None')
     spect._unit = None
     spect.unit = 'Bq'
     t5 = spect.compute_total_activity()
     print(f'{spect} Bq --> {t5}')
-    ok = he.print_tests(t1 != t5, f"Total activity {t1} must be different {t5}") and ok
+    stop_test(t1 != t5, f"Total activity {t1} must be different {t5}")
 
     # end
-    he.test_ok(ok)
+    end_tests()

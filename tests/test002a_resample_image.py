@@ -3,7 +3,7 @@
 
 import rpt_dosi.images as rim
 import rpt_dosi.utils as he
-from rpt_dosi.utils import warning
+from rpt_dosi.utils import start_test, stop_test, end_tests
 
 if __name__ == "__main__":
     # folders
@@ -11,12 +11,9 @@ if __name__ == "__main__":
     print(f"Input data folder = {data_folder}")
     print(f"Ref data folder = {ref_folder}")
     print(f"Output data folder = {output_folder}")
-    print()
-    is_ok = True
 
     # test ct + gauss
-    print()
-    warning('resample ct with gauss')
+    start_test('resample ct with gauss')
     ct_input = data_folder / "ct_8mm.nii.gz"
     ct_output = output_folder / "ct_tests.nii.gz"
     ct_ref = ref_folder / "ct_9mm_ref.nii.gz"
@@ -26,11 +23,10 @@ if __name__ == "__main__":
     resampled_ct.write(ct_output)
     print(ct)
     b = rim.test_compare_images(ct_output, ct_ref)
-    is_ok = he.print_tests(b, f"Resample ct with gauss {ct_output} vs {ct_ref}") and is_ok
+    stop_test(b, f"Resample ct with gauss {ct_output} vs {ct_ref}")
 
     # test ct no gauss
-    print()
-    warning('resample ct wo gauss')
+    start_test('resample ct wo gauss')
     ct_ref = ref_folder / "ct_9mm_ng_ref.nii.gz"
     ct = rim.read_ct(ct_input)
     print(ct)
@@ -38,11 +34,10 @@ if __name__ == "__main__":
     resampled_ct.write(ct_output)
     print(ct)
     b = rim.test_compare_images(ct_output, ct_ref)
-    is_ok = he.print_tests(b, f"Resample ct without gauss {ct_output} vs {ct_ref}") and is_ok
+    stop_test(b, f"Resample ct without gauss {ct_output} vs {ct_ref}")
 
     # test ct like
-    print()
-    warning('resample ct like')
+    start_test('resample ct like')
     ct_ref = ref_folder / "ct_8.321mm_ref.nii.gz"
     like_input = data_folder / "spect_8.321mm.nii.gz"
     ct = rim.read_ct(ct_input)
@@ -53,7 +48,7 @@ if __name__ == "__main__":
     resampled_ct.write(ct_output)
     print(ct)
     b = rim.test_compare_images(ct_output, ct_ref)
-    is_ok = he.print_tests(b, f"Resample ct like:  {ct_output} vs {ct_ref}") and is_ok
+    stop_test(b, f"Resample ct like:  {ct_output} vs {ct_ref}")
 
     # end
-    he.test_ok(is_ok)
+    end_tests()

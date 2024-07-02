@@ -3,7 +3,7 @@
 
 import rpt_dosi.images as rim
 import rpt_dosi.utils as he
-import SimpleITK as sitk
+from rpt_dosi.utils import start_test, stop_test, end_tests
 import numpy as np
 
 if __name__ == "__main__":
@@ -15,23 +15,25 @@ if __name__ == "__main__":
     print()
 
     # test resample (unit is assumed to be Bq)
+    start_test('resample cmd line')
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     spect_output = output_folder / "spect_test.nii.gz"
     cmd = f"rpt_resample_spect -i {spect_input} -o {spect_output} -s 12 --sigma auto -u Bq"
-    is_ok = he.run_cmd(cmd, data_folder / "..")
+    b = he.run_cmd(cmd, data_folder / "..")
+    stop_test(b, 'resample cmd line')
 
     # check total counts
+    start_test('check total counts')
     spect1 = rim.read_spect(spect_input, 'Bq')
     tc_input = spect1.compute_total_activity()
     spect2 = rim.read_spect(spect_output)
     tc_output = spect2.compute_total_activity()
     diff = np.fabs(tc_input - tc_output) / tc_input * 100
     b = diff < 0.5
-    he.print_tests(b, f'Total counts (Bq) = {tc_input}, {tc_output}  => {diff} %')
-    is_ok = b and is_ok
+    stop_test(b, f'Total counts (Bq) = {tc_input}, {tc_output}  => {diff} %')
 
     # convert to BqmL
-    print()
+    start_test('convert to BqmL')
     sp = rim.read_spect(spect_input, 'Bq')
     sp.convert_to_bqml()
     like = rim.read_metaimage(spect_output)
@@ -41,8 +43,7 @@ if __name__ == "__main__":
     tc_output = spect2.compute_total_activity()
     diff = np.fabs(tc_input - tc_output) / tc_input * 100
     b = diff < 0.5
-    he.print_tests(b, f'Total counts (Bq/mL + like) = {tc_input}, {tc_output}  => {diff} %')
-    is_ok = b and is_ok
+    stop_test(b, f'Total counts (Bq/mL + like) = {tc_input}, {tc_output}  => {diff} %')
 
     # end
-    he.test_ok(is_ok)
+    end_tests()

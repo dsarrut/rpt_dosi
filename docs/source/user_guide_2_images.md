@@ -1,26 +1,52 @@
 
 ## Basic Image Manipulation with Associated Metadata (sidecar JSON file)
 
-This section delves into handling and manipulating medical imaging data within the toolkit. We propose functions and classes to manage images, on disk and o memory, together with the associated metadata that are needed for dose computation (such as injected activity of acquisition time) and image units: Bq, SUV, etc. 
+**Metadata** This section delves into handling and manipulating medical imaging data within the toolkit. We propose functions and classes to manage images together with the associated **metadata** that are needed for dose computation (such as injected activity of acquisition time) and image units: Bq, SUV, etc. 
 
 **Image file format** DICOM is the standard format. However, for advanced processing, DICOM images are sometimes converted to more flexible formats like .mhd (MetaImage) or .nii (NIfTI).
 
-**Image in memory** We choose SimpleITK images. However, 
+
+### MetaImage API
+
+Here are the basics CRUD operations (Create Read Update Delete) for the MetaImage. 
+
+First, how to CREATE a metadata image: 
+
+```python
+import rpt_dosi.images as rim
+image = rim.new_metaimage('SPECT', "path/spect.nii.gz", unit='Bq')
+image.write_metadata()
+```
+
+This script will create a new metaimage with SPECT as image type and 'Bq' as unit. The metadata is then written in the `path/spect.nii.gz.json` file. If the json file already exist, it fails (you need to use the overwrite option). For some image types, such as SPECT or PET, the unit is required, while it is not the case for CT (always HU). Image types are : SPECT, PET, CT, Dose, ROI.
+
+To READ a metadata image:
+
+```python
+import rpt_dosi.images as rim
+image = rim.read_metaimage("path/spect.nii.gz")
+print(image.info())
+```
+
+This script read the image and the associated metadata (fails if it does not exist). Use the option `read_header_only` to, well, read only the header of the image and not the whole content in memory. When you expect on given image type, you can use the following shortcuts that will read images and check there are of the required type:
+
+```python
+import rpt_dosi.images as rim
+spect = rim.read_spect("path/spect.nii.gz")
+ct = rim.read_ct("path/ct.nii.gz")
+spect2 = rim.read_spect("path/spect.nii.gz", 'Bq')
+```
+
+If the unit is required (like for SPECT) and there is no metadata associated, it fails. You can however set the unit in the read command like for the `spect2`: unit will be converted (or set if not exist) to Bq.
+
+The classes are `MetaImageSPECT`, `MetaImageCT`, etc. See examples below: 
+
+```python
+import rpt_dosi.images as rim
+spect = rim.MetaImageSPECT("path/spect.nii.gz", read_header_only=True, create=True, unit='Bq')
+```
 
 
-Dosimetry involves various imaging modalities, each requiring specific handling and analysis protocols. The  primary types of images used are CT (Computed Tomography) and SPECT (Single Photon Emission Computed Tomography). Each type of imaging class is associated with distinct characteristics and units, which are crucial for accurate processing and analysis. 
-
-**CT Images** are typically stored in units of Hounsfield Units (HU), which measure the relative density of tissue. The analysis of CT images often requires adjustments in resolution or alignment, necessitating specific tools and commands to resample or crop images based on anatomical features.
-
-**SPECT imaging** is used to observe metabolic processes in the body by detecting the gamma rays emitted by radioactive substances introduced into the body. The units of measurement for SPECT images are critical and can include Bq (Becquerels) or Bq/ml (Becquerels per milliliter), depending on whether the focus is on total activity or concentration. It is essential to specify the correct unit when processing SPECT images to ensure that dosimetric calculations are meaningful.
-
-**Regions of Interest (ROI)** are used for focusing analysis on specific anatomical or pathological areas within a larger image. ROIs, typically defined as mask images of contoured regions, allow for precise dosimetry calculations and targeted treatment assessments by isolating areas like organs and tumors. The toolkit facilitates ROI applications through tools for extracting and analyzing these regions, enhancing both diagnostic accuracy and treatment efficacy.
-
-**Importance of Specifying Image Modality Type and Units.** Specifying the image type and unit is crucial in medical imaging software, as each modality and unit requires different handling techniques. For instance, software commands and functions need to know whether they are processing a CT or a SPECT image to apply appropriate filters, scaling, or conversions. The choice of units (e.g., counts, Bq, Bq/ml) impacts how data is interpreted and used in further calculations, such as dose estimation or treatment planning. Thus: the tools **require** that the user explicitly set the type (CT, SPECT) and units (HU, Bq, etc.) of the images. This can be set as commande line option or function parameter. 
-
-**Sidecar JSON file for metadata.** We provide an additional convenient concept to handle image types, units and metadata (such as acquisition time or injected activity). Indeed, the toolkit contains tools to generate and handle sidecar JSON files that serve as companion to image files, storing detailed metadata in a flexible and interoperable format. These JSON files encapsulate data such as acquisition parameters and units of measurement, enhancing the management and compatibility of imaging data across various systems. By keeping metadata separate from the image data, sidecar JSON files maintain data integrity and facilitate easy updates, making them invaluable for both clinical practice and research where accurate and extensive metadata is critical.
-
-Below we describe 1) how to convert from DICOM, 2) command line tools, 3) python functions and classes. 
 
 
 ### DICOM conversion

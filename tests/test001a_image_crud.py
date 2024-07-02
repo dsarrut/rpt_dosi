@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import rpt_dosi.images as rim
-import rpt_dosi.utils as he
-from rpt_dosi.utils import warning
+import rpt_dosi.utils as utils
+from rpt_dosi.utils import start_test, stop_test, end_tests
 import shutil
 import os
 
 if __name__ == "__main__":
     # folders
-    data_folder, ref_folder, output_folder = he.get_tests_folders("test001a")
+    data_folder, ref_folder, output_folder = utils.get_tests_folders("test001a")
     print(f"Input data folder = {data_folder}")
     print(f"Ref data folder = {ref_folder}")
     print(f"Output data folder = {output_folder}")
@@ -22,10 +22,9 @@ if __name__ == "__main__":
     # CRUD => CREATE READ UPDATE DELETE
 
     # test: CREATE (file exist)
-    print()
-    warning("Create an image metadata")
     created_images = {}
     for im_type in im_types:
+        start_test(f"Create an {im_type} image metadata")
         # require elements
         args = {}
         if im_type == 'SPECT':
@@ -46,71 +45,82 @@ if __name__ == "__main__":
         # read and compare
         im2 = rim.read_metaimage(image_path, read_header_only=True)
         im._debug_eq = True
-        ok = he.print_tests(im == im2, f'Compare im1 and im2 for {im_type}') and ok
+        b = im == im2
+        stop_test(b, f'Compare im1 and im2 for {im_type}')
+        # ok = utils.print_tests(im == im2, f'Compare im1 and im2 for {im_type}')
         created_images[im_type] = im
 
     # test: CREATE (file does not exist)
-    print()
-    warning("Try to create when no image")
     for im_type in im_types:
+        start_test(f"Try to create when no image {im_type}")
         a = output_folder / f"{im_type.lower()}_fake.nii.gz"
         try:
             im = rim.new_metaimage(im_type, a)
-            ok = False
-        except he.Rpt_Error as e:
-            pass
-    he.print_tests(ok, f'Try to create should fail')
+            b = False
+        except utils.Rpt_Error as e:
+            b = True
+        stop_test(b, f'Try to create should fail')
 
     # test: READ
-    print()
-    warning("Read an existing image metadata")
     for im_type in im_types:
+        start_test(f"Read an existing image metadata {im_type}")
         image_path = output_folder / f"{im_type.lower()}.nii.gz"
         im = rim.read_metaimage(image_path, read_header_only=True)
         print(im)
-        ok = he.print_tests(created_images[im_type] == im, f'Compare im1 and im2 for {im_type}') and ok
+        b = created_images[im_type] == im
+        stop_test(b, f'Compare im1 and im2 for {im_type}')
 
     # test: READ header only
-    print()
-    warning("Read an existing image metadata, header only")
     for im_type in im_types:
+        start_test("Read an existing image metadata, header only")
         image_path = output_folder / f"{im_type.lower()}.nii.gz"
         im = rim.read_metaimage(image_path, read_header_only=True)
         print(im)
-        ok = he.print_tests(created_images[im_type] == im, f'Compare im1 and im2 for {im_type}') and ok
+        b = created_images[im_type] == im
+        stop_test(b, f'Compare im1 and im2 for {im_type}')
 
     # test: READ image (or create metadata is not exist)
-    print()
-    warning("Read images")
+    start_test("Read images")
     image_path = output_folder / f"ct.nii.gz"
     ct = rim.read_ct(image_path)
     print(ct)
-    ok = he.print_tests(ct.image_type == 'CT', f'read ct') and ok
+    stop_test(ct.image_type == 'CT', f'read ct')
 
+    # test
+    start_test("Read images")
     image_path = output_folder / f"spect.nii.gz"
     spect = rim.read_spect(image_path, unit='Bq')
     print(spect)
     print(spect.info())
-    ok = he.print_tests(spect.image_type == 'SPECT', f'read spect') and ok
+    b = spect.image_type == 'SPECT'
+    stop_test(b, f'read spect')
 
+    # test
+    start_test("Read images")
     image_path = output_folder / f"roi.nii.gz"
     roi = rim.read_roi(image_path, name='liver')
     print(roi)
-    ok = he.print_tests(roi.image_type == 'ROI', f'read roi') and ok
+    b = roi.image_type == 'ROI'
+    stop_test(b, f'read roi')
 
+    # test
+    start_test("Read images")
     image_path = output_folder / f"pet.nii.gz"
     pet = rim.read_pet(image_path, unit='SUV')
     print(pet)
-    ok = he.print_tests(pet.image_type == 'PET', f'read pet') and ok
+    b = pet.image_type == 'PET'
+    stop_test(b, f'read pet')
 
+    # test
+    start_test("Read images")
     image_path = output_folder / f"dose.nii.gz"
     dose = rim.read_dose(image_path)
     print(dose)
-    ok = he.print_tests(dose.image_type == 'Dose', f'read dose') and ok
+    b = dose.image_type == 'Dose'
+    stop_test(b, f'read dose')
 
     # test: UPDATE
-    print()
-    warning("Update values (spect only)")
+    start_test("Update values (spect only)")
     image_path = output_folder / f"spect.nii.gz"
     spect = rim.read_spect(image_path)
     spect.description = "toto"
@@ -123,11 +133,10 @@ if __name__ == "__main__":
     spect.write()
     spect2 = rim.read_spect(image_path)
     print(spect2)
-    ok = he.print_tests(spect == spect2, f'Compare updated spect') and ok
+    stop_test(spect == spect2, f'Compare updated spect')
 
     # test: DELETE
-    print()
-    warning("Delete metadata")
+    start_test("Delete metadata")
     image_path = output_folder / f"roi.nii.gz"
     roi = rim.read_metaimage(image_path, read_header_only=True)
     print(roi)
@@ -135,18 +144,17 @@ if __name__ == "__main__":
     try:
         roi = rim.read_metaimage(image_path, read_header_only=True)
         print(roi)
-        ok = False
+        b = False
     except:
-        pass
-    ok = he.print_tests(not os.path.exists(roi.metadata_file_path), f'Delete json') and ok
+        b = True
+    stop_test(not os.path.exists(roi.metadata_file_path) and b, f'Delete json')
 
     # test
-    print()
-    warning("read image type only")
+    start_test("read image type only")
     image_path = output_folder / f"spect.nii.gz"
     it = rim.read_metaimage_type_from_metadata(image_path)
     b = it == "SPECT"
-    ok = he.print_tests(b, f'Read image type {it}') and ok
+    stop_test(b, f'Read image type {it}')
 
     # end
-    he.test_ok(ok)
+    end_tests()
