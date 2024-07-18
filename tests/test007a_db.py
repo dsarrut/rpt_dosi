@@ -62,7 +62,7 @@ if __name__ == "__main__":
     start_test('Compare to reference json')
     db_ref_filepath = ref_folder / "db007a_ref.json"
     db_ref = json.load(open(db_ref_filepath))
-    b = he.are_dicts_equal(db_ref, db.to_dict())
+    b = he.are_dicts_float_equal(db_ref, db.to_dict())
     he.print_tests(b, f'Compare the db {db_filepath} and {db_ref_filepath}')
 
     # read an existing db
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     print(db3)
     print(db3.db_file_path)
     db4 = rdb.PatientTreatmentDatabase(output_folder / "db007_db3.json")
-    b = he.are_dicts_equal(db4.to_dict(), db3.to_dict())
+    b = he.are_dicts_float_equal(db4.to_dict(), db3.to_dict())
     stop_test(b, f'Compare updated db')
 
     # end

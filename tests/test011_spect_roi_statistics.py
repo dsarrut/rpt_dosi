@@ -27,7 +27,7 @@ if __name__ == "__main__":
         res = json.load(f)
     ref_res = {'mean': 16627.84375, 'std': 12616.0859375, 'min': -17.069276809692383,
                'max': 76888.78125, 'sum': 29880236.0, 'volume_cc': 1035.3201311307996}
-    is_ok = he.are_dicts_equal(ref_res, res) and cmd_ok
+    is_ok = he.are_dicts_float_equal(ref_res, res) and cmd_ok
     he.print_tests(is_ok, f"stats {res}")
 
     # from API
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     ct = rim.read_ct(ct_filename)
     res = rim.image_roi_stats(roi, spect, ct, "spect")
     ref_res['mass_g'] = 1089.0692347997906
-    is_ok = he.are_dicts_equal(ref_res, res) and is_ok
+    is_ok = he.are_dicts_float_equal(ref_res, res) and is_ok
     he.print_tests(is_ok, f"stats {res}")
 
     # end

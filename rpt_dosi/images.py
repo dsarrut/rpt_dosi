@@ -850,19 +850,6 @@ def convert_ct_to_densities(ct):
     return densities
 
 
-def OLD_resample_ct_like_spect(spect, ct, verbose=True):
-    if not images_have_same_domain(spect, ct):
-        sigma = [0.5 * sp for sp in ct.GetSpacing()]
-        if verbose:
-            print(
-                f"Resample ct image ({ct.GetSize()}) to spacing={spect.GetSpacing()} size={spect.GetSize()}"
-            )
-        ct = apply_itk_gauss_smoothing(ct, sigma)
-        ct = resample_itk_image_like(ct, spect, -1000, linear=True)
-    ct_a = sitk.GetArrayFromImage(ct)
-    return ct_a
-
-
 def apply_itk_gauss_smoothing(img, sigma):
     if sigma is None:
         return img
@@ -944,58 +931,6 @@ def resample_roi_spacing(roi: MetaImageROI, spacing):
     o = copy.copy(roi)
     o.image = resample_itk_image_spacing(o.image, spacing, o.unit_default_value, linear=False)
     return o
-
-
-def OLD_resample_roi_like_spect(spect, roi, convert_to_np=True, verbose=True):
-    if not images_have_same_domain(spect, roi):
-        if verbose:
-            print(
-                f"Resample roi mask ({roi.GetSize()}) to spacing={spect.GetSpacing()} size={spect.GetSize()}"
-            )
-        roi = resample_itk_image_like(roi, spect, 0, linear=False)
-    if convert_to_np:
-        roi = sitk.GetArrayFromImage(roi)
-    return roi
-
-
-def OLD_get_stats_in_rois(spect, ct, rois_list):
-    # load spect
-    spect = sitk.ReadImage(spect)
-    volume_voxel_cc = np.prod(spect.GetSpacing()) / 1000
-    spect_a = sitk.GetArrayFromImage(spect)
-    # load ct
-    ct = sitk.ReadImage(ct)
-    ct_a = OLD_resample_ct_like_spect(spect, ct, verbose=False)
-    densities = convert_ct_to_densities(ct_a)
-    # prepare key
-    res = {}
-    # loop on rois
-    for roi in rois_list:
-        # read roi mask and resample like spect
-        r = sitk.ReadImage(roi.roi_filename)
-        roi_a = OLD_resample_roi_like_spect(spect, r, verbose=False)
-        # compute stats
-        s = image_roi_stats_OLD(spect_a, roi_a)
-        # compute mass
-        d = densities[roi_a == 1]
-        mass = np.sum(d) * volume_voxel_cc
-        s["mass_g"] = mass
-        # set in the db
-        res[roi.roi_name] = s
-    return res
-
-
-def image_roi_stats_OLD(spect_a, roi_a):
-    # select pixels
-    p = spect_a[roi_a == 1]
-    # compute stats
-    return {
-        "mean": float(np.mean(p)),
-        "std": float(np.std(p)),
-        "min": float(np.min(p)),
-        "max": float(np.max(p)),
-        "sum": float(np.sum(p)),
-    }
 
 
 def test_compare_images(image1, image2, tol=1e-6):

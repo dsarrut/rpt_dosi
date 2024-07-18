@@ -209,7 +209,7 @@ if __name__ == "__main__":
     pet.convert_to_suv()
     pet.write(output_folder / "pet.nii.gz")
     pet2 = rim.read_pet(pet.image_file_path)
-    b = he.are_dicts_equal(pet.to_dict(), pet2.to_dict())
+    b = he.are_dicts_float_equal(pet.to_dict(), pet2.to_dict())
     print(pet.info())
     stop_test(b, f'Compare pet json')
 

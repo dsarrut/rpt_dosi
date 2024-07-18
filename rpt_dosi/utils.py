@@ -230,7 +230,7 @@ def compare_dict(dict1, dict2):
     return ok, msg
 
 
-def are_dicts_equal(dict1, dict2, float_tolerance=1e-9):
+def are_dicts_float_equal(dict1, dict2, float_tolerance=1e-9):
     for key, value1 in dict1.items():
         if key not in dict2:
             s = key + " is not in dict2"
@@ -240,7 +240,7 @@ def are_dicts_equal(dict1, dict2, float_tolerance=1e-9):
         value2 = dict2[key]
 
         if isinstance(value1, dict) and isinstance(value2, dict):
-            if not are_dicts_equal(value1, value2, float_tolerance):
+            if not are_dicts_float_equal(value1, value2, float_tolerance):
                 return False
 
         elif isinstance(value1, (int, float)) and isinstance(value2, (int, float)):
@@ -265,7 +265,7 @@ def are_dicts_equal(dict1, dict2, float_tolerance=1e-9):
                 print("The array lengths are not equals: " + str(value1) + " vs. " + str(value2))
                 return False
             for i in range(0, nbElement):
-                if not are_dicts_equal(value1[i], value2[i], float_tolerance):
+                if not are_dicts_float_equal(value1[i], value2[i], float_tolerance):
                     return False
 
         elif isinstance(value1, NoneType) and not isinstance(value2, NoneType):

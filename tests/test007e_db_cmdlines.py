@@ -68,7 +68,7 @@ if __name__ == "__main__":
     # compare
     db1 = rtpdb.OLD_db_load(db_output)
     db2 = rtpdb.OLD_db_load(db_ref)
-    b = utils.are_dicts_equal(db1, db2)
+    b = utils.are_dicts_float_equal(db1, db2)
     utils.print_tests(b, f"Compare JSON {db_output} vs {db_ref}")
     is_ok = b and is_ok
 
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     # compare
     db1 = rtpdb.OLD_db_load(db_output)
     db2 = rtpdb.OLD_db_load(db_ref)
-    b = utils.are_dicts_equal(db1, db2) and cmd_ok
+    b = utils.are_dicts_float_equal(db1, db2) and cmd_ok
     utils.print_tests(b, f"Compare JSON {db_output} vs {db_ref}")
     is_ok = b and is_ok
 
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     # compare
     db1 = rtpdb.OLD_db_load(db_output)
     db2 = rtpdb.OLD_db_load(db_ref)
-    b = utils.are_dicts_equal(db1, db2) and cmd_ok
+    b = utils.are_dicts_float_equal(db1, db2) and cmd_ok
     utils.print_tests(b, f"Compare JSON {db_output} vs {db_ref}")
     is_ok = b and is_ok
 

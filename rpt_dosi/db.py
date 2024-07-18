@@ -12,22 +12,6 @@ import os
 from pathlib import Path
 
 
-def OLD_db_update_injection(db, dicom_ds, cycle_id):
-    # extract injection
-    rad = rdcm.dicom_read_injection(dicom_ds)
-
-    # create cycle if not exist
-    if cycle_id not in db["cycles"]:
-        db["cycles"][cycle_id] = {}
-
-    # update the db: cycle
-    # FIXME maybe check already exist ?
-    cycle = db["cycles"][cycle_id]
-    cycle["injection"].update(rad)
-
-    return db
-
-
 def OLD_db_update_acquisition(db, dicom_ds, cycle_id, tp_id):
     # extract the date/time
     dt = rdcm.dicom_read_acquisition_datetime(dicom_ds)
@@ -44,20 +28,6 @@ def OLD_db_update_acquisition(db, dicom_ds, cycle_id, tp_id):
 
     return db
 
-
-def OLD_db_update_cycle_rois_activity(cycle):
-    # loop acquisitions
-    for acq_id in cycle.acquisitions:
-        print(f"Acquisition {acq_id}")
-        acq = cycle.acquisitions[acq_id]
-        if 'rois' not in acq:
-            fatal(f"Acquisition {acq_id} has no rois")
-        image_filename = acq.spect_image
-        if "calibrated_spect_image" in acq:
-            image_filename = acq.calibrated_spect_image
-            print(f"Using calibrated spect image {image_filename}")
-        s = rim.OLD_get_stats_in_rois(image_filename, acq.ct_image, acq.rois)
-        acq["activity"] = s
 
 
 def OLD_db_load(filename):

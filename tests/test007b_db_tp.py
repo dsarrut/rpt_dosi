@@ -142,7 +142,7 @@ if __name__ == "__main__":
     d1 = copy.deepcopy(db.to_dict())
     db.from_dict(d1)
     d2 = copy.deepcopy(db.to_dict())
-    b = he.are_dicts_equal(d1, d2)
+    b = he.are_dicts_float_equal(d1, d2)
     stop_test(b, f"Compare the from_dict to_dict {b}")
 
     # write and check
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     print('write done')
     # db2 = rdb.PatientTreatmentDatabase(ref_folder / "db007b.json")
     db2 = rdb.PatientTreatmentDatabase(output_folder / "db007b.json")
-    b = he.are_dicts_equal(db.to_dict(), db2.to_dict())
+    b = he.are_dicts_float_equal(db.to_dict(), db2.to_dict())
     stop_test(b, f"Compare write and read: {b}")
 
     # date
