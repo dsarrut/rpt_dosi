@@ -81,5 +81,6 @@ rpt_db_set_spect_datetime_from_dicom = "rpt_dosi.bin.rpt_db_set_spect_datetime_f
 rpt_db_spect_calibration = "rpt_dosi.bin.rpt_db_spect_calibration:go"
 
 rpt_dicom_browse = "rpt_dosi.bin.rpt_dicom_browse:go"
+rpt_dicomdir_info = "rpt_dosi.bin.rpt_dicomdir_info:go"
 rpt_dicom_select = "rpt_dosi.bin.rpt_dicom_select:go"
 rpt_dicom_db = "rpt_dosi.bin.rpt_dicom_db:go"

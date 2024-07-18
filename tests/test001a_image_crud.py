@@ -43,7 +43,7 @@ if __name__ == "__main__":
         # write
         im.write()
         # read and compare
-        im2 = rim.read_metaimage(image_path, read_header_only=True)
+        im2 = rim.read_metaimage(image_path, reading_mode='metadata_only')
         im._debug_eq = True
         b = im == im2
         stop_test(b, f'Compare im1 and im2 for {im_type}')
@@ -57,7 +57,7 @@ if __name__ == "__main__":
         try:
             im = rim.new_metaimage(im_type, a)
             b = False
-        except utils.Rpt_Error as e:
+        except:
             b = True
         stop_test(b, f'Try to create should fail')
 
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     for im_type in im_types:
         start_test(f"Read an existing image metadata {im_type}")
         image_path = output_folder / f"{im_type.lower()}.nii.gz"
-        im = rim.read_metaimage(image_path, read_header_only=True)
+        im = rim.read_metaimage(image_path, reading_mode='metadata_only')
         print(im)
         b = created_images[im_type] == im
         stop_test(b, f'Compare im1 and im2 for {im_type}')
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     for im_type in im_types:
         start_test("Read an existing image metadata, header only")
         image_path = output_folder / f"{im_type.lower()}.nii.gz"
-        im = rim.read_metaimage(image_path, read_header_only=True)
+        im = rim.read_metaimage(image_path, reading_mode='metadata_only')
         print(im)
         b = created_images[im_type] == im
         stop_test(b, f'Compare im1 and im2 for {im_type}')
@@ -138,11 +138,11 @@ if __name__ == "__main__":
     # test: DELETE
     start_test("Delete metadata")
     image_path = output_folder / f"roi.nii.gz"
-    roi = rim.read_metaimage(image_path, read_header_only=True)
+    roi = rim.read_metaimage(image_path, reading_mode='metadata_only')
     print(roi)
     rim.delete_image_metadata(image_path)
     try:
-        roi = rim.read_metaimage(image_path, read_header_only=True)
+        roi = rim.read_metaimage(image_path, reading_mode='metadata_only')
         print(roi)
         b = False
     except:

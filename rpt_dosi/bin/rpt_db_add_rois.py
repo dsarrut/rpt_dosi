@@ -21,6 +21,10 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 )
 @click.option("--name", "-n", required=True, help="Patient initials (folder)")
 def go(db_file, roi_list, name, output):
+
+
+    WRONG redo all
+
     # open db as a dict
     db = rptdb.OLD_db_load(db_file)
 

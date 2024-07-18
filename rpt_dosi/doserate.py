@@ -187,7 +187,7 @@ def scale_to_absorbed_dose_rate(
     return o
 
 
-class DoseRateSimulation():
+class DoseRateSimulation:
 
     def __init__(self, ct_filename, spect_filename):
         self.radionuclide = "Lu177"
@@ -210,7 +210,7 @@ class DoseRateSimulation():
         # resample data if needed
         if self.resample_like is not None:
             ct = rim.read_ct(self.ct_filename)
-            activity = rim.read_spect(self.activity_filename)
+            activity = rim.read_spect(self.activity_filename, unit='Bq')
             activity.require_unit('Bq')
             try:
                 sp = float(self.resample_like)

@@ -31,14 +31,14 @@ if __name__ == "__main__":
                            image_type="CT",
                            filename="ct1.nii.gz",
                            mode="copy",
-                           exist_ok=True)
+                           file_exist_ok=True)
     im = tp.add_image_from_file("spect",
                                 data_folder / "spect_8.321mm.nii.gz",
                                 image_type="SPECT",
                                 filename="spect.nii.gz",
                                 mode="copy",
                                 unit='Bq',
-                                exist_ok=True)
+                                file_exist_ok=True)
     # add rois
     roi_list = [
         {'roi_id': 'colon', 'filename': data_folder / 'rois' / 'colon.nii.gz'},

@@ -13,6 +13,13 @@ if __name__ == "__main__":
     print(f"Ref data folder = {ref_folder}")
     print(f"Output data folder = {output_folder}")
 
+
+    # create db with 3 tp
+    # test API
+    # test cmd line
+
+    exit(-1)
+
     # test activity
     start_test('test triexpo')
     # rpt_db_tac_triexpo --db data/activities.json -c cycle1 --no_plot -o data/test003/activities_fit.json

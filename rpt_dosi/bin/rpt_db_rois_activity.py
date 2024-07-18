@@ -13,6 +13,10 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
     "--output", "-o", default=None, help="Output json (same as input if None)"
 )
 def go(db_file, output):
+
+
+    WRONG redo everything
+
     # open db as a dict
     db = rptdb.OLD_db_load(db_file)
 

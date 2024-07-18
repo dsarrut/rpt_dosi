@@ -1,13 +1,13 @@
 from . import dicom_utils as rdcm
 from . import images as rim
-from . import utils as rhe
 from . import metadata as rmd
+from . import utils as rhe
+from .utils import fatal
 import shutil
 import json
 from box import Box
 from datetime import datetime
 import numpy as np
-from .utils import fatal
 import os
 from pathlib import Path
 
@@ -56,7 +56,7 @@ def OLD_db_update_cycle_rois_activity(cycle):
         if "calibrated_spect_image" in acq:
             image_filename = acq.calibrated_spect_image
             print(f"Using calibrated spect image {image_filename}")
-        s = rim.get_stats_in_rois(image_filename, acq.ct_image, acq.rois)
+        s = rim.OLD_get_stats_in_rois(image_filename, acq.ct_image, acq.rois)
         acq["activity"] = s
 
 
@@ -190,7 +190,8 @@ class PatientTreatmentDatabase(rmd.ClassWithMetaData):
 
     def get_cycle(self, cycle_id):
         if cycle_id not in self.cycles:
-            self.cycles[cycle_id] = CycleTreatmentDatabase(self, cycle_id)
+            # self.cycles[cycle_id] = CycleTreatmentDatabase(self, cycle_id)
+            fatal(f'Cannot find the cycle named "{cycle_id}". Available cycles are: {self.cycles.keys()}')
         return self.cycles[cycle_id]
 
     def __getitem__(self, key):
@@ -468,15 +469,17 @@ class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
         super().from_dict(data)
         for key, value in data['rois'].items():
             file_path = self.rois_path / value['filename']
-            roi = rim.MetaImageROI(image_path=file_path, name=value['name'], create=True)
+            roi = rim.MetaImageROI(image_path=file_path,
+                                   name=value['name'],
+                                   create=True,
+                                   reading_mode='metadata_only')
             roi.from_dict(value)
             # we set the roi path to the current data folder
             roi.image_file_path = file_path
             self.rois[key] = roi
         for key, value in data['images'].items():
             file_path = self.timepoint_path / value['filename']
-            # im = rim.new_metaimage(value['image_type'], file_path)
-            im = rim.read_metaimage(file_path)  # value['image_type'], file_path)
+            im = rim.read_metaimage(file_path, reading_mode='metadata_only')
             im.from_dict(value)
             # we set the image path to the current data folder
             im.image_file_path = file_path
@@ -574,7 +577,7 @@ class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
                             filename=None,
                             mode='copy',
                             unit=None,
-                            exist_ok=False):
+                            file_exist_ok=False):
         if image_name in self.images:
             fatal(f'Cannot add image {image_name} since it already exists')
         # get the filename
@@ -582,18 +585,23 @@ class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
             filename = os.path.basename(input_path)
         # copy or move the initial image
         dest_path = self.timepoint_path / filename
-        if not exist_ok and os.path.exists(dest_path):
+        if not file_exist_ok and os.path.exists(dest_path):
             fatal(f'File image {dest_path} already exists')
-        rim.copy_or_move_image(input_path, dest_path, mode)
+        if input_path != dest_path:
+            rim.copy_or_move_image(input_path, dest_path, mode)
         # with initial metadata?
         if rim.metadata_exists(input_path):
-            im = rim.read_metaimage(input_path, read_header_only=True)
+            im = rim.read_metaimage(input_path, reading_mode='metadata_only')
             im.image_file_path = dest_path
             if image_type is not None and image_type != im.image_type:
                 fatal(f'Cannot add the read image, the image type is {im.image_type}'
                       f' while {image_type} is expected')
         else:
-            im = rim.new_metaimage(image_type, file_path=dest_path, unit=unit)
+            im = rim.new_metaimage(image_type,
+                                   file_path=dest_path,
+                                   unit=unit,
+                                   reading_mode='metadata_only')
+            print(im)
         # add it
         return self.add_image(image_name, im)
 
@@ -612,7 +620,7 @@ class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
             # update the metadata image and db should be the same
             self.sync_metadata_image(image_name, sync_policy='auto')
             meta_image.write_metadata()
-        except rhe.Rpt_Error:
+        except rhe.RptError:
             # if there is an error, remove the image and raise the error again
             self.images.pop(image_name)
             raise
@@ -637,7 +645,7 @@ class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
             # update the metadata image and db should be the same
             self.sync_metadata_roi(roi.name)
             roi.write_metadata()
-        except rhe.Rpt_Error:
+        except rhe.RptError:
             # if there is an error, remove the image and raise the error again
             self.rois.pop(roi.name)
             raise
@@ -659,7 +667,10 @@ class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
             roi.image_file_path = dest_path
             roi.name = roi_id
         else:
-            roi = rim.new_metaimage('ROI', file_path=dest_path, name=roi_id)
+            roi = rim.new_metaimage('ROI',
+                                    file_path=dest_path,
+                                    name=roi_id,
+                                    reading_mode='metadata_only')
         # add it
         return self.add_roi(roi)
 
@@ -717,3 +728,82 @@ class TimepointTreatmentDatabase(rmd.ClassWithMetaData):
                 msg += f'The roi name {k} is different in the file {roi.name}\n'
         msg = msg.rstrip('\n')
         return ok, msg
+
+
+def create_test_db(data_folder, db_file_path):
+    if os.path.exists(db_file_path):
+        os.remove(db_file_path)
+    db = PatientTreatmentDatabase(db_file_path, create=True)
+    cycle = CycleTreatmentDatabase(db, "cycle1")
+    db.add_cycle(cycle)
+    db.add_new_cycle('cycle2')
+    db.add_new_cycle('cycle3')
+    tp = cycle.add_new_timepoint("tp1")
+    cycle.add_new_timepoint("tp2")
+    cycle.add_new_timepoint("tp3")
+
+    # add images
+    tp.add_image_from_file("ct",
+                           data_folder / "ct_8mm.nii.gz",
+                           image_type="CT",
+                           filename="ct1.nii.gz",
+                           mode="copy",
+                           file_exist_ok=True)
+    tp.add_image_from_file("spect",
+                           data_folder / "spect_8.321mm.nii.gz",
+                           image_type="SPECT",
+                           filename="spect.nii.gz",
+                           mode="copy",
+                           unit='Bq',
+                           file_exist_ok=True)
+
+    tp.add_image_from_file("spect2",  # this one has a json, not need for unit
+                           data_folder / "spect_10mm_with_json.nii.gz",
+                           image_type="SPECT",
+                           filename="spect2.nii.gz",
+                           mode="copy",
+                           file_exist_ok=True)
+
+    tp.add_image_from_file("pet",
+                           data_folder / "ct_8mm.nii.gz",
+                           image_type="PET",
+                           filename="pet.nii.gz",
+                           unit='Bq/mL',
+                           mode="copy",
+                           file_exist_ok=True)
+
+    tp.add_roi_from_file("liver",
+                         data_folder / "rois" / "liver.nii.gz",
+                         mode="copy",
+                         exist_ok=True)
+    tp.add_roi_from_file("left kidney",
+                         data_folder / "rois" / "kidney_left.nii.gz",
+                         mode="copy",
+                         exist_ok=True)
+
+    db.write()
+    return db
+
+
+def compute_time_activity_curve(cycle, roi_names, spect_name='spect'):
+    # init the TAC
+    times = {}
+    activities = {}
+    for roi_name in roi_names:
+        times[roi_name] = []
+        activities[roi_name] = []
+
+    # Get all activities and group per ROI
+    for tp in cycle.timepoints.values():
+        spect = tp.images[spect_name]
+        spect.read()
+        spect.convert_to_bq()
+        time_h = rim.get_time_from_injection_h(cycle.injection_datetime,
+                                               spect.acquisition_datetime)
+        for roi_name in roi_names:
+            roi = tp.get_roi(roi_name)
+            res = rim.image_roi_stats(roi, spect, resample_like='spect')
+            times[roi.name].append(time_h)
+            # convert to MBq
+            activities[roi.name].append(res['sum'] / 1e6)
+    return times, activities

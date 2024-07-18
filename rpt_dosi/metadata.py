@@ -2,6 +2,7 @@ import json
 from rpt_dosi.utils import fatal, warning
 import rpt_dosi.utils as he
 from typing import Dict
+import os
 
 
 class ClassWithMetaData:
@@ -15,13 +16,16 @@ class ClassWithMetaData:
 
     def __init__(self):
         self._debug_eq = False
+        self._instance_metadata_fields: Dict[str, type] = {}
+        self._info_width = 30
 
     def to_dict(self):
         """
         Store the metadata attributes to a dictionary.
         """
+        all_fields = self._metadata_fields | self._instance_metadata_fields
         metadata_dict = {}
-        for attr_name, attr_type in self._metadata_fields.items():
+        for attr_name, attr_type in all_fields.items():
             metadata_dict[attr_name] = getattr(self, attr_name)
         return metadata_dict
 
@@ -33,6 +37,13 @@ class ClassWithMetaData:
             if attr_name in data:
                 value = data[attr_name]
                 self.set_metadata(attr_name, value)
+        for attr_name in data:
+            if attr_name in self._metadata_fields.keys():
+                continue
+            value = data[attr_name]
+            mtype = type(value)
+            self.add_metadata_field(attr_name, mtype)
+            self.set_metadata(attr_name, value)
 
     def save_to_json(self, filepath):
         """
@@ -48,6 +59,8 @@ class ClassWithMetaData:
         """
         Load metadata attributes from a JSON file.
         """
+        if os.path.getsize(filepath) == 0:
+            os.remove(filepath)
         try:
             with open(filepath, 'r') as f:
                 data = json.load(f)
@@ -57,10 +70,17 @@ class ClassWithMetaData:
         except Exception as e:
             fatal(f"Unexpected Error while reading {filepath}: {e}")
 
+    def add_metadata_field(self, key, mtype):
+        all_fields = self._metadata_fields | self._instance_metadata_fields
+        if key in all_fields.keys():
+            return  # fatal(f'Cannot add the metadata field {key}, it already exists')
+        self._instance_metadata_fields[key] = mtype
+
     def set_metadata(self, key, value):
-        if key not in self._metadata_fields:
-            fatal(f"No such metadata tag '{key}' in {self._metadata_fields}")
-        attr_type = self._metadata_fields[key]
+        all_fields = self._metadata_fields | self._instance_metadata_fields
+        if key not in all_fields.keys():
+            fatal(f"No such metadata tag '{key}' in {all_fields.keys}")
+        attr_type = all_fields[key]
         try:
             if value is None:
                 setattr(self, key, value)
@@ -74,7 +94,7 @@ class ClassWithMetaData:
         s = ''
         metadata = self.to_dict()
         for name in metadata.keys():
-            s += f'{name}: {metadata[name]}\n'
+            s += f'{name:<{self._info_width}}: {metadata[name]}\n'
         return s
 
     def __str__(self):
@@ -161,8 +181,8 @@ def sync_field_image_db_auto(image, element_db, tag_name):
         setattr(element_db, tag_name, getattr(image, tag_name))
         return
     # warning : two different values
-    warning(f'Warning : incoherent {tag_name}, db = {getattr(element_db, tag_name)} '
-            f'while image = {getattr(image, tag_name)} ({image})')
+    warning(f'Warning: different {tag_name}, db = {getattr(element_db, tag_name)} '
+            f'while image = {getattr(image, tag_name)} ({image.filename})')
 
 
 def sync_field_image_db_check(image, element_db, tag_name, ok=True, msg=''):

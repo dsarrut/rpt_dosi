@@ -47,7 +47,7 @@ if __name__ == "__main__":
         im = rim.read_ct(ct_output)
         print(im)
         b = False
-    except he.Rpt_Error:
+    except he.RptError:
         b = True
     stop_test(b, f"Cannot read SPECT as CT")
 
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     b = False
     try:
         im = rim.read_roi(ct_output, 'toto')
-    except he.Rpt_Error:
+    except he.RptError:
         b = True
     stop_test(b, f"Cannot read SPECT as ROI")
 

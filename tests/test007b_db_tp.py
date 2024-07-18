@@ -30,28 +30,28 @@ if __name__ == "__main__":
                            image_type="CT",
                            filename="ct1.nii.gz",
                            mode="copy",
-                           exist_ok=True)
+                           file_exist_ok=True)
     im = tp.add_image_from_file("spect",
                                 data_folder / "spect_8.321mm.nii.gz",
                                 image_type="SPECT",
                                 filename="spect.nii.gz",
                                 mode="copy",
                                 unit='Bq',
-                                exist_ok=True)
+                                file_exist_ok=True)
     print(im.image_file_path)
     tp.add_image_from_file("spect2",  # this one has a json, not need for unit
                            data_folder / "spect_10mm_with_json.nii.gz",
                            image_type="SPECT",
                            filename="spect2.nii.gz",
                            mode="copy",
-                           exist_ok=True)
+                           file_exist_ok=True)
     tp.add_image_from_file("pet",
                            data_folder / "ct_8mm.nii.gz",
                            image_type="PET",
                            filename="pet.nii.gz",
                            unit='Bq/mL',
                            mode="copy",
-                           exist_ok=True)
+                           file_exist_ok=True)
 
     print(tp)
     print(tp.info())
@@ -65,7 +65,7 @@ if __name__ == "__main__":
         # same image name
         tp.add_image_from_file("ct", data_folder / "ct_8mm.nii.gz", filename="ct.nii.gz", mode="copy")
         b = False
-    except he.Rpt_Error as e:
+    except he.RptError as e:
         b = True
     stop_test(b, f"I cannot set the image two times: {b}")
 
@@ -77,7 +77,7 @@ if __name__ == "__main__":
                                image_type="CT",
                                filename="toto.nii.gz",
                                mode="copy",
-                               exist_ok=True)
+                               file_exist_ok=True)
         b = False
     except:
         b = True
@@ -91,7 +91,7 @@ if __name__ == "__main__":
                            image_type="CT",
                            filename="ct1.nii.gz",
                            mode="dry_run",
-                           exist_ok=True)
+                           file_exist_ok=True)
     print(tp.images["ct_bw"].info())
     tp.sync_metadata_image("ct_bw", sync_policy='db_to_image')
     b = tp.images["ct_bw"].body_weight_kg == db.body_weight_kg == 666

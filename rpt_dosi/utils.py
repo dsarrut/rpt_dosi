@@ -22,7 +22,7 @@ except AttributeError:
     color_ok = colored.fore("green")
 
 
-class Rpt_Error(Exception):
+class RptError(Exception):
     pass
 
 
@@ -35,7 +35,11 @@ def fatal(s, stop_and_exit=False):
     print(s)
     if stop_and_exit:
         exit()
-    raise Rpt_Error(s)
+    # the following trick avoid to print the traceback when fail
+    try:
+        raise RptError(s)
+    except RptError:
+        exit()
 
 
 def warning(s):
@@ -157,7 +161,7 @@ class SimpleTest:
 
     @staticmethod
     def get_number_of_tests():
-        return SimpleTest._test_num-1
+        return SimpleTest._test_num - 1
 
     @staticmethod
     def get_first_failing_test():
@@ -308,6 +312,7 @@ def indent(input_str, indentation='\t'):
 
 
 def get_basename_and_extension(filename):
+    """Return the basename and extension of a filename even if .nii.gz is used."""
     base = filename
     extensions = []
     while os.path.splitext(base)[1]:
@@ -323,3 +328,4 @@ def convert_datetime(value):
         return dt.strftime("%Y-%m-%d %H:%M:%S")
     except:
         fatal(f"Invalid date format '{value}', we expect '%Y-%m-%d %H:%M:%S'")
+

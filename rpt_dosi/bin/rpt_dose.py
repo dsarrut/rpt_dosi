@@ -82,7 +82,8 @@ def go(spect,
        output,
        method,
        scaling):
-    # spect or dose_rate ?
+
+    # input is spect or dose_rate ?
     if spect is None and dose_rate is None:
         rim.fatal(f'Please provide either --spect or --dose_rate option')
     if spect is not None and dose_rate is not None:

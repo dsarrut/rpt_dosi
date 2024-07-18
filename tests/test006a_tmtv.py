@@ -45,7 +45,6 @@ if __name__ == "__main__":
     output = output_folder / "tmtv_auto.nii.gz"
     output_mask = output_folder / "tmtv_mask_auto.nii.gz"
     tmtv_extractor = rtmtv.TMTV()
-    tmtv_extractor = rtmtv.TMTV()
     tmtv_extractor.intensity_threshold = "auto"
     tmtv_extractor.verbose = True
     tmtv_extractor.cut_the_head = True

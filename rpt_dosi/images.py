@@ -14,10 +14,16 @@ import shutil
 from pathlib import Path
 
 
-def read_metaimage(file_path, read_header_only=False):
+def read_metaimage(file_path, reading_mode='image'):
     """
     Read an existing metaimage.
     Need both the image and the associated metadata json sidecar file.
+
+    reading_mode:
+    - image
+    - header_only
+    - metadata_only
+
     """
     if not os.path.exists(file_path):
         fatal(f'read_metaimage: {file_path} does not exist')
@@ -26,7 +32,7 @@ def read_metaimage(file_path, read_header_only=False):
         fatal(f'read_metaimage: {file_path} is not a metaimage')
     # create the correct class if it is found
     the_class = get_metaimage_class_from_type(image_type)
-    im = the_class(file_path, read_header_only=read_header_only, create=False)
+    im = the_class(file_path, reading_mode=reading_mode, create=False)
     return im
 
 
@@ -35,7 +41,7 @@ def metadata_exists(file_path):
     return os.path.exists(json_path)
 
 
-def new_metaimage(image_type, file_path, overwrite=False, read_header_only=False, **kwargs):
+def new_metaimage(image_type, file_path, overwrite=False, reading_mode='metadata_only', **kwargs):
     """
     Create (and read) a new metaimage.
     The filepath of the image must exist.
@@ -47,7 +53,7 @@ def new_metaimage(image_type, file_path, overwrite=False, read_header_only=False
     the_class = get_metaimage_class_from_type(image_type)
     if overwrite:
         delete_image_metadata(file_path)
-    output = the_class(file_path, read_header_only=read_header_only, create=True, **kwargs)
+    output = the_class(file_path, reading_mode=reading_mode, create=True, **kwargs)
     return output
 
 
@@ -88,10 +94,10 @@ def read_ct(filepath):
         ct = new_metaimage('CT',
                            filepath,
                            overwrite=False,
-                           read_header_only=False)
+                           reading_mode='image')
     else:
         if image_type == 'CT':
-            ct = read_metaimage(filepath, read_header_only=False)
+            ct = read_metaimage(filepath, reading_mode='image')
         else:
             fatal(f'Error while reading, this is not a CT image: {filepath}')
     return ct
@@ -107,11 +113,11 @@ def read_spect(filepath, unit=None):
         spect = new_metaimage('SPECT',
                               filepath,
                               overwrite=False,
-                              read_header_only=False,
+                              reading_mode='image',
                               unit=unit)
     else:
         if image_type == 'SPECT':
-            spect = read_metaimage(filepath, read_header_only=False)
+            spect = read_metaimage(filepath, reading_mode='image')
         else:
             fatal(f'Error while reading, this is not a SPECT image: {filepath}')
     if unit is not None:
@@ -129,11 +135,11 @@ def read_pet(filepath, unit=None):
         pet = new_metaimage('PET',
                             filepath,
                             overwrite=False,
-                            read_header_only=False,
+                            reading_mode='image',
                             unit=unit)
     else:
         if image_type == 'PET':
-            pet = read_metaimage(filepath, read_header_only=False)
+            pet = read_metaimage(filepath, reading_mode="image")
         else:
             fatal(f'Error while reading, this is not a PET image: {filepath}')
     if unit is not None:
@@ -151,11 +157,11 @@ def read_roi(filepath, name=None, effective_time_h=None):
         roi = new_metaimage('ROI',
                             filepath,
                             overwrite=False,
-                            read_header_only=False,
+                            reading_mode='image',
                             name=name)
     else:
         if image_type == 'ROI':
-            roi = read_metaimage(filepath, read_header_only=False)
+            roi = read_metaimage(filepath, reading_mode='image')
         else:
             fatal(f'Error while reading, this is not a ROI image: {filepath}')
         if name is not None:
@@ -169,17 +175,16 @@ def read_dose(filepath, unit=None):
     """
     Read or create a Dose image and consider the given unit
     """
-    # dose = new_metaimage('Dose', filepath, overwrite=False, read_header_only=False, unit=input_unit)
     image_type = read_metaimage_type_from_metadata(filepath)
     if image_type is None:
         dose = new_metaimage('Dose',
                              filepath,
                              overwrite=False,
-                             read_header_only=False,
+                             reading_mode='image',
                              unit=unit)
     else:
         if image_type == 'Dose':
-            dose = read_metaimage(filepath, read_header_only=False)
+            dose = read_metaimage(filepath, reading_mode='image')
         else:
             fatal(f'Error while reading, this is not a Dose image: {filepath}')
     if unit is not None:
@@ -218,7 +223,7 @@ class MetaImageBase(rmd.ClassWithMetaData):
                         'acquisition_datetime': str,
                         'unit': str}
 
-    def __init__(self, image_path, read_header_only=False, create=False, **kwargs):
+    def __init__(self, image_path, reading_mode, create=False, **kwargs):
         super().__init__()
         # init
         self.image = None
@@ -240,10 +245,15 @@ class MetaImageBase(rmd.ClassWithMetaData):
         if not os.path.exists(self.metadata_file_path) and create:
             self._init_required_metadata(**kwargs)
         # read metadata
-        if read_header_only:
+        if reading_mode not in ['metadata_only', 'image', 'header_only']:
+            fatal(f'Reading mode {reading_mode} not recognized, should be '
+                  f'either "metadata_only" or "image" or "header_only"')
+        if reading_mode == "metadata_only":
+            self.read_metadata()
+        if reading_mode == "header_only":
             self.read_metadata()
             self.read_image_header()
-        else:
+        if reading_mode == "image":
             self.read()
         return
 
@@ -362,14 +372,20 @@ class MetaImageBase(rmd.ClassWithMetaData):
         self.image = sitk.ReadImage(self.image_file_path)
         self.read_metadata()
 
-    def write(self, file_path=None):
+    def write(self, file_path=None, writing_mode='image'):
         if file_path is None:
             file_path = self.image_file_path
             if file_path is None:
                 fatal(f'Provide the file_path to write the image to.')
-        if self.image_is_loaded():
-            sitk.WriteImage(self.image, file_path)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         self.image_file_path = file_path
+        if writing_mode == 'image':
+            if not self.image_is_loaded():
+                self.read()
+            sitk.WriteImage(self.image, file_path)
+        else:
+            if writing_mode != 'metadata_only':
+                fatal(f'Cannot write the image to {writing_mode}, must be "image" or "metadata_only"')
         self.write_metadata()
 
     def read_metadata(self):
@@ -415,31 +431,26 @@ class MetaImageBase(rmd.ClassWithMetaData):
         return None
 
     def info(self):
+        s = super().info()
         json_filename = self.metadata_file_path
-        js = f'(metadata: {self.metadata_file_path})'
+        w = self._info_width
+        js = f'{"metadata":<{w}}: {self.metadata_file_path})'
         if json_filename is not None and not os.path.exists(json_filename):
-            js = '(no metadata available)'
-        s = f'Image:   {self._image_filename} {js}\n'
-        s += f'Loaded?: {self.image_is_loaded()}\n'
-        s += f'Type:    {self.image_type}\n'
-        s += f'Loaded:  {self.image is not None}\n'
-        s += f'Unit:    {self.unit}\n'
-        s += f'Weight:  {self.body_weight_kg} kg\n'
-        s += f'Date:    {self.acquisition_datetime}'
+            js = f'{"metadata":<{w}}: no metadata'
+        s += f'{"Loaded?":<{w}}: {self.image_is_loaded()}\n'
+        s = f'{js}\n{s}'
         if self.image_is_loaded():
-            s += '\n'
-            s += f'Size:    {self.image.GetSize()}\n'
-            s += f'Spacing: {self.image.GetSpacing()}\n'
-            s += f'Origin:  {self.image.GetOrigin()}\n'
-            s += f'Pixel :  {sitk.GetPixelIDValueAsString(self.image.GetPixelID())}'
+            s += f'{"Size":<{w}}: {self.image.GetSize()}\n'
+            s += f'{"Spacing":<{w}}: {self.image.GetSpacing()}\n'
+            s += f'{"Origin":<{w}}: {self.image.GetOrigin()}\n'
+            s += f'{"Pixel":<{w}}: {sitk.GetPixelIDValueAsString(self.image.GetPixelID())}'
         else:
             if self._image_header is not None:
-                s += '\n'
-                s += f'Size:    {self._image_header.size}\n'
-                s += f'Spacing: {self._image_header.spacing}\n'
-                s += f'Origin:  {self._image_header.origin}\n'
-                s += f'Pixel:   {self._image_header.pixel_type}'
-        return s
+                s += f'{"Size":<{w}}: {self._image_header.size}\n'
+                s += f'{"Spacing":<{w}}: {self._image_header.spacing}\n'
+                s += f'{"Origin":<{w}}: {self._image_header.origin}\n'
+                s += f'{"Pixel":<{w}}: {self._image_header.pixel_type}'
+        return s.strip('\n')
 
     def check_file_metadata(self):
         # get the current metadata
@@ -463,8 +474,8 @@ class MetaImageCT(MetaImageBase):
     unit_default_values = {'HU': -1000, 'g/cm3': 0}
     image_type = "CT"
 
-    def __init__(self, image_path, read_header_only=False, create=False, **kwargs):
-        super().__init__(image_path, read_header_only, create, **kwargs)
+    def __init__(self, image_path, reading_mode, create=False, **kwargs):
+        super().__init__(image_path, reading_mode, create, **kwargs)
         # must set the unit after to get the unit_default_values right
         self.unit = 'HU'
 
@@ -499,11 +510,11 @@ class MetaImageSPECT(MetaImageBase):
         'injection_activity_mbq': float
     }
 
-    def __init__(self, image_path, read_header_only=False, create=False, **kwargs):
+    def __init__(self, image_path, reading_mode, create=False, **kwargs):
         # metadata
         self._injection_datetime = None
         self.injection_activity_mbq = None
-        super().__init__(image_path, read_header_only, create, **kwargs)
+        super().__init__(image_path, reading_mode, create, **kwargs)
 
     def _init_required_metadata(self, **kwargs):
         if 'unit' not in kwargs:
@@ -525,13 +536,13 @@ class MetaImageSPECT(MetaImageBase):
 
     def info(self):
         s = super().info() + '\n'
-        s += f'Body weight:    {self.body_weight_kg} kq\n'
-        s += f'Injection date: {self.injection_datetime}\n'
-        s += f'Injection:      {self.injection_activity_mbq} MBq\n'
+        w = self._info_width
+        s += f'{"Injection date:":{w}}: {self.injection_datetime}\n'
+        s += f'{"Injection:":{w}}: {self.injection_activity_mbq} MBq\n'
         if self.image_is_loaded():
-            s += f'Total activity: {self.compute_total_activity()} MBq'
+            s += f'{"Total activity:":{w}}: {self.compute_total_activity()} MBq'
         else:
-            s += f'Total activity: (image not loaded)'
+            s += f'{"Total activity:":{w}}: (image not loaded)'
         return s
 
     def convert_to_bq(self):
@@ -600,11 +611,11 @@ class MetaImagePET(MetaImageSPECT):
     unit_default_values = {'Bq/mL': 0, "SUV": 0}
     image_type = "PET"
 
-    def __init__(self, image_path, read_header_only=False, create=False, **kwargs):
+    def __init__(self, image_path, reading_mode, create=False, **kwargs):
         # metadata
         self._injection_datetime = None
         self.injection_activity_mbq = None
-        super().__init__(image_path, read_header_only, create, **kwargs)
+        super().__init__(image_path, reading_mode, create, **kwargs)
 
     def _init_required_metadata(self, **kwargs):
         if 'unit' not in kwargs:
@@ -625,13 +636,13 @@ class MetaImageROI(MetaImageBase):
         'effective_time_h': float
     }
 
-    def __init__(self, image_path, read_header_only=False, create=False, **kwargs):
+    def __init__(self, image_path, reading_mode, create=False, **kwargs):
         self.name = None
         self._unit = 'label'
         self.effective_time_h = None
         self.mass_g = None
         self.volume_cc = None
-        super().__init__(image_path, read_header_only, create, **kwargs)
+        super().__init__(image_path, reading_mode, create, **kwargs)
 
     def _init_required_metadata(self, **kwargs):
         if 'name' not in kwargs:
@@ -639,11 +650,12 @@ class MetaImageROI(MetaImageBase):
         self.name = kwargs['name']
 
     def info(self):
+        w = self._info_width
         s = super().info() + '\n'
-        s += f'Name:   {self.name}\n'
-        s += f'Teff:   {self.effective_time_h} h\n'
-        s += f'Mass:   {self.mass_g} g\n'
-        s += f'Volume: {self.volume_cc} cc'
+        s += f'{"Name":<{w}}: {self.name}\n'
+        s += f'{"Teff":<{w}}: {self.effective_time_h} h\n'
+        s += f'{"Mass":<{w}}: {self.mass_g} g\n'
+        s += f'{"Volume":<{w}}: {self.volume_cc} cc'
         return s
 
     def update_mass_and_volume(self, density_ct):
@@ -666,8 +678,8 @@ class MetaImageDose(MetaImageBase):
     unit_default_values = {'Gy': 0, 'Gy/s': 0}
     image_type = "Dose"
 
-    def __init__(self, image_path, read_header_only=False, create=False, **kwargs):
-        super().__init__(image_path, read_header_only, create, **kwargs)
+    def __init__(self, image_path, reading_mode, create=False, **kwargs):
+        super().__init__(image_path, reading_mode, create, **kwargs)
 
     def _init_required_metadata(self, **kwargs):
         if 'unit' not in kwargs:
@@ -871,11 +883,11 @@ def resample_ct_like(ct: MetaImageCT, like: MetaImageBase, gaussian_sigma=None):
     return o
 
 
-def resample_dose_like(ct: MetaImageDose, like: MetaImageBase, gaussian_sigma=None):
-    if images_have_same_domain(ct.image, like.image):
-        return ct
-    o = copy.copy(ct)
-    o.image = apply_itk_gauss_smoothing(ct.image, gaussian_sigma)
+def resample_dose_like(dose: MetaImageDose, like: MetaImageBase, gaussian_sigma=None):
+    if images_have_same_domain(dose.image, like.image):
+        return dose
+    o = copy.copy(dose)
+    o.image = apply_itk_gauss_smoothing(dose.image, gaussian_sigma)
     o.image = resample_itk_image_like(o.image, like.image, o.unit_default_value, linear=True)
     return o
 
@@ -905,6 +917,8 @@ def resample_spect_like(spect: MetaImageSPECT, like: MetaImageBase, gaussian_sig
 def resample_spect_spacing(spect: MetaImageSPECT, spacing, gaussian_sigma=None):
     if image_has_this_spacing(spect.image, spacing):
         return
+    if not spect.image_is_loaded():
+        spect.read()
     o = copy.copy(spect)
     o.image = apply_itk_gauss_smoothing(spect.image, gaussian_sigma)
     # convert to bqml and back to initial unit
@@ -944,7 +958,7 @@ def OLD_resample_roi_like_spect(spect, roi, convert_to_np=True, verbose=True):
     return roi
 
 
-def get_stats_in_rois(spect, ct, rois_list):
+def OLD_get_stats_in_rois(spect, ct, rois_list):
     # load spect
     spect = sitk.ReadImage(spect)
     volume_voxel_cc = np.prod(spect.GetSpacing()) / 1000
@@ -1047,6 +1061,13 @@ def image_roi_stats(roi, spect, ct=None, resample_like="spect"):
     if resample_like not in m:
         fatal(f"the option resample_like, must be {m}, while it is {resample_like}")
     resample_like = m[resample_like]
+
+    if not spect.image_is_loaded():
+        spect.read()
+        spect.convert_to_bq()
+    if not roi.image_is_loaded():
+        roi.read()
+
     spect = resample_spect_like(spect, resample_like)
     roi = resample_roi_like(roi, resample_like)
 
@@ -1070,12 +1091,14 @@ def image_roi_stats(roi, spect, ct=None, resample_like="spect"):
 
     # for ct (densities)
     if ct is not None:
+        if not ct.image_is_loaded():
+            ct.read()
         ct = resample_ct_like(ct, resample_like)
         densities = ct.compute_densities()
         roi.update_mass_and_volume(densities)
         res["mass_g"] = roi.mass_g
 
-    return res
+    return Box(res)
 
 
 def mhd_find_raw_file(mhd_file_path):
@@ -1152,7 +1175,7 @@ def copy_or_move_image(source_path, dest_path, mode):
     if mode == "move":
         shutil.move(source_path, dest_path)
         return
-    print(f"Copy {source_path}  --->   {dest_path}")
+    print(f"(dry run) Copy {source_path}  --->   {dest_path}")
 
 
 def get_time_from_injection_h(injection_datetime, acquisition_datetime):

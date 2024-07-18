@@ -3,6 +3,7 @@
 
 import rpt_dosi.utils as he
 import rpt_dosi.dosimetry as rd
+from rpt_dosi.utils import start_test, stop_test, end_tests
 
 if __name__ == "__main__":
     # folders
@@ -10,10 +11,9 @@ if __name__ == "__main__":
     print(f"Input data folder = {data_folder}")
     print(f"Ref data folder = {ref_folder}")
     print(f"Output data folder = {output_folder}")
-    print()
 
     # test
-    print("Dose rate: GATE simulation")
+    start_test("Dose rate: GATE simulation")
     spect_input = data_folder / "spect_8.321mm.nii.gz"
     ct_input = data_folder / "ct_8mm.nii.gz"
     oar_json = data_folder / "oar_teff.json"
@@ -27,14 +27,19 @@ if __name__ == "__main__":
     cmd = (f"rpt_dose -d {data_folder / 'test009' / 'output-dose.mhd'} -u Gy/s --ct {ct_input} -l {oar_json}"
            f" -o {output} -t 24 -m madsen2018_dose_rate --scaling {s}")
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
+    stop_test(cmd_ok, 'test cmd')
 
     # compare the ref dose
+    start_test("Dose rate: GATE simulation, compare")
     dose_ref = ref_folder / "dose_ref_madsen2018_dose_rate.json"
-    is_ok = rd.test_compare_json_doses(dose_ref, output, tol=0.05) and cmd_ok
+    b = rd.test_compare_json_doses(dose_ref, output, tol=0.05)
+    stop_test(b, 'compare dose rate json')
 
     # compare to the conventional madsen (without dose_rate)
+    start_test("Dose rate: GATE simulation, compare without dose rate")
     dose_ref = ref_folder / "dose_ref_madsen2018.json"
-    is_ok = rd.test_compare_json_doses(dose_ref, output, tol=0.2) and cmd_ok and is_ok
+    b = rd.test_compare_json_doses(dose_ref, output, tol=0.2)
+    stop_test(b, 'compare dose json')
 
     # end
-    he.test_ok(is_ok)
+    end_tests()

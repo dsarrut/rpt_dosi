@@ -68,7 +68,7 @@ if __name__ == "__main__":
     try:
         spect.unit = 'Bq/mL'
         b = False
-    except he.Rpt_Error:
+    except he.RptError:
         b = True
     stop_test(b, f'OK cannot set unit because already there')
     b = spect.image_type == 'SPECT' and spect.unit == 'Bq'
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     try:
         spect = rim.read_metaimage(spect_output)
         b = False
-    except he.Rpt_Error:
+    except he.RptError:
         b = True
     stop_test(b, f'OK cannot read with wrong filename tag')
 
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     try:
         spect = rim.read_metaimage(spect_output)
         b = False
-    except he.Rpt_Error:
+    except he.RptError:
         b = True
     stop_test(b, f'OK cannot read wrong file')
 
@@ -119,10 +119,16 @@ if __name__ == "__main__":
     stop_test(b, f'(read roi) Set metadata read ROI and liver ?')
 
     # set for a roi wo name
-    start_test('Test set roi info (trial wrong)')
-    cmd = f"rpt_image_set_metadata -i {spect_output} -u Bq -t ROI -f"
+    start_test('Test set roi without name')
+    cmd = f"rpt_image_set_metadata -i {spect_output} -t ROI -f"
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
-    stop_test(cmd_ok, f'cmd')
+    stop_test(not cmd_ok, f'cmd')
+
+    # set for a roi wo name
+    start_test('Test set roi wrong unit')
+    cmd = f"rpt_image_set_metadata -i {spect_output} --name liver -u Bq -t ROI -f"
+    cmd_ok = he.run_cmd(cmd, data_folder / "..")
+    stop_test(not cmd_ok, f'cmd')
 
     # set tags for spect
     rim.delete_image_metadata(spect_output)
@@ -154,7 +160,7 @@ if __name__ == "__main__":
     try:
         spect.time_from_injection_h = 12.4
         b = False
-    except he.Rpt_Error:
+    except he.RptError:
         b = True
     stop_test(b, f'Can set time from injection tag')
 
@@ -164,7 +170,7 @@ if __name__ == "__main__":
     try:
         spect.set_metadata("toto", 'titi')
         b = False
-    except he.Rpt_Error:
+    except he.RptError:
         b = True
     stop_test(b, f'OK cannot set wrong tag')
 
@@ -175,7 +181,7 @@ if __name__ == "__main__":
     try:
         ct.set_metadata("injection_datetime", 'titi')
         b = False
-    except he.Rpt_Error:
+    except he.RptError:
         b = True
     stop_test(b, f'OK cannot set tag date to wrong value')
 
@@ -187,7 +193,7 @@ if __name__ == "__main__":
         spect.set_metadata("body_weight_kg", 'tutu')
         b = False
         print(spect.info())
-    except he.Rpt_Error:
+    except he.RptError:
         b = True
     stop_test(b, f'OK cannot set tag float to wrong value')
 

@@ -28,14 +28,14 @@ def go(input_image, unit, image_type, tag, verbose, force):
 
     # read the image header and associated metadata
     if rim.metadata_exists(input_image):
-        im = rim.read_metaimage(input_image, read_header_only=True)
+        im = rim.read_metaimage(input_image, reading_mode='metadata_only')
     else:
         if image_type is None:
             fatal('No image type specified, and no metadata found.')
         arg = {'unit': unit}
         for t in tag:
             arg[t[0]] = t[1]
-        im = rim.new_metaimage(image_type, input_image, read_header_only=True, **arg)
+        im = rim.new_metaimage(image_type, input_image, reading_mode='metadata_only', **arg)
         im.write_metadata()
 
     # convert the unit
