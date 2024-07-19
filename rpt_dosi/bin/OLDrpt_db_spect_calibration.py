@@ -25,7 +25,7 @@ def go(db_file, output, calibration_factor):
     # FIXME : the way the db is managed will be changed with classes instead of dic
 
     # open db as a dict
-    db = rdb.db_load(db_file)
+    db = rdb.OLD_db_load(db_file)
 
     # loop on cycles
     for cycle_id in db.cycles:
@@ -50,7 +50,7 @@ def go(db_file, output, calibration_factor):
             print(f"Calibrated spect image: {acq.calibrated_spect_image}")
 
     # save
-    rdb.db_save(db, output, db_file)
+    rdb.OLD_db_save(db, output, db_file)
 
 
 # --------------------------------------------------------------------------

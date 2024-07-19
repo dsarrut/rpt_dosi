@@ -1,6 +1,6 @@
 import json
 from box import Box
-from .helpers import check_required_keys
+from .utils import check_required_keys
 from pathlib import Path
 import os
 import opengate as gate
@@ -11,7 +11,7 @@ import pkg_resources
 import SimpleITK as sitk
 import numpy as np
 import rpt_dosi.images as rim
-import rpt_dosi.helpers as he
+import rpt_dosi.utils as he
 
 
 def read_dose_rate_options(json_file):
@@ -135,6 +135,7 @@ def simu_add_activity_source(
         source.position.translation = get_translation_between_images_center(
             ct.image, activity_filename
         )
+    print(f'translation source', source.position.translation)
     return source
 
 
@@ -148,6 +149,7 @@ def simu_add_dose_actor(sim, ct, source):
     dose.spacing = source_info.spacing
     # translate the dose the same way as the source
     dose.translation = source.position.translation
+    print(f'translation dose', dose.translation)
     # set the origin of the dose like the source
     if not sim.user_info.visu:
         dose.img_coord_system = True
@@ -185,7 +187,7 @@ def scale_to_absorbed_dose_rate(
     return o
 
 
-class DoseRateSimulation():
+class DoseRateSimulation:
 
     def __init__(self, ct_filename, spect_filename):
         self.radionuclide = "Lu177"
@@ -208,7 +210,7 @@ class DoseRateSimulation():
         # resample data if needed
         if self.resample_like is not None:
             ct = rim.read_ct(self.ct_filename)
-            activity = rim.read_spect(self.activity_filename)
+            activity = rim.read_spect(self.activity_filename, unit='Bq')
             activity.require_unit('Bq')
             try:
                 sp = float(self.resample_like)
@@ -260,8 +262,8 @@ class DoseRateSimulation():
 
         return source
 
-    def compute_scaling(self, sim):
-        spect = rim.read_spect(self.resampled_activity_filename)
+    def compute_scaling(self, sim, unit=None):
+        spect = rim.read_spect(self.resampled_activity_filename, unit=unit)
         spect.require_unit('Bq')
         total_activity_bq = spect.compute_total_activity()
         scaling = total_activity_bq / float(self.activity_bq)

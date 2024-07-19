@@ -1,6 +1,6 @@
 import json
 from .images import (
-    ImageCT, ImageSPECT, ImageROI,
+    MetaImageCT, MetaImageSPECT, MetaImageROI,
     resample_ct_like,
     resample_spect_like,
     resample_roi_like,
@@ -10,7 +10,7 @@ from .opendose import (
     get_svalue_and_mass_scaling,
     guess_phantom_and_isotope,
 )
-from .helpers import print_tests, fatal
+from .utils import print_tests, fatal
 import numpy as np
 from datetime import datetime
 from box import Box
@@ -18,22 +18,23 @@ import SimpleITK as sitk
 import copy
 
 
-def dose_hanscheid2017(spect_Bq, roi, acq_time_h, volume_voxel_mL, time_eff_h):
+def dose_hanscheid2017(spect_bq_a, roi_a, time_from_injection_h, volume_voxel_m_l, effective_time_h):
     """
     Input img and ROI must be numpy arrays
+    Input SPECT img must be in Bq
     """
 
     # compute mean activity concentration in the ROI
-    v = spect_Bq[roi == 1] / volume_voxel_mL
-    Ct = np.mean(v) / 1e6
+    v = spect_bq_a[roi_a == 1] / volume_voxel_m_l
+    concentration = np.mean(v) / 1e6
 
     # compute dose
-    dose = 0.125 * Ct * np.power(2, acq_time_h / time_eff_h) * time_eff_h
+    dose = 0.125 * concentration * np.power(2, time_from_injection_h / effective_time_h) * effective_time_h
 
     return dose
 
 
-def dose_hanscheid2018(spect_Bq, roi, acq_time_h, svalue, mass_scaling):
+def dose_hanscheid2018(spect_bq_a, roi_a, time_from_injection_h, s_value, mass_scaling):
     """
     Input image and ROI must be numpy arrays
     - spect must be in Bq (not concentration)
@@ -41,11 +42,11 @@ def dose_hanscheid2018(spect_Bq, roi, acq_time_h, svalue, mass_scaling):
     - output is in Gray
     """
     # compute mean activity in the ROI, in MBq
-    v = spect_Bq[roi == 1]
+    v = spect_bq_a[roi_a == 1]
     At = np.sum(v) / 1e6
 
     # S is in (mGy/MBq/s), so we get dose in mGy
-    dose = At * (2 * acq_time_h * 3600.0) / np.log(2) * svalue / mass_scaling / 1000.0
+    dose = At * (2 * time_from_injection_h * 3600.0) / np.log(2) * s_value / mass_scaling / 1000.0
 
     return dose
 
@@ -67,10 +68,9 @@ def dose_madsen2018_dose_rate(dose_rate_a, roi_a, time_from_injection_h, effecti
 
 def dose_hanscheid2018_dose_rate(dose_rate_a, roi_a, time_from_injection_h):
     # compute mean dose rate in the ROI in Gy/s
-    # convert to hours
     v = dose_rate_a[roi_a == 1]
+    # convert to hours
     dr = np.mean(v) * 3600
-    # print(f'dr = {dr:.3f} Gy/h')
 
     # dose rate in Gy/h
     dose = dr * (2 * time_from_injection_h) / np.log(2)
@@ -253,7 +253,7 @@ class DoseComputation:
     # name of the method
     name = None
 
-    def __init__(self, ct: ImageCT, spect: ImageSPECT):
+    def __init__(self, ct: MetaImageCT, spect: MetaImageSPECT):
         self.ct = ct
         self.spect = spect
         self.resample_like = "ct"
@@ -268,7 +268,7 @@ class DoseComputation:
         if self.spect.time_from_injection_h is None:
             fatal(f"SPECT image must have time_from_injection_h while it is None. {self.spect}")
 
-    def run(self, rois: list[ImageROI]):
+    def run(self, rois: list[MetaImageROI]):
         fatal(f'RoiDoseComputation: run must be overwritten')
 
     def init_resampling(self):
@@ -334,7 +334,7 @@ class DoseMadsen2018(DoseComputation, DoseComputationWithPhantom):
         DoseComputation.__init__(self, ct, spect)
         DoseComputationWithPhantom.__init__(self, self.name)
 
-    def run(self, rois: list[ImageROI]):
+    def run(self, rois: list[MetaImageROI]):
         self.check_options()
         self.spect.convert_to_bq()
         ct, spect, like = self.init_resampling()
@@ -349,7 +349,7 @@ class DoseMadsen2018(DoseComputation, DoseComputationWithPhantom):
         # loop on roi
         for roi in rois:
             if roi.effective_time_h is None:
-                fatal(f'Effective time must be provided for ROI {roi}.')
+                fatal(f'Effective time must be provided for: {roi}')
             roi = resample_roi_like(roi, like)
             roi_arr = sitk.GetArrayViewFromImage(roi.image)
             svalue, mass_scaling, roi.mass_g, roi.volume_cc = get_svalue_and_mass_scaling(
@@ -380,7 +380,7 @@ class DoseHanscheid2017(DoseComputation):
     def __init__(self, ct, spect):
         super().__init__(ct, spect)
 
-    def run(self, rois: list[ImageROI]):
+    def run(self, rois: list[MetaImageROI]):
         self.check_options()
         self.spect.convert_to_bq()
         ct, spect, like = self.init_resampling()
@@ -414,7 +414,7 @@ class DoseHanscheid2018(DoseComputation, DoseComputationWithPhantom):
         DoseComputation.__init__(self, ct, spect)
         DoseComputationWithPhantom.__init__(self, self.name)
 
-    def run(self, rois: list[ImageROI]):
+    def run(self, rois: list[MetaImageROI]):
         self.check_options()
         self.spect.convert_to_bq()
         ct, spect, like = self.init_resampling()
@@ -438,7 +438,7 @@ class DoseHanscheid2018(DoseComputation, DoseComputationWithPhantom):
                 self.icrp_radionuclide,
                 spect.voxel_volume_cc,
                 sitk.GetArrayViewFromImage(density_ct.image),
-                verbose=False,
+                verbose=True,#False,
             )
             dose = dose_hanscheid2018(spect_arr,
                                       roi_arr,
@@ -459,7 +459,7 @@ class DoseMadsen2018DoseRate(DoseComputationWithDoseRate):
     def __init__(self, ct, dose_rate):
         super().__init__(ct, dose_rate)
 
-    def run(self, rois: list[ImageROI]):
+    def run(self, rois: list[MetaImageROI]):
         self.check_options()
         ct, dose_rate, like = self.init_resampling()
         if dose_rate.unit != "Gy/s":
@@ -493,7 +493,7 @@ class DoseHanscheid2018DoseRate(DoseComputationWithDoseRate):
     def __init__(self, ct, dose_rate):
         super().__init__(ct, dose_rate)
 
-    def run(self, rois: list[ImageROI]):
+    def run(self, rois: list[MetaImageROI]):
         self.check_options()
         ct, dose_rate, like = self.init_resampling()
         if dose_rate.unit != "Gy/s":
@@ -524,7 +524,7 @@ class DoseHanscheid2017DoseRate(DoseComputationWithDoseRate):
     def __init__(self, ct, dose_rate):
         super().__init__(ct, dose_rate)
 
-    def run(self, rois: list[ImageROI]):
+    def run(self, rois: list[MetaImageROI]):
         self.check_options()
         ct, dose_rate, like = self.init_resampling()
         if dose_rate.unit != "Gy/s":

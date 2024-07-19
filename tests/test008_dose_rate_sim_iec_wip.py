@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import rpt_dosi.helpers as he
+import rpt_dosi.utils as he
 from opengate.contrib.dose.doserate import create_simulation
 from opengate.contrib.phantoms.nemaiec import create_material
 from box import Box

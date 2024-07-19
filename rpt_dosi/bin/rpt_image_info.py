@@ -8,13 +8,12 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.option("--input_image", "-i", required=True, type=click.Path(exists=True))
-def go(input_image):
-    # read image
-    im = rim.read_image(input_image)
-    im.read_metadata()
-    im.read_header()
-    print(im.info())
+@click.argument('input_images', type=click.Path(exists=True), nargs=-1)
+def go(input_images):
+    for input_image in input_images:
+        # read image
+        im = rim.read_metaimage(input_image, reading_mode="header_only")
+        print(im.info())
 
 
 # --------------------------------------------------------------------------

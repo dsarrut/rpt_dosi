@@ -1,7 +1,7 @@
 import SimpleITK as sitk
 import numpy as np
 import rpt_dosi.images as rim
-import rpt_dosi.helpers as rhe
+import rpt_dosi.utils as rhe
 from pathlib import Path
 
 
@@ -113,6 +113,8 @@ class TMTV:
         # cut the head
         self.verbose and print(f'Cut the head with {self.cut_the_head_margin_mm} mm margin')
         if self.cut_the_head:
+            if self.cut_the_head_roi_filename is None:
+               rhe.fatal(f'You need to provide the skull filename')
             tmtv_mask_cut_the_head(itk_image,
                                    np_mask,
                                    self.cut_the_head_roi_filename,
@@ -258,7 +260,7 @@ def find_foci(tmtv, tmtv_mask, min_size_cm3=1, percentage_threshold=0.001):
     print(f'Number of labels = {stats.GetNumberOfLabels()}')
 
     # Keep only labels with more than a given size
-    volume = tmtv_mask.voxel_volume_ml
+    volume = tmtv_mask.voxel_volume_cc
     max_size = int(min_size_cm3 / volume)
     print(f'{min_size_cm3=} -> {max_size=} pixels')
     foci = sitk.RelabelComponent(foci, minimumObjectSize=max_size)

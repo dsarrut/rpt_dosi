@@ -3,7 +3,7 @@
 
 import click
 import rpt_dosi.dicom_utils as dicom
-import rpt_dosi.helpers as he
+import rpt_dosi.utils as he
 import json
 import os
 

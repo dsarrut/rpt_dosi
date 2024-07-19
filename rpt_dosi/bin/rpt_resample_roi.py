@@ -23,7 +23,7 @@ def go(input_image, spacing, output, like):
 
     # resample
     if like is not None:
-        im = rpt.ImageBase()
+        im = rpt.MetaImageBase()
         im.read(like)
         roi = rpt.resample_roi_like(roi, im)
     else:

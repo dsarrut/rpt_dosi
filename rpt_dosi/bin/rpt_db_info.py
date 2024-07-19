@@ -2,39 +2,62 @@
 # -*- coding: utf-8 -*-
 
 import click
-import rpt_dosi.db as rptdb
-from datetime import datetime
+import rpt_dosi.db as rdb
+import rpt_dosi.utils as rhe
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
-@click.option("--db_file", "--db", required=True, help="Input db.json")
-def go(db_file):
-    # open db as a dict
-    db = rptdb.db_load(db_file)
+@click.argument('db_files', type=click.Path(exists=True), required=True, nargs=-1)
+@click.option('--check', "-c", is_flag=True, help='Check folders, files etc')
+@click.option('--sync', "-s", default=None, help='sync policy : None, auto image_to_db db_to_image')
+@click.option('--verbose', "-v", is_flag=True, help='Print detailed info')
+@click.option('--large_verbose', "-vv", '--vv', is_flag=True, help='Print more detailed info')
+@click.option('--extra_large_verbose', "-vvv", '--vvv', is_flag=True, help='Print even more detailed info')
+def go(db_files, verbose, large_verbose, sync, extra_large_verbose, check):
+    for db_file in db_files:
+        # open db
+        db = rdb.PatientTreatmentDatabase(db_file)
 
-    # loop on cycles
-    if len(db.cycles) > 1:
-        print(f"There are {len(db.cycles)} cycles")
-    else:
-        print(f"There is {len(db.cycles)} cycle")
-    for cycle_id, cycle in db.cycles.items():
-        if "injection" in cycle:
-            idate = datetime.strptime(cycle.injection.datetime, "%Y-%m-%d %H:%M:%S")
-        else:
-            idate = "unknown"
-        print(f'Cycle "{cycle_id}" injection time: {idate}')
-        for acq_id in cycle.acquisitions:
-            acq = cycle.acquisitions[acq_id]
-            try:
-                adate = datetime.strptime(acq.datetime, "%Y-%m-%d %H:%M:%S")
-                hours_diff = (adate - idate).total_seconds() / 3600
-                print(f"\tAcquisition {acq_id} : {hours_diff:.3f} hours")
-            except:
-                print(f"\tAcquisition {acq_id} : unknown datetime")
+        # print
+        print(db.info())
+
+        # detailed info
+        if verbose:
+            for cycle in db.cycles.values():
+                print(rhe.indent(str(cycle)))
+                for tp in cycle.timepoints.values():
+                    print(rhe.indent(str(tp), '\t' * 2))
+
+        # more detailed info
+        if large_verbose:
+            for cycle in db.cycles.values():
+                print(rhe.indent(cycle.info()))
+                for tp in cycle.timepoints.values():
+                    print(rhe.indent(tp.info(), '\t' * 2))
+
+        # more detailed info
+        if extra_large_verbose:
+            for cycle in db.cycles.values():
+                print(rhe.indent(cycle.info()))
+                for tp in cycle.timepoints.values():
+                    print(rhe.indent(tp.info(), '\t' * 2))
+                    for image in tp.images.values():
+                        print(rhe.indent(image.info(), '\t' * 3))
+                        print()
+                    for roi in tp.rois.values():
+                        print(rhe.indent(roi.info(), '\t' * 3))
+                        print()
+
+        if check:
+            b, m = db.check_files_exist()
+            print(f'Checking files : {b} {m}')
+
+        if sync:
+            print(f'syncing (policy={sync}) ... ')
+            db.sync_metadata_images(sync_policy=sync)
 
 
-# --------------------------------------------------------------------------
 if __name__ == "__main__":
     go()

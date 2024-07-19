@@ -30,7 +30,7 @@ def go(input_image, unit, spacing, output, sigma, like):
 
     # resample
     if like is not None:
-        im = rpt.ImageBase()
+        im = rpt.MetaImageBase()
         im.read(like)
         spect = rpt.resample_spect_like(spect, like, sigma)
     else:

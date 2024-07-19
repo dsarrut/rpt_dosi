@@ -3,6 +3,7 @@
 
 import click
 import rpt_dosi.images as rim
+from rpt_dosi.utils import fatal
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -23,36 +24,35 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 def go(input_image, unit, image_type, tag, verbose, force):
     # delete metadata before ?
     if force:
-        rim.delete_metadata(input_image)
+        rim.delete_image_metadata(input_image)
 
-    # read image
-    im = rim.read_image_header_only(input_image)
-    if verbose:
-        print('Input metadata')
-        print(im.info())
-
-    # set image type
-    if image_type is not None:
-        if image_type not in rim.image_builders.keys():
-            rim.fatal(f"Unknown image type {image_type}. Available types are {rim.image_builders.keys()}")
-        im = rim.build_image_from_type(image_type)
-        im.filename = input_image
+    # read the image header and associated metadata
+    if rim.metadata_exists(input_image):
+        im = rim.read_metaimage(input_image, reading_mode='metadata_only')
+    else:
+        if image_type is None:
+            fatal('No image type specified, and no metadata found.')
+        arg = {'unit': unit}
+        for t in tag:
+            arg[t[0]] = t[1]
+        im = rim.new_metaimage(image_type, input_image, reading_mode='metadata_only', **arg)
         im.write_metadata()
-        im = rim.read_image_header_only(input_image)
 
     # convert the unit
     if unit is not None:
-        im.unit = unit
+        # the image must be loaded to convert unit
+        im.read()
+        im.convert_to_unit(unit)
+        # write the modified image
+        im.write()
 
     # set tags values
     for t in tag:
         key, value = t[0], t[1]
-        im.set_tag(key, value)
+        im.set_metadata(key, value)
 
     # verbose
     if verbose:
-        print()
-        print('Output metadata')
         print(im.info())
 
     # write metadata only
