@@ -1,6 +1,5 @@
 import json
 import os
-from types import NoneType
 from box import Box
 import inspect
 import colored
@@ -268,17 +267,17 @@ def are_dicts_float_equal(dict1, dict2, float_tolerance=1e-9):
                 if not are_dicts_float_equal(value1[i], value2[i], float_tolerance):
                     return False
 
-        elif isinstance(value1, NoneType) and not isinstance(value2, NoneType):
+        elif isinstance(value1, type(None)) and not isinstance(value2, type(None)):
             s = f"ERROR: '{key}' value1 is None but  value2 = {value2}"
             print(colored.stylize(s, color_error))
             return False
 
-        elif not isinstance(value1, NoneType) and isinstance(value2, NoneType):
+        elif not isinstance(value1, type(None)) and isinstance(value2, type(None)):
             s = f"ERROR: '{key}' value2 is None but value1 = {value1}"
             print(colored.stylize(s, color_error))
             return False
 
-        elif not isinstance(value1, NoneType) and not isinstance(value2, NoneType):
+        elif not isinstance(value1, type(None)) and not isinstance(value2, type(None)):
             s = (f"ERROR: the values are not int/float/dict/str, "
                  f"cannot be compared key '{key}' : {str(value1)} vs. {str(value2)}, "
                  f"type1 is {type(value1)} and type2 is {type(value2)}")
