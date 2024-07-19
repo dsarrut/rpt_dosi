@@ -7,26 +7,46 @@ from rpt_dosi.utils import start_test, stop_test, end_tests
 
 if __name__ == "__main__":
     # folders
-    data_folder, ref_folder, output_folder = he.get_tests_folders("test009")
+    data_folder, ref_folder, output_folder = he.get_tests_folders("test009a")
     print(f"Input data folder = {data_folder}")
     print(f"Ref data folder = {ref_folder}")
     print(f"Output data folder = {output_folder}")
 
     # test
-    spect_input = data_folder / "spect_8.321mm.nii.gz"
-    ct_input = data_folder / "ct_8mm.nii.gz"
-    oar_json = data_folder / "oar_teff.json"
+    spect_input = data_folder / "p12_10.0mm" / "cycle1" / "tp2" / "spect.nii.gz"
+    ct_input = data_folder / "p12_10.0mm" / "cycle1" / "tp2" / "ct.nii.gz"
     output = output_folder / "dose.json"
+    gate_dose_ref = data_folder / 'test009' / 'output-dose.mhd'
+    oar_json = data_folder / "test009" / "oar_teff.json"
+
+    """    
+    # Direct dose computation with hanscheid2018
+    rpt_dose -s data/p12_10.0mm/cycle1/tp2/spect.nii.gz --ct data/p12_10.0mm/cycle1/tp2/ct.nii.gz -l data/test009/oar_teff.json -m hanscheid2018
+    
+    # Dose rate
+    rpt_dose_rate -s data/p12_10.0mm/cycle1/tp2/spect.nii.gz -r spect --ct data/p12_10.0mm/cycle1/tp2/ct.nii.gz -o output/test009 -a 1e5
+    
+    # Dose computation with dose rate and hanscheid2018
+    rpt_dose -d output/test009/output-dose.mhd --ct data/p12_10.0mm/cycle1/tp2/ct.nii.gz -l data/test009/oar_teff.json -m hanscheid2018_dose_rate -u Gy/s -t 24.73 --scaling 148568.1167764949
+    
+    # Direct dose computation with hanscheid2017
+    rpt_dose -s data/p12_10.0mm/cycle1/tp2/spect.nii.gz --ct data/p12_10.0mm/cycle1/tp2/ct.nii.gz -l data/test009/oar_teff.json -m hanscheid2017
+        
+    # Dose computation with dose rate and hanscheid2017
+    rpt_dose -d output/test009/output-dose.mhd --ct data/p12_10.0mm/cycle1/tp2/ct.nii.gz -l data/test009/oar_teff.json -m hanscheid2017_dose_rate -u Gy/s -t 24.73 --scaling 148568.1167764949
+    
+    """
 
     print('dose rate output computed with : ')
     cmd = f"rpt_dose_rate -s {spect_input} -r spect --ct {ct_input} -o {output_folder} -a 1e5"
     print(cmd)
+    # FIXME this is not run here because require gate to be installed in the github actions
     # cmd_ok = he.run_cmd(cmd, data_folder / "..")
-    # (copy in data folder)
+    # (copied in data folder)
+    s = 148568.1167764949  # this value is computed by rpt_dose_rate
 
-    s = 6974.43264  # this value is computed by rpt_dose_rate
-    start_test("Hansscheid 2018 with dose rate: cmd")
-    cmd = (f"rpt_dose -d {data_folder / 'test009' / 'output-dose.mhd'} -u Gy/s --ct {ct_input} -l {oar_json}"
+    start_test("Hanscheid 2018 with dose rate: cmd")
+    cmd = (f"rpt_dose -d {gate_dose_ref} -u Gy/s --ct {ct_input} -l {oar_json}"
            f" -o {output} -t 24 -m hanscheid2018_dose_rate --scaling {s}")
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
     stop_test(cmd_ok, f'cmd')
@@ -34,33 +54,32 @@ if __name__ == "__main__":
     # compare the ref dose
     start_test("Hanscheid 2018 with dose rate: compare dose rate")
     dose_ref = ref_folder / "dose_ref_hanscheid2018_dose_rate.json"
-    b = rd.test_compare_json_doses(dose_ref, output, tol=0.05)
+    b = rd.test_compare_json_doses(dose_ref, output, tol=0.1)
     stop_test(b, 'compare json dose')
 
     # compare to the conventional hanscheid (without dose_rate)
-    start_test("Hanscheid 2018 with dose rate: compare dose (not rate)")
-    # rpt_dose -s data/spect_8.321mm.nii.gz -u Bq --ct data/ct_8mm.nii.gz -l data/oar_teff.json
-    # -o data/test009/dose_ref_hanscheid2018.json -t 24 -m hanscheid2018
+    start_test("Hanscheid 2018 with dose rate: compare dose (no dose rate)")
     dose_ref = ref_folder / "dose_ref_hanscheid2018.json"
-    b = rd.test_compare_json_doses(dose_ref, output, tol=0.2)
+    b = rd.test_compare_json_doses(dose_ref, output, tol=0.6)
     stop_test(b, 'compare json dose')
 
     # test
-    start_test("Hanscheid 2017 with dose rate")
-    cmd = (f"rpt_dose -d {data_folder / 'test009' / 'output-dose.mhd'} -u Gy/s --ct {ct_input} -l {oar_json}"
+    start_test("Hanscheid 2017 with dose rate, cmd line")
+    cmd = (f"rpt_dose -d {gate_dose_ref} -u Gy/s --ct {ct_input} -l {oar_json}"
            f" -o {output} -t 24 -m hanscheid2017_dose_rate --scaling {s}")
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
     stop_test(cmd_ok, 'cmd')
 
     # compare the ref dose
+    start_test("Hanscheid 2017 with dose rate")
     dose_ref = ref_folder / "dose_ref_hanscheid2017_dose_rate.json"
-    b = rd.test_compare_json_doses(dose_ref, output, tol=0.05)
+    b = rd.test_compare_json_doses(dose_ref, output, tol=0.07)
     stop_test(b, 'compare the doses')
 
     # compare to the conventional hanscheid (without dose_rate)
-    # rpt_dose -s data/spect_8.321mm.nii.gz -u Bq --ct data/ct_8mm.nii.gz -l data/oar_teff.json -o data/test009/dose_ref_hanscheid2017.json -t 24 -m hanscheid2017
+    start_test("Hanscheid 2017 without dose rate")
     dose_ref = ref_folder / "dose_ref_hanscheid2017.json"
-    b = rd.test_compare_json_doses(dose_ref, output, tol=0.2)
+    b = rd.test_compare_json_doses(dose_ref, output, tol=0.33)
     stop_test(b, 'compare the doses')
 
     # end

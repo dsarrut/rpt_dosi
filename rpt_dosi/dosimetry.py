@@ -18,22 +18,23 @@ import SimpleITK as sitk
 import copy
 
 
-def dose_hanscheid2017(spect_Bq, roi, acq_time_h, volume_voxel_mL, time_eff_h):
+def dose_hanscheid2017(spect_bq_a, roi_a, time_from_injection_h, volume_voxel_m_l, effective_time_h):
     """
     Input img and ROI must be numpy arrays
+    Input SPECT img must be in Bq
     """
 
     # compute mean activity concentration in the ROI
-    v = spect_Bq[roi == 1] / volume_voxel_mL
-    Ct = np.mean(v) / 1e6
+    v = spect_bq_a[roi_a == 1] / volume_voxel_m_l
+    concentration = np.mean(v) / 1e6
 
     # compute dose
-    dose = 0.125 * Ct * np.power(2, acq_time_h / time_eff_h) * time_eff_h
+    dose = 0.125 * concentration * np.power(2, time_from_injection_h / effective_time_h) * effective_time_h
 
     return dose
 
 
-def dose_hanscheid2018(spect_Bq, roi, acq_time_h, svalue, mass_scaling):
+def dose_hanscheid2018(spect_bq_a, roi_a, time_from_injection_h, s_value, mass_scaling):
     """
     Input image and ROI must be numpy arrays
     - spect must be in Bq (not concentration)
@@ -41,11 +42,11 @@ def dose_hanscheid2018(spect_Bq, roi, acq_time_h, svalue, mass_scaling):
     - output is in Gray
     """
     # compute mean activity in the ROI, in MBq
-    v = spect_Bq[roi == 1]
+    v = spect_bq_a[roi_a == 1]
     At = np.sum(v) / 1e6
 
     # S is in (mGy/MBq/s), so we get dose in mGy
-    dose = At * (2 * acq_time_h * 3600.0) / np.log(2) * svalue / mass_scaling / 1000.0
+    dose = At * (2 * time_from_injection_h * 3600.0) / np.log(2) * s_value / mass_scaling / 1000.0
 
     return dose
 
@@ -67,10 +68,9 @@ def dose_madsen2018_dose_rate(dose_rate_a, roi_a, time_from_injection_h, effecti
 
 def dose_hanscheid2018_dose_rate(dose_rate_a, roi_a, time_from_injection_h):
     # compute mean dose rate in the ROI in Gy/s
-    # convert to hours
     v = dose_rate_a[roi_a == 1]
+    # convert to hours
     dr = np.mean(v) * 3600
-    # print(f'dr = {dr:.3f} Gy/h')
 
     # dose rate in Gy/h
     dose = dr * (2 * time_from_injection_h) / np.log(2)

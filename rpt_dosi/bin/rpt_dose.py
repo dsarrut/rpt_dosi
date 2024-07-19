@@ -41,7 +41,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option(
     "--roi", multiple=True, type=(str, str, float), help="ROI: filename + name + Teff"
 )
-@click.option("--time_from_injection_h", "-t", type=float, required=True, help="Time in h")
+@click.option("--time_from_injection_h", "-t", type=float, required=False, help="Time in h")
 @click.option("--rad", default="lu177", help="Radionuclide")
 @click.option(
     "--method",
@@ -52,7 +52,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
                        "madsen2018",
                        "madsen2018_dose_rate",
                        "hanscheid2018_dose_rate",
-                       "hanscheid2017_dose_rate", ## FIXME auto from dosimetry
+                       "hanscheid2017_dose_rate",  ## FIXME auto from dosimetry
                        ]),
     help="Which method to use",
 )
@@ -82,7 +82,6 @@ def go(spect,
        output,
        method,
        scaling):
-
     # input is spect or dose_rate ?
     if spect is None and dose_rate is None:
         rim.fatal(f'Please provide either --spect or --dose_rate option')
@@ -113,10 +112,11 @@ def go(spect,
 
     # timing (read in sidecar metadata or option)
     if time_from_injection_h is None:
-        if im.time_from_injection_h is None:
+        if dose_rate is not None or im.time_from_injection_h is None:
             rim.fatal('Please provide --time_from_injection_h')
     else:
         im.time_from_injection_h = time_from_injection_h
+    print(f'Time from_injection_h: {im.time_from_injection_h}')
 
     # read ct image
     ct = rim.read_ct(ct)
