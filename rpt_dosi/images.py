@@ -350,6 +350,10 @@ class MetaImageBase(rmd.ClassWithMetaData):
         return v
 
     @property
+    def voxel_volume_ml(self):
+        return self.voxel_volume_cc()
+
+    @property
     def unit_default_value(self):
         return self._unit_default_value
 

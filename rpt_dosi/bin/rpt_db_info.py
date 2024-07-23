@@ -15,7 +15,8 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option('--verbose', "-v", is_flag=True, help='Print detailed info')
 @click.option('--large_verbose', "-vv", '--vv', is_flag=True, help='Print more detailed info')
 @click.option('--extra_large_verbose', "-vvv", '--vvv', is_flag=True, help='Print even more detailed info')
-def go(db_files, verbose, large_verbose, sync, extra_large_verbose, check):
+@click.option('--no_roi', is_flag=True, help='Do not print ROI info with vvv')
+def go(db_files, verbose, large_verbose, sync, extra_large_verbose, check, no_roi):
     for db_file in db_files:
         # open db
         db = rdb.PatientTreatmentDatabase(db_file)
@@ -46,9 +47,10 @@ def go(db_files, verbose, large_verbose, sync, extra_large_verbose, check):
                     for image in tp.images.values():
                         print(rhe.indent(image.info(), '\t' * 3))
                         print()
-                    for roi in tp.rois.values():
-                        print(rhe.indent(roi.info(), '\t' * 3))
-                        print()
+                    if not no_roi:
+                        for roi in tp.rois.values():
+                            print(rhe.indent(roi.info(), '\t' * 3))
+                            print()
 
         if check:
             b, m = db.check_files_exist()
