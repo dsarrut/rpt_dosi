@@ -438,7 +438,7 @@ class DoseHanscheid2018(DoseComputation, DoseComputationWithPhantom):
                 self.icrp_radionuclide,
                 spect.voxel_volume_cc,
                 sitk.GetArrayViewFromImage(density_ct.image),
-                verbose=True,#False,
+                verbose=False
             )
             dose = dose_hanscheid2018(spect_arr,
                                       roi_arr,
