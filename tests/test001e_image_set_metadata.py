@@ -99,7 +99,6 @@ if __name__ == "__main__":
         b = True
     stop_test(b, f'OK cannot read wrong file')
 
-    # (OLD TESTS)
     # set meta unit Bq/mL
     start_test('Test set unit with rpt_image_set_metadata')
     cmd = f"rpt_image_set_metadata -i {spect_output} -u Bq/mL -t SPECT -f"

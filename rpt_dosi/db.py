@@ -12,56 +12,11 @@ import os
 from pathlib import Path
 
 
-def OLD_db_update_acquisition(db, dicom_ds, cycle_id, tp_id):
-    # extract the date/time
-    dt = rdcm.dicom_read_acquisition_datetime(dicom_ds)
-
-    cycle = db["cycles"][cycle_id]
-
-    # create cycle if not exist
-    if tp_id not in cycle["acquisitions"]:
-        cycle["acquisitions"][tp_id] = {}
-
-    # update the db: acquisition
-    acqui = cycle["acquisitions"][tp_id]
-    acqui.update(dt)
-
-    return db
-
-
-
-def OLD_db_load(filename):
-    # open db as a dict
-    f = open(filename, "r")
-    db = Box(json.load(f))
-    return db
-
-
-def OLD_db_save(db, output, db_file=None):
-    if output is None:
-        output = db_file
-        b = db_file.replace(".json", ".json.backup")
-        shutil.copy(db_file, b)
-    with open(output, "w") as f:
-        json.dump(db, f, indent=2)
-
-
 def db_get_time_interval(cycle, acquisition):
     idate = datetime.strptime(cycle.injection.datetime, "%Y-%m-%d %H:%M:%S")
     adate = datetime.strptime(acquisition.datetime, "%Y-%m-%d %H:%M:%S")
     hours_diff = (adate - idate).total_seconds() / 3600
     return hours_diff
-
-
-def OLD_db_get_tac(cycle, roi_id):
-    times = []
-    activities = []
-    for acq in cycle.acquisitions.values():
-        if roi_id in acq.activity.keys():
-            activities.append(acq.activity[roi_id].sum)
-            d = db_get_time_interval(cycle, acq)
-            times.append(d)
-    return np.array(times), np.array(activities)
 
 
 class PatientTreatmentDatabase(rmd.ClassWithMetaData):
