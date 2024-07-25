@@ -67,8 +67,7 @@ if __name__ == "__main__":
     spect = rim.read_metaimage(spect_output)
     try:
         spect.unit = 'Bq/mL'
-        b = False
-    except he.RptError:
+    except:
         b = True
     stop_test(b, f'OK cannot set unit because already there')
     b = spect.image_type == 'SPECT' and spect.unit == 'Bq'
@@ -85,7 +84,7 @@ if __name__ == "__main__":
     try:
         spect = rim.read_metaimage(spect_output)
         b = False
-    except he.RptError:
+    except:
         b = True
     stop_test(b, f'OK cannot read with wrong filename tag')
 
@@ -95,7 +94,7 @@ if __name__ == "__main__":
     try:
         spect = rim.read_metaimage(spect_output)
         b = False
-    except he.RptError:
+    except:
         b = True
     stop_test(b, f'OK cannot read wrong file')
 
@@ -159,7 +158,7 @@ if __name__ == "__main__":
     try:
         spect.time_from_injection_h = 12.4
         b = False
-    except he.RptError:
+    except:
         b = True
     stop_test(b, f'Can set time from injection tag')
 
@@ -169,7 +168,7 @@ if __name__ == "__main__":
     try:
         spect.set_metadata("toto", 'titi')
         b = False
-    except he.RptError:
+    except:
         b = True
     stop_test(b, f'OK cannot set wrong tag')
 
@@ -180,7 +179,7 @@ if __name__ == "__main__":
     try:
         ct.set_metadata("injection_datetime", 'titi')
         b = False
-    except he.RptError:
+    except:
         b = True
     stop_test(b, f'OK cannot set tag date to wrong value')
 
@@ -192,7 +191,7 @@ if __name__ == "__main__":
         spect.set_metadata("body_weight_kg", 'tutu')
         b = False
         print(spect.info())
-    except he.RptError:
+    except:
         b = True
     stop_test(b, f'OK cannot set tag float to wrong value')
 

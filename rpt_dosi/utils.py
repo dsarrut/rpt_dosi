@@ -33,12 +33,12 @@ def fatal(s, stop_and_exit=False):
     s = colored.stylize(s, color_error)
     print(s)
     if stop_and_exit:
-        exit()
+        exit(-1)
     # the following trick avoid to print the traceback when fail
     try:
         raise RptError(s)
     except RptError:
-        exit()
+        exit(-1)
 
 
 def warning(s):
