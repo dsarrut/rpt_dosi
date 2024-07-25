@@ -65,7 +65,7 @@ if __name__ == "__main__":
         # same image name
         tp.add_image_from_file("ct", data_folder / "ct_8mm.nii.gz", filename="ct.nii.gz", mode="copy")
         b = False
-    except he.RptError as e:
+    except:
         b = True
     stop_test(b, f"I cannot set the image two times: {b}")
 

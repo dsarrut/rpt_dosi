@@ -78,7 +78,7 @@ def go(input_filename,
 
     # convert to image type for mask
     sitk.WriteImage(mask, output_mask)
-    roi_img = rim.MetaImageROI(output_mask, 'tmtv_mask', create=True, name='tmtv')
+    roi_img = rim.MetaImageROI(output_mask, reading_mode='image', create=True, name='tmtv')
     roi_img.image = mask
     roi_img.write_metadata()
     verbose and print(f'Output tmtv {output}')
