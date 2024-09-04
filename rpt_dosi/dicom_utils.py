@@ -23,7 +23,7 @@ def dicom_read_acquisition_datetime(ds):
 
         # convert to datetime object
         dt = dicom_date_to_str(date, time)
-        return {"datetime": dt}
+        return dt
     except:
         fatal(f"Cannot read dicom tag Acquisition Date/Time")
 

@@ -656,10 +656,8 @@ class MetaImageROI(MetaImageBase):
     def info(self):
         w = self._info_width
         s = super().info() + '\n'
-        s += f'{"Name":<{w}}: {self.name}\n'
-        s += f'{"Teff":<{w}}: {self.effective_time_h} h\n'
-        s += f'{"Mass":<{w}}: {self.mass_g} g\n'
-        s += f'{"Volume":<{w}}: {self.volume_cc} cc'
+        s += f'{"mass_g":<{w}}: {self.mass_g} g\n'
+        s += f'{"volume_cc":<{w}}: {self.volume_cc} cc'
         return s
 
     def update_mass_and_volume(self, density_ct):
