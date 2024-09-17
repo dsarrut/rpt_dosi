@@ -112,7 +112,7 @@ def go(spect,
 
     # timing (read in sidecar metadata or option)
     if time_from_injection_h is None:
-        if dose_rate is not None or im.time_from_injection_h is None:
+        if im.time_from_injection_h is None:
             rim.fatal('Please provide --time_from_injection_h')
     else:
         im.time_from_injection_h = time_from_injection_h

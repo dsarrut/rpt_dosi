@@ -29,7 +29,8 @@ def dicom_read_acquisition_datetime(ds):
 
 
 def dicom_date_to_str(date, time):
-    return str(datetime.strptime(date + time.split(".")[0], "%Y%m%d%H%M%S"))
+    s = str(datetime.strptime(date + time.split(".")[0], "%Y%m%d%H%M%S"))
+    return s
 
 
 def dicom_read_injection(ds):

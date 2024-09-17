@@ -28,6 +28,12 @@ def go():
             continue
         if "wip" in f:
             continue
+        if 'test009c' in f:
+            try:
+                import opengate
+            except:
+                print('No opengate, ignoring test009c')
+                continue
         files.append(f)
 
     files = sorted(files)
