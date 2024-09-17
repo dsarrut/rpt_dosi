@@ -12,6 +12,12 @@ if __name__ == "__main__":
     print(f"Output data folder = {output_folder}")
     print()
 
+    try:
+        import opengate
+    except:
+        print(f'GATE is not available, test {__file__} is skipped')
+        exit(0)
+
     # data
     spect_input = data_folder / "p12_10.0mm" / "cycle1" / "tp2" / "spect.nii.gz"
     ct_input = data_folder / "p12_10.0mm" / "cycle1" / "tp2" / "ct.nii.gz"
