@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     # iec material
     create_material(sim)
-    iec = sim.volume_manager.get_volume('ct')
+    iec = sim.volume_manager.get_volume("ct")
     # FIXME to put as a function
     labels = json.loads(open(data_folder / "iec_5mm.json").read())
     iec.voxel_materials = []
@@ -74,21 +74,23 @@ if __name__ == "__main__":
     dose.uncertainty = True
     dose.dose = True
     if "six" in str(param.activity_image):
-        dose.output = param.output_folder / "iec_six_output.mhd"
+        dose.f_k = param.output_folder / "iec_six_output.mhd"
     else:
-        dose.output = param.output_folder / "iec_one_output.mhd"
+        dose.f_k = param.output_folder / "iec_one_output.mhd"
 
     # compute the scaling factor
     spect = sitk.GetArrayFromImage(sitk.ReadImage(param.activity_image))
     total_activity_bq = np.sum(spect)
     scaling = total_activity_bq / float(param.activity_bq * param.number_of_threads)
-    print(f'Total activity in image is {total_activity_bq:.0f} Bq, scaling factor is {scaling}')
+    print(
+        f"Total activity in image is {total_activity_bq:.0f} Bq, scaling factor is {scaling}"
+    )
 
     # run
     sim.run()
 
     # print results at the end
-    stats = sim.output.get_actor("Stats")
+    stats = sim.f_k.get_actor("Stats")
     print(stats)
     stats.write(param.output_folder / "stats.txt")
     print(f"Output in {param.output_folder}")
