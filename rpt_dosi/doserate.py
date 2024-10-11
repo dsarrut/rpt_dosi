@@ -143,8 +143,8 @@ def simu_add_dose_actor(sim, ct, source):
     # add dose actor (get the same size as the source)
     source_info = read_image_info(source.image)
     dose = sim.add_actor("DoseActor", "dose")
-    dose.output = "edep.mhd"
-    dose.mother = ct.name
+    dose.output_filename = "edep.mhd"
+    dose.attached_to = ct.name
     dose.size = source_info.size
     dose.spacing = source_info.spacing
     # translate the dose the same way as the source
@@ -152,12 +152,11 @@ def simu_add_dose_actor(sim, ct, source):
     print(f'translation dose', dose.translation)
     # set the origin of the dose like the source
     if not sim.user_info.visu:
-        dose.img_coord_system = True
+        dose.output_coordinate_system='attached_to_image'
     dose.hit_type = "random"
     # dose.hit_type = "pre"
-    dose.uncertainty = True
-    dose.square = True
-    dose.dose = True
+    dose.dose_uncertainty.active = True
+    dose.dose.active = True
     return dose
 
 
@@ -213,11 +212,11 @@ class DoseRateSimulation:
             activity = rim.read_spect(self.activity_filename, unit='Bq')
             activity.require_unit('Bq')
             try:
-                sp = float(self.resample_like)
+                sp = [float(self.resample_like), float(self.resample_like), float(self.resample_like)]
                 print(f'Resampling from ct to {sp} mm')
                 ct = rim.resample_ct_spacing(ct, sp, self.gaussian_sigma)
-                print(f'Resampling from activity to {sp} mm')
-                activity = rim.resample_spect_spacing(activity, sp, self.gaussian_sigma)
+                print(f'Resampling from activity to {sp} mm (and adjust to ct size)')
+                activity = rim.resample_spect_like(activity, ct, self.gaussian_sigma)
             except ValueError:
                 if self.resample_like == "ct":
                     print(f'Resampling from spect like ct')
@@ -236,8 +235,7 @@ class DoseRateSimulation:
 
     def init_gate_simulation(self, sim):
         self.output_folder = Path(self.output_folder)
-        if not os.path.exists(self.output_folder):
-            os.makedirs(self.output_folder, exist_ok=True)
+        sim.output_dir = Path(self.output_folder)
 
         # resample ?
         self.resample()
@@ -257,8 +255,8 @@ class DoseRateSimulation:
         source.activity = self.activity_bq * g4_units.Bq
 
         # set outputs
-        stats.output = self.output_folder / "stats.txt"
-        dose.output = self.output_folder / "output.mhd"
+        stats.output_filename = "stats.txt"
+        dose.output_filename = "output.nii.gz"
 
         return source
 

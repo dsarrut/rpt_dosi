@@ -34,7 +34,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
               help="Resample like: spect, roi or ct",
               )
 @click.option("--unit", "-u",
-              default=None,
+              default="Bq/mL",
               help=f"Set the image unit {[k.authorized_units for k in rim.image_builders.values()]}"
               )
 @click.option("--output", "-o", default=None, help="Output json filename")

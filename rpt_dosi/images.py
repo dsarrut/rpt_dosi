@@ -656,10 +656,8 @@ class MetaImageROI(MetaImageBase):
     def info(self):
         w = self._info_width
         s = super().info() + '\n'
-        s += f'{"Name":<{w}}: {self.name}\n'
-        s += f'{"Teff":<{w}}: {self.effective_time_h} h\n'
-        s += f'{"Mass":<{w}}: {self.mass_g} g\n'
-        s += f'{"Volume":<{w}}: {self.volume_cc} cc'
+        s += f'{"mass_g":<{w}}: {self.mass_g} g\n'
+        s += f'{"volume_cc":<{w}}: {self.volume_cc} cc'
         return s
 
     def update_mass_and_volume(self, density_ct):
@@ -677,7 +675,7 @@ class MetaImageROI(MetaImageBase):
         super().write_metadata()
 
 
-class MetaImageDose(MetaImageBase):
+class MetaImageDose(MetaImageSPECT):
     authorized_units = ['Gy', 'Gy/s']
     unit_default_values = {'Gy': 0, 'Gy/s': 0}
     image_type = "Dose"
@@ -922,7 +920,7 @@ def resample_spect_spacing(spect: MetaImageSPECT, spacing, gaussian_sigma=None):
 
 
 def resample_roi_like(roi: MetaImageROI, like: MetaImageBase):
-    if images_have_same_domain(roi.image, like.image):
+    if images_have_same_domain(roi.image, like.image) and images_have_same_spacing(roi.image, like.image):
         return roi
     o = copy.copy(roi)
     o.image = resample_itk_image_like(roi.image, like.image, o.unit_default_value, linear=False)

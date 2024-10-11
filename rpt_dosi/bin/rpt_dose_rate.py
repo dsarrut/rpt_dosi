@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import os
 
 import click
 import rpt_dosi.doserate as dora
 import opengate as gate
+from rpt_dosi.images import read_dose, read_metaimage
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -34,6 +36,10 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("--activity_bq", "-a", default=1e4, help="Activity in Bq")
 @click.option("--number_of_threads", "-t", default=1, help="Threads")
 def go(spect, ct, rad, resample_like, output_folder, sigma, activity_bq, number_of_threads):
+
+    # output folder
+    os.makedirs(output_folder, exist_ok=True)
+
     # init the simulation object
     s = dora.DoseRateSimulation(ct, spect)
     s.resample_like = resample_like
@@ -57,9 +63,19 @@ def go(spect, ct, rad, resample_like, output_folder, sigma, activity_bq, number_
     sim.run()
 
     # print results at the end
-    stats = sim.output.get_actor("stats")
+    stats = sim.get_actor("stats")
     print(stats)
     print(f'Total activity scaling factor is {scaling}')
+
+    # add metadata to the output
+    da = sim.get_actor("dose")
+    dr = read_dose(da.dose.get_output_path(), unit="Gy/s")
+    spect_im = read_metaimage(spect)
+    dr.injection_datetime = spect_im.injection_datetime
+    dr.acquisition_datetime = spect_im.acquisition_datetime
+    dr.image = dr.image * scaling
+    dr.write()
+    print(dr)
 
 
 # --------------------------------------------------------------------------

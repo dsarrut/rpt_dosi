@@ -23,13 +23,14 @@ def dicom_read_acquisition_datetime(ds):
 
         # convert to datetime object
         dt = dicom_date_to_str(date, time)
-        return {"datetime": dt}
+        return dt
     except:
         fatal(f"Cannot read dicom tag Acquisition Date/Time")
 
 
 def dicom_date_to_str(date, time):
-    return str(datetime.strptime(date + time.split(".")[0], "%Y%m%d%H%M%S"))
+    s = str(datetime.strptime(date + time.split(".")[0], "%Y%m%d%H%M%S"))
+    return s
 
 
 def dicom_read_injection(ds):

@@ -120,13 +120,13 @@ if __name__ == "__main__":
     start_test('Test set roi without name')
     cmd = f"rpt_image_set_metadata -i {spect_output} -t ROI -f"
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
-    stop_test(not cmd_ok, f'cmd')
+    stop_test(not cmd_ok, f'test ? ')
 
     # set for a roi wo name
     start_test('Test set roi wrong unit')
     cmd = f"rpt_image_set_metadata -i {spect_output} --name liver -u Bq -t ROI -f"
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
-    stop_test(not cmd_ok, f'cmd')
+    stop_test(not cmd_ok, f'test ?')
 
     # set tags for spect
     rim.delete_image_metadata(spect_output)

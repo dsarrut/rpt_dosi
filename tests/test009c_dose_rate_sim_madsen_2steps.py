@@ -6,26 +6,32 @@ import rpt_dosi.dosimetry as rd
 
 if __name__ == "__main__":
     # folders
-    data_folder, ref_folder, output_folder = he.get_tests_folders("test009")
+    data_folder, ref_folder, output_folder = he.get_tests_folders("test009c")
     print(f"Input data folder = {data_folder}")
     print(f"Ref data folder = {ref_folder}")
     print(f"Output data folder = {output_folder}")
     print()
 
+    try:
+        import opengate
+    except:
+        print(f'GATE is not available, test {__file__} is skipped')
+        exit(0)
+
+    # data
+    spect_input = data_folder / "p12_10.0mm" / "cycle1" / "tp2" / "spect.nii.gz"
+    ct_input = data_folder / "p12_10.0mm" / "cycle1" / "tp2" / "ct.nii.gz"
+    output = output_folder / "dose.json"
+    oar_json = data_folder / "test009" / "oar_teff.json"
+
     # test
     print("Dose rate: GATE simulation")
-    spect_input = data_folder / "spect_8.321mm.nii.gz"
-    ct_input = data_folder / "ct_8mm.nii.gz"
-    oar_json = data_folder / "oar_teff.json"
-    output = output_folder / "dose.json"
-
-    cmd = f"rpt_dose_rate -s {spect_input} -r spect --ct {ct_input} -o {output_folder} -a 1e5"
+    cmd = f"rpt_dose_rate -s {spect_input} -r spect --ct {ct_input} -o {output_folder} -a 2e5"
     cmd_ok = he.run_cmd(cmd, data_folder / "..")
 
-    s = 6974.43264  # this value is computed by rpt_dose_rate
     print("Madsen with dose rate")
-    cmd = (f"rpt_dose -s {output_folder / 'output-dose.mhd'} -u Gy/s --ct {ct_input} -l {oar_json}"
-           f" -o {output} -t 24 -m madsen2018_dose_rate --scaling {s}")
+    cmd = (f"rpt_dose -d {output_folder / 'output_dose.nii.gz'} -u Gy/s --ct {ct_input} -l {oar_json}"
+           f" -o {output} -m madsen2018_dose_rate")
     cmd_ok = he.run_cmd(cmd, data_folder / "..") and cmd_ok
 
     # compare the ref dose
