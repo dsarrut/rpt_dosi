@@ -72,6 +72,9 @@ opendose_web_get_svalues = "rpt_dosi.bin.opendose_web_get_svalues:go"
 # new db scripts
 rpt_db_info = "rpt_dosi.bin.rpt_db_info:go"
 
+# helper
+rpt_get_list_of_bone_rois = "rpt_dosi.bin.rpt_get_list_of_bone_rois:go"
+
 # old db scripts
 rpt_db_rois_activity = "rpt_dosi.bin.rpt_db_rois_activity:go"
 rpt_db_add_rois = "rpt_dosi.bin.rpt_db_add_rois:go"
