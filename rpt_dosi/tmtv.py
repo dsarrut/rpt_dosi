@@ -6,10 +6,14 @@ from pathlib import Path
 
 
 def dilate_mask(itk_image, dilatation_mm):
+    if dilatation_mm == 0:
+        return itk_image
     # convert radius in vox
-    radius = [int(round(dilatation_mm / itk_image.GetSpacing()[0])),
-              int(round(dilatation_mm / itk_image.GetSpacing()[1])),
-              int(round(dilatation_mm / itk_image.GetSpacing()[2]))]
+    radius = [
+        int(round(dilatation_mm / itk_image.GetSpacing()[0])),
+        int(round(dilatation_mm / itk_image.GetSpacing()[1])),
+        int(round(dilatation_mm / itk_image.GetSpacing()[2])),
+    ]
     # Set the kernel element
     dilate_filter = sitk.BinaryDilateImageFilter()
     dilate_filter.SetKernelRadius(radius)
@@ -27,7 +31,7 @@ def tmtv_mask_cut_the_head(itk_image, mask, skull_filename, margin_mm):
     most_inferior_pixel = indices[np.argmin(indices[:, 0])]
     margin_pix = int(round(margin_mm / itk_image.GetSpacing()[0]))
     most_inferior_pixel[0] -= margin_pix
-    mask[most_inferior_pixel[0]:-1, :, :] = 0
+    mask[most_inferior_pixel[0] : -1, :, :] = 0
 
 
 def tmtv_apply_mask(itk_image, np_mask):
@@ -43,23 +47,131 @@ def tmtv_apply_mask(itk_image, np_mask):
     return img
 
 
-def tmtv_mask_remove_rois(itk_image, np_mask, roi_list, roi_folder=""):
-    # initialize the mask of removed rois
-    removed_roi_mask = np.zeros_like(sitk.GetArrayViewFromImage(itk_image))
+def tmtv_mask_remove_rois(itk_image, np_mask, roi_list, roi_folder="", verbose=False):
+    nb_pixels = itk_image.GetNumberOfPixels()
+    mask = np.zeros_like(sitk.GetArrayViewFromImage(itk_image))
     # loop on the roi
     for roi in roi_list:
         # read image
-        f = Path(roi_folder) / roi['filename']
+        print(roi_folder, roi["filename"])
+        f = Path(roi_folder) / roi["filename"]
         roi_img = sitk.ReadImage(f)
-        # check size and resample if needed
-        roi_img = rim.resample_itk_image_like(roi_img, itk_image, 0, linear=False)
-        # dilatation ?
-        roi_img = dilate_mask(roi_img, roi['dilatation'])
+        roi_nb_pixels = roi_img.GetNumberOfPixels()
+        if verbose:
+            print(f'Removing {f}, resample and dilate {roi["dilatation"]}')
+        # dilate or resample first (dilatation is slow, so we apply on the smallest image)
+        if roi_nb_pixels > nb_pixels:
+            # check size and resample if needed
+            roi_img = rim.resample_itk_image_like(roi_img, itk_image, 0, linear=False)
+            # dilatation ?
+            roi_img = dilate_mask(roi_img, roi["dilatation"])
+        else:
+            # dilatation ?
+            roi_img = dilate_mask(roi_img, roi["dilatation"])
+            # check size and resample if needed
+            roi_img = rim.resample_itk_image_like(roi_img, itk_image, 0, linear=False)
         # update the masks
         roi_np = sitk.GetArrayViewFromImage(roi_img)
         np_mask[roi_np == 1] = 0
-        removed_roi_mask[roi_np == 1] = 1
-    return removed_roi_mask
+        mask[roi_np == 1] = 1
+    return mask
+
+
+def tmtv_mask_keep_rois(itk_image, np_mask, roi_list, roi_folder="", verbose=False):
+    # loop on the roi
+    for roi in roi_list:
+        # read image
+        f = Path(roi_folder) / roi["filename"]
+        if verbose:
+            print(f"Keeping {f} (resample)")
+        roi_img = sitk.ReadImage(f)
+        # check size and resample if needed
+        roi_img = rim.resample_itk_image_like(roi_img, itk_image, 0, linear=False)
+        # update the masks
+        roi_np = sitk.GetArrayViewFromImage(roi_img)
+        np_mask[roi_np == 1] = 1
+
+
+def rois_to_remove_default():
+    return [
+        {"filename": "liver.nii.gz", "dilatation": 10},
+        {"filename": "kidney_left.nii.gz", "dilatation": 10},
+        {"filename": "kidney_right.nii.gz", "dilatation": 10},
+        {"filename": "spleen.nii.gz", "dilatation": 10},
+        {"filename": "gallbladder.nii.gz", "dilatation": 5},
+        {"filename": "stomach.nii.gz", "dilatation": 5},
+        {"filename": "pancreas.nii.gz", "dilatation": 5},
+        {"filename": "small_bowel.nii.gz", "dilatation": 5},
+        {"filename": "colon.nii.gz", "dilatation": 5},
+        {"filename": "duodenum.nii.gz", "dilatation": 5},
+        {"filename": "urinary_bladder.nii.gz", "dilatation": 5},
+    ]
+
+
+def rois_to_keep_default():
+    # rois = ["clavicula", "femur", "hip_", "humerus", "rib_", "vertebrae", "sacrum", "scapula"]
+    return [
+        {"filename": "clavicula_left_crop.nii.gz"},
+        {"filename": "clavicula_right_crop.nii.gz"},
+        {"filename": "femur_left_crop.nii.gz"},
+        {"filename": "femur_right_crop.nii.gz"},
+        {"filename": "hip_left_crop.nii.gz"},
+        {"filename": "hip_right_crop.nii.gz"},
+        {"filename": "humerus_left_crop.nii.gz"},
+        {"filename": "humerus_right_crop.nii.gz"},
+        {"filename": "rib_left_1_crop.nii.gz"},
+        {"filename": "rib_left_10_crop.nii.gz"},
+        {"filename": "rib_left_11_crop.nii.gz"},
+        {"filename": "rib_left_12_crop.nii.gz"},
+        {"filename": "rib_left_2_crop.nii.gz"},
+        {"filename": "rib_left_3_crop.nii.gz"},
+        {"filename": "rib_left_4_crop.nii.gz"},
+        {"filename": "rib_left_5_crop.nii.gz"},
+        {"filename": "rib_left_6_crop.nii.gz"},
+        {"filename": "rib_left_7_crop.nii.gz"},
+        {"filename": "rib_left_8_crop.nii.gz"},
+        {"filename": "rib_left_9_crop.nii.gz"},
+        {"filename": "rib_right_1_crop.nii.gz"},
+        {"filename": "rib_right_10_crop.nii.gz"},
+        {"filename": "rib_right_11_crop.nii.gz"},
+        {"filename": "rib_right_12_crop.nii.gz"},
+        {"filename": "rib_right_2_crop.nii.gz"},
+        {"filename": "rib_right_3_crop.nii.gz"},
+        {"filename": "rib_right_4_crop.nii.gz"},
+        {"filename": "rib_right_5_crop.nii.gz"},
+        {"filename": "rib_right_6_crop.nii.gz"},
+        {"filename": "rib_right_7_crop.nii.gz"},
+        {"filename": "rib_right_8_crop.nii.gz"},
+        {"filename": "rib_right_9_crop.nii.gz"},
+        {"filename": "sacrum_crop.nii.gz"},
+        {"filename": "scapula_left_crop.nii.gz"},
+        {"filename": "scapula_right_crop.nii.gz"},
+        {"filename": "vertebrae_C1_crop.nii.gz"},
+        {"filename": "vertebrae_C2_crop.nii.gz"},
+        {"filename": "vertebrae_C3_crop.nii.gz"},
+        {"filename": "vertebrae_C4_crop.nii.gz"},
+        {"filename": "vertebrae_C5_crop.nii.gz"},
+        {"filename": "vertebrae_C6_crop.nii.gz"},
+        {"filename": "vertebrae_C7_crop.nii.gz"},
+        {"filename": "vertebrae_L1_crop.nii.gz"},
+        {"filename": "vertebrae_L2_crop.nii.gz"},
+        {"filename": "vertebrae_L3_crop.nii.gz"},
+        {"filename": "vertebrae_L4_crop.nii.gz"},
+        {"filename": "vertebrae_L5_crop.nii.gz"},
+        {"filename": "vertebrae_S1_crop.nii.gz"},
+        {"filename": "vertebrae_T1_crop.nii.gz"},
+        {"filename": "vertebrae_T10_crop.nii.gz"},
+        {"filename": "vertebrae_T11_crop.nii.gz"},
+        {"filename": "vertebrae_T12_crop.nii.gz"},
+        {"filename": "vertebrae_T2_crop.nii.gz"},
+        {"filename": "vertebrae_T3_crop.nii.gz"},
+        {"filename": "vertebrae_T4_crop.nii.gz"},
+        {"filename": "vertebrae_T5_crop.nii.gz"},
+        {"filename": "vertebrae_T6_crop.nii.gz"},
+        {"filename": "vertebrae_T7_crop.nii.gz"},
+        {"filename": "vertebrae_T8_crop.nii.gz"},
+        {"filename": "vertebrae_T9_crop.nii.gz"},
+    ]
 
 
 class TMTV:
@@ -81,66 +193,76 @@ class TMTV:
         self.cut_the_head_roi_filename = "rois/skull.nii.gz"
 
         # init default list of roi to be removed
-        self.rois_to_remove = []
+        self.rois_to_remove = rois_to_remove_default()
         self.rois_to_remove_folder = "rois"
-        self.rois_to_remove_default()
+        self.removed_mask = None
+
+        # init default list of roi to keep
+        self.rois_to_keep = []
+        self.rois_to_keep_folder = "rois"
 
         # remove areas less than a given volume
         self.minimal_volume_cc = None
 
         # computed param
-        self.removed_rois_mask = None
-
-    def rois_to_remove_default(self):
-        self.rois_to_remove = [
-            {'filename': "liver.nii.gz", 'dilatation': 10},
-            {'filename': "kidney_left.nii.gz", 'dilatation': 10},
-            {'filename': "kidney_right.nii.gz", 'dilatation': 10},
-            {'filename': "spleen.nii.gz", 'dilatation': 10},
-            {'filename': "gallbladder.nii.gz", 'dilatation': 5},
-            {'filename': "stomach.nii.gz", 'dilatation': 5},
-            {'filename': "pancreas.nii.gz", 'dilatation': 5},
-            {'filename': "small_bowel.nii.gz", 'dilatation': 5},
-            {'filename': "colon.nii.gz", 'dilatation': 5},
-            {'filename': "duodenum.nii.gz", 'dilatation': 5},
-            {'filename': "urinary_bladder.nii.gz", 'dilatation': 5}
-        ]
+        self.tmtv_mask_np = None
 
     def compute_mask(self, itk_image):
         # initialize the mask
-        np_mask = np.ones_like(sitk.GetArrayViewFromImage(itk_image))
+        self.tmtv_mask_np = np.ones_like(sitk.GetArrayViewFromImage(itk_image))
 
         # cut the head
-        self.verbose and print(f'Cut the head with {self.cut_the_head_margin_mm} mm margin')
+        if self.verbose:
+            print(f"Cut the head with {self.cut_the_head_margin_mm} mm margin")
         if self.cut_the_head:
             if self.cut_the_head_roi_filename is None:
-               rhe.fatal(f'You need to provide the skull filename')
-            tmtv_mask_cut_the_head(itk_image,
-                                   np_mask,
-                                   self.cut_the_head_roi_filename,
-                                   self.cut_the_head_margin_mm)
+                rhe.fatal(f"You need to provide the skull filename")
+            tmtv_mask_cut_the_head(
+                itk_image,
+                self.tmtv_mask_np,
+                self.cut_the_head_roi_filename,
+                self.cut_the_head_margin_mm,
+            )
 
-        # remove the rois
-        self.verbose and print(f'Remove {len(self.rois_to_remove)} ROIs (physiological uptake)')
-        self.removed_rois_mask = tmtv_mask_remove_rois(itk_image,
-                                                       np_mask,
-                                                       self.rois_to_remove,
-                                                       self.rois_to_remove_folder)
+        # remove some rois
+        if self.verbose:
+            print(f"Remove {len(self.rois_to_remove)} ROIs (physiological uptake)")
+        self.removed_mask = tmtv_mask_remove_rois(
+            itk_image,
+            self.tmtv_mask_np,
+            self.rois_to_remove,
+            self.rois_to_remove_folder,
+            self.verbose,
+        )
+
+        # keep some rois
+        if self.rois_to_keep is not None:
+            if self.verbose:
+                print(f"Keep {len(self.rois_to_keep)} ROIs")
+            tmtv_mask_keep_rois(
+                itk_image,
+                self.tmtv_mask_np,
+                self.rois_to_keep,
+                self.rois_to_keep_folder,
+                self.verbose,
+            )
 
         # threshold
-        np_mask = self.apply_threshold(itk_image, np_mask)
+        self.tmtv_mask_np = self.apply_threshold(itk_image, self.tmtv_mask_np)
 
         # convert mask to itk image
-        itk_mask = sitk.GetImageFromArray(np_mask)
+        itk_mask = sitk.GetImageFromArray(self.tmtv_mask_np)
         itk_mask.CopyInformation(itk_image)
 
         # keep areas with a minimal volume
-        (self.verbose and self.minimal_volume_cc is not None
-         and print(f'Remove areas below {self.minimal_volume_cc} cc'))
-        itk_mask = remove_small_areas(itk_mask, self.minimal_volume_cc, keep_binary_mask=True)
+        if self.verbose and self.minimal_volume_cc is not None:
+            print(f"Remove areas below {self.minimal_volume_cc} cc")
+        itk_mask = remove_small_areas(
+            itk_mask, self.minimal_volume_cc, keep_binary_mask=True
+        )
 
         # apply the mask
-        itk_tmtv = tmtv_apply_mask(itk_image, np_mask)
+        itk_tmtv = tmtv_apply_mask(itk_image, self.tmtv_mask_np)
 
         return itk_tmtv, itk_mask
 
@@ -154,50 +276,58 @@ class TMTV:
         if is_number(self.intensity_threshold):
             threshold = float(self.intensity_threshold)
         else:
-            methods = ['auto', 'gafita2019']
+            methods = ["auto", "gafita2019"]
             if self.intensity_threshold not in methods:
-                rhe.fatal(f'Threshold must be a number or {methods} '
-                          f'while it is {self.intensity_threshold}')
-            if self.intensity_threshold == 'auto':
-                threshold = self.get_removed_rois_mean_value(np_image)
-            if self.intensity_threshold == 'gafita2019':
-                threshold = self.get_gafita2019_threshold(itk_image, self.population_mean_liver)
+                rhe.fatal(
+                    f"Threshold must be a number or {methods} "
+                    f"while it is {self.intensity_threshold}"
+                )
+            if self.intensity_threshold == "auto":
+                threshold = self.get_removed_rois_mean_value(
+                    np_image, self.removed_mask
+                )
+            if self.intensity_threshold == "gafita2019":
+                threshold = self.get_gafita2019_threshold(
+                    itk_image, self.population_mean_liver
+                )
 
         # threshold the mask
-        self.verbose and print(f'Thresholding with {threshold}')
+        self.verbose and print(f"Thresholding with {threshold}")
         np_mask[np_image < threshold] = 0
 
         return np_mask
 
-    def get_removed_rois_mean_value(self, np_image):
-        v_sum = np.sum(np_image[self.removed_rois_mask == 1])
-        n = np.sum(self.removed_rois_mask == 1)
+    def get_removed_rois_mean_value(self, np_image, removed_mask):
+        v_sum = np.sum(np_image[removed_mask == 1])
+        n = np.sum(removed_mask == 1)
         return v_sum / n
 
     def get_gafita2019_threshold(self, itk_image, population_mean_liver):
         if population_mean_liver is None:
-            rhe.fatal(f'For gafita2019 method, population_mean_liver must be provided')
+            rhe.fatal(f"For gafita2019 method, population_mean_liver must be provided")
         population_mean_liver = float(population_mean_liver)
         # we assume one roi is the liver
         liver_roi = None
         for roi in self.rois_to_remove:
-            if 'liver' in roi['filename']:
+            if "liver" in roi["filename"]:
                 liver_roi = roi
         if liver_roi is None:
-            rhe.fatal(f'Cannot find liver ROI in {self.rois_to_remove_folder}')
+            rhe.fatal(
+                f"Cannot find liver ROI in {self.rois_to_remove_folder}, this is needed to compute Gafita threshold"
+            )
         roi_list = [liver_roi]
 
         # get the mean intensity in the liver
         np_mask = np.ones_like(sitk.GetArrayViewFromImage(itk_image))
-        liver_mask = tmtv_mask_remove_rois(itk_image,
-                                           np_mask,
-                                           roi_list,
-                                           roi_folder=self.rois_to_remove_folder)
+        liver_mask = tmtv_mask_remove_rois(
+            itk_image, np_mask, roi_list, roi_folder=self.rois_to_remove_folder
+        )
         np_image = sitk.GetArrayViewFromImage(itk_image)
         mean_liver = np_image[liver_mask == 1].mean()
         std_liver = np_image[liver_mask == 1].std()
         self.verbose and print(
-            f'Computed mean/std liver: {mean_liver} {std_liver}, population mean: {population_mean_liver=}')
+            f"Computed mean/std liver: {mean_liver} {std_liver}, population mean: {population_mean_liver=}"
+        )
 
         # compute threshold
         threshold = (population_mean_liver / mean_liver) * (mean_liver + std_liver)
@@ -257,26 +387,26 @@ def find_foci(tmtv, tmtv_mask, min_size_cm3=1, percentage_threshold=0.001):
     # (not needed for the final version)
     stats = sitk.LabelShapeStatisticsImageFilter()
     stats.Execute(foci)
-    print(f'Number of labels = {stats.GetNumberOfLabels()}')
+    print(f"Number of labels = {stats.GetNumberOfLabels()}")
 
     # Keep only labels with more than a given size
     volume = tmtv_mask.voxel_volume_cc
     max_size = int(min_size_cm3 / volume)
-    print(f'{min_size_cm3=} -> {max_size=} pixels')
+    print(f"{min_size_cm3=} -> {max_size=} pixels")
     foci = sitk.RelabelComponent(foci, minimumObjectSize=max_size)
 
     # relabel
     # (not needed for the final version)
     stats = sitk.LabelShapeStatisticsImageFilter()
     stats.Execute(foci)
-    print(f'Number of labels = {stats.GetNumberOfLabels()}')
+    print(f"Number of labels = {stats.GetNumberOfLabels()}")
 
     # keep labels only if max intensity
     spect = tmtv.image
     spect_arr = sitk.GetArrayViewFromImage(spect)
     foci_arr = sitk.GetArrayFromImage(foci)
     total_max_intensity = np.max(spect_arr)
-    print(f'{total_max_intensity=}')
+    print(f"{total_max_intensity=}")
 
     # Keep only labels where the maximum intensity exceeds the threshold
     for l in stats.GetLabels():
@@ -287,7 +417,9 @@ def find_foci(tmtv, tmtv_mask, min_size_cm3=1, percentage_threshold=0.001):
         # Check if the maximum intensity exceeds the threshold
         if max_intensity <= (percentage_threshold * total_max_intensity):
             foci_arr[foci_arr == l] = 0
-            print(f'remove {l} {max_intensity=} vs {total_max_intensity}  --->   {max_intensity / total_max_intensity}')
+            print(
+                f"remove {l} {max_intensity=} vs {total_max_intensity}  --->   {max_intensity / total_max_intensity}"
+            )
 
     # Keep only the labels to be retained
     a = sitk.GetImageFromArray(foci_arr)
@@ -298,7 +430,7 @@ def find_foci(tmtv, tmtv_mask, min_size_cm3=1, percentage_threshold=0.001):
     # (not needed for the final version)
     stats = sitk.LabelShapeStatisticsImageFilter()
     stats.Execute(foci)
-    print(f'Number of labels = {stats.GetNumberOfLabels()}')
+    print(f"Number of labels = {stats.GetNumberOfLabels()}")
 
     return foci
 
