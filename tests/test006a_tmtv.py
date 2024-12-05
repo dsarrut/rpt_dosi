@@ -48,8 +48,9 @@ if __name__ == "__main__":
     tmtv_extractor.intensity_threshold = "auto"
     tmtv_extractor.verbose = True
     tmtv_extractor.cut_the_head = True
-    tmtv_extractor.cut_the_head_roi_filename = data_folder / "rois/skull.nii.gz"
+    tmtv_extractor.cut_the_head_roi_filename = data_folder / "rois" / "skull.nii.gz"
     tmtv_extractor.rois_to_remove_folder = data_folder / "rois"
+    tmtv_extractor.rois_to_remove = rtmtv.rois_to_remove_default()
     spect = sitk.ReadImage(spect_input)
     tmtv, mask = tmtv_extractor.compute_mask(spect)
     sitk.WriteImage(mask, output_mask)
@@ -61,7 +62,7 @@ if __name__ == "__main__":
     stop_test(b, f"Compare TMTV {output} vs {tmtv_ref}")
 
     # compare
-    start_test('compare mask')
+    start_test("compare mask")
     tmtv_ref = ref_folder / "tmtv_mask_ref_auto.nii.gz"
     b = rim.test_compare_images(output_mask, tmtv_ref)
     stop_test(b, f"Compare TMTV mask {output_mask} vs {tmtv_ref}")
