@@ -29,7 +29,8 @@ def read_metaimage(file_path, reading_mode="image"):
         fatal(f"read_metaimage: {file_path} does not exist")
     image_type = read_metaimage_type_from_metadata(file_path)
     if image_type is None:
-        fatal(f"read_metaimage: {file_path} is not a metaimage")
+        # print(f"read_metaimage: {file_path} is not a metaimage")
+        pass
     # create the correct class if it is found
     the_class = get_metaimage_class_from_type(image_type)
     im = the_class(file_path, reading_mode=reading_mode, create=False)
@@ -720,6 +721,7 @@ class MetaImageDose(MetaImageSPECT):
 
 
 image_builders = {
+    None: MetaImageBase,
     "CT": MetaImageCT,
     "SPECT": MetaImageSPECT,
     "PET": MetaImagePET,
