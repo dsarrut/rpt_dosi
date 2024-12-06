@@ -28,9 +28,12 @@ def read_metaimage(file_path, reading_mode="image"):
     if not os.path.exists(file_path):
         fatal(f"read_metaimage: {file_path} does not exist")
     image_type = read_metaimage_type_from_metadata(file_path)
-    if image_type is None:
+    print(image_type, reading_mode)
+    if image_type is None and reading_mode != "metadata_only":
         # print(f"read_metaimage: {file_path} is not a metaimage")
         pass
+    if image_type is None and reading_mode == "metadata_only":
+        fatal(f"read_metaimage: {file_path} is not a metaimage")
     # create the correct class if it is found
     the_class = get_metaimage_class_from_type(image_type)
     im = the_class(file_path, reading_mode=reading_mode, create=False)
