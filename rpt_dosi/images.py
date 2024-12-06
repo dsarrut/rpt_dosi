@@ -1221,3 +1221,81 @@ def set_time_from_injection_h(
         f"Cannot set the time from injection since injection_datetime or acquisition_datetime exists: "
         f"inj={injection_datetime} acq={acquisition_datetime} time_from_inj={time_from_injection_h}"
     )
+
+
+def compute_image_extent(sitk_image):
+    origin = sitk_image.GetOrigin()
+    size = sitk_image.GetSize()
+    spacing = sitk_image.GetSpacing()
+
+    extent_min = origin
+    extent_max = [origin[d] + (size[d] - 1) * spacing[d] for d in range(len(size))]
+
+    return extent_min, extent_max
+
+
+def compute_combined_fov_extent(sitk_image1, sitk_image2):
+    extent1_min, extent1_max = compute_image_extent(sitk_image1)
+    extent2_min, extent2_max = compute_image_extent(sitk_image2)
+
+    combined_extent_min = [
+        min(extent1_min[d], extent2_min[d]) for d in range(len(extent1_min))
+    ]
+    combined_extent_max = [
+        max(extent1_max[d], extent2_max[d]) for d in range(len(extent1_max))
+    ]
+
+    return combined_extent_min, combined_extent_max
+
+
+def create_empty_sitk_image_from_extent(
+    combined_extent_min, combined_extent_max, spacing, pixel_type=sitk.sitkFloat32
+):
+    # Calculate the size of the new image
+    border = 1
+    size = [
+        math.ceil((combined_extent_max[d] - combined_extent_min[d]) / spacing[d])
+        + border
+        for d in range(len(spacing))
+    ]
+
+    # Create an empty image with the calculated size
+    new_image = sitk.Image(size, pixel_type)
+
+    # Set the origin and spacing for the new image
+    new_image.SetOrigin(combined_extent_min)
+    new_image.SetSpacing(spacing)
+
+    return new_image
+
+
+def roi_boolean_operation(sitk_img1, sitk_img2, bool_operator, spacing=None):
+    op = ("and", "or", "xor", "not")
+    if bool_operator.lower() not in op:
+        fatal(f'Unknown boolean operation "{bool_operator}, use one of: {op}')
+    # compute image extent field of view
+    cmin, cmax = compute_combined_fov_extent(sitk_img1, sitk_img2)
+    # create empty combine image (how can to avoid allocating it ? )
+    if spacing is None:
+        spacing = sitk_img1.GetSpacing()
+    sitk_combined_img = create_empty_sitk_image_from_extent(
+        cmin, cmax, spacing, sitk.sitkUInt16
+    )
+    print(sitk_combined_img.GetSize())
+    # resample both
+    sitk_img1 = resample_itk_image_like(sitk_img1, sitk_combined_img, 0, False)
+    sitk_img2 = resample_itk_image_like(sitk_img2, sitk_combined_img, 0, False)
+    # check pixel type
+    if sitk_img1.GetPixelID() != sitk.sitkUInt16:
+        sitk_img1 = sitk.Cast(sitk_img1, sitk.sitkUInt16)
+    if sitk_img2.GetPixelID() != sitk.sitkUInt16:
+        sitk_img2 = sitk.Cast(sitk_img2, sitk.sitkUInt16)
+    # boolean operation
+    sitk_img = None
+    if bool_operator.lower() == "and":
+        sitk_img = sitk.And(sitk_img1, sitk_img2)
+    if bool_operator.lower() == "or":
+        sitk_img = sitk.Or(sitk_img1, sitk_img2)
+    if bool_operator.lower() == "xor":
+        sitk_img = sitk.Xor(sitk_img1, sitk_img2)
+    return sitk_img
