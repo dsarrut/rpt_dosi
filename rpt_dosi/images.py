@@ -28,7 +28,9 @@ def read_metaimage(file_path, reading_mode="image"):
     if not os.path.exists(file_path):
         fatal(f"read_metaimage: {file_path} does not exist")
     image_type = read_metaimage_type_from_metadata(file_path)
-    if image_type is None:
+    if image_type is None and reading_mode != "metadata_only":
+        pass
+    if image_type is None and reading_mode == "metadata_only":
         fatal(f"read_metaimage: {file_path} is not a metaimage")
     # create the correct class if it is found
     the_class = get_metaimage_class_from_type(image_type)
@@ -720,6 +722,7 @@ class MetaImageDose(MetaImageSPECT):
 
 
 image_builders = {
+    None: MetaImageBase,
     "CT": MetaImageCT,
     "SPECT": MetaImageSPECT,
     "PET": MetaImagePET,
@@ -847,13 +850,36 @@ def image_set_background(ct, roi, bg_value=-1000, roi_bg_value=0):
     return cto
 
 
-def crop_to_bounding_box(img, bg_value=-1000):
+def get_pixel_value_range(pixel_type):
+    if pixel_type in (sitk.sitkUInt8, sitk.sitkUInt16, sitk.sitkUInt32):
+        bit_depth = {sitk.sitkUInt8: 8, sitk.sitkUInt16: 16, sitk.sitkUInt32: 32}[
+            pixel_type
+        ]
+        return 0, 2**bit_depth - 1
+
+    elif pixel_type in (sitk.sitkInt8, sitk.sitkInt16, sitk.sitkInt32):
+        bit_depth = {sitk.sitkInt8: 8, sitk.sitkInt16: 16, sitk.sitkInt32: 32}[
+            pixel_type
+        ]
+        return -(2 ** (bit_depth - 1)), 2 ** (bit_depth - 1) - 1
+
+    elif pixel_type == sitk.sitkFloat32:
+        return np.finfo(np.float32).min, np.finfo(np.float32).max
+
+    elif pixel_type == sitk.sitkFloat64:
+        return np.finfo(np.float64).min, np.finfo(np.float64).max
+
+    else:
+        raise ValueError(f"Unsupported pixel type: {pixel_type}")
+
+
+def crop_to_bounding_box(img, lover_threshold=-1000):
     # Create a binary version of the image (1 where img is not 0, else 0)
-    tiny = 1
+    # Values equal to either threshold is considered to be between the thresholds.
     binary = sitk.BinaryThreshold(
         img,
-        lowerThreshold=bg_value + tiny,
-        upperThreshold=1e10,
+        lowerThreshold=lover_threshold,
+        upperThreshold=get_pixel_value_range(img.GetPixelID())[1],
         insideValue=1,
         outsideValue=0,
     )
@@ -1219,3 +1245,80 @@ def set_time_from_injection_h(
         f"Cannot set the time from injection since injection_datetime or acquisition_datetime exists: "
         f"inj={injection_datetime} acq={acquisition_datetime} time_from_inj={time_from_injection_h}"
     )
+
+
+def compute_image_extent(sitk_image):
+    origin = sitk_image.GetOrigin()
+    size = sitk_image.GetSize()
+    spacing = sitk_image.GetSpacing()
+
+    extent_min = origin
+    extent_max = [origin[d] + (size[d] - 1) * spacing[d] for d in range(len(size))]
+
+    return extent_min, extent_max
+
+
+def compute_combined_fov_extent(sitk_image1, sitk_image2):
+    extent1_min, extent1_max = compute_image_extent(sitk_image1)
+    extent2_min, extent2_max = compute_image_extent(sitk_image2)
+
+    combined_extent_min = [
+        min(extent1_min[d], extent2_min[d]) for d in range(len(extent1_min))
+    ]
+    combined_extent_max = [
+        max(extent1_max[d], extent2_max[d]) for d in range(len(extent1_max))
+    ]
+
+    return combined_extent_min, combined_extent_max
+
+
+def create_empty_sitk_image_from_extent(
+    combined_extent_min, combined_extent_max, spacing, pixel_type=sitk.sitkFloat32
+):
+    # Calculate the size of the new image
+    border = 1
+    size = [
+        math.ceil((combined_extent_max[d] - combined_extent_min[d]) / spacing[d])
+        + border
+        for d in range(len(spacing))
+    ]
+
+    # Create an empty image with the calculated size
+    new_image = sitk.Image(size, pixel_type)
+
+    # Set the origin and spacing for the new image
+    new_image.SetOrigin(combined_extent_min)
+    new_image.SetSpacing(spacing)
+
+    return new_image
+
+
+def roi_boolean_operation(sitk_img1, sitk_img2, bool_operator, spacing=None):
+    op = ("and", "or", "xor", "not")
+    if bool_operator.lower() not in op:
+        fatal(f'Unknown boolean operation "{bool_operator}, use one of: {op}')
+    # compute image extent field of view
+    cmin, cmax = compute_combined_fov_extent(sitk_img1, sitk_img2)
+    # create empty combine image (how can to avoid allocating it ? )
+    if spacing is None:
+        spacing = sitk_img1.GetSpacing()
+    sitk_combined_img = create_empty_sitk_image_from_extent(
+        cmin, cmax, spacing, sitk.sitkUInt16
+    )
+    # resample both
+    sitk_img1 = resample_itk_image_like(sitk_img1, sitk_combined_img, 0, False)
+    sitk_img2 = resample_itk_image_like(sitk_img2, sitk_combined_img, 0, False)
+    # check pixel type
+    if sitk_img1.GetPixelID() != sitk.sitkUInt16:
+        sitk_img1 = sitk.Cast(sitk_img1, sitk.sitkUInt16)
+    if sitk_img2.GetPixelID() != sitk.sitkUInt16:
+        sitk_img2 = sitk.Cast(sitk_img2, sitk.sitkUInt16)
+    # boolean operation
+    sitk_img = None
+    if bool_operator.lower() == "and":
+        sitk_img = sitk.And(sitk_img1, sitk_img2)
+    if bool_operator.lower() == "or":
+        sitk_img = sitk.Or(sitk_img1, sitk_img2)
+    if bool_operator.lower() == "xor":
+        sitk_img = sitk.Xor(sitk_img1, sitk_img2)
+    return sitk_img

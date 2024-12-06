@@ -53,6 +53,7 @@ rpt_tests = "rpt_dosi.bin.rpt_tests:go"
 
 rpt_crop_bg = "rpt_dosi.bin.rpt_crop_bg:go"
 rpt_roi_crop = "rpt_dosi.bin.rpt_roi_crop:go"
+rpt_roi_bool = "rpt_dosi.bin.rpt_roi_bool:go"
 rpt_spect_roi_statistics = "rpt_dosi.bin.rpt_spect_roi_statistics:go"
 rpt_resample_ct = "rpt_dosi.bin.rpt_resample_ct:go"
 rpt_resample_spect = "rpt_dosi.bin.rpt_resample_spect:go"
