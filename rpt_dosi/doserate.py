@@ -15,7 +15,6 @@ import rpt_dosi.utils as he
 
 
 def read_dose_rate_options(json_file):
-    print(json_file)
     if json_file is None:
         options = init_dose_rate_options()
     else:
@@ -62,7 +61,7 @@ def simu_default_init(sim):
     # add stat actor
     stats = sim.add_actor("SimulationStatisticsActor", "stats")
     stats.track_types_flag = True
-    stats.output = "stats.txt"
+    stats.output_filename = "stats.txt"
 
     return stats
 
@@ -153,7 +152,7 @@ def simu_add_dose_actor(sim, ct, source):
     dose.translation = source.position.translation
     print(f"translation dose", dose.translation)
     # set the origin of the dose like the source
-    if not sim.phsp_source.visu:
+    if not sim.visu:
         dose.output_coordinate_system = "attached_to_image"
     dose.hit_type = "random"
     # dose.hit_type = "pre"

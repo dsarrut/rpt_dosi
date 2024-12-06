@@ -18,7 +18,12 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 )
 @click.option("--output", "-o", required=True, help="output filename")
 @click.option("--roi", "-r", default="rois/body.nii.gz", help="body ROI filename")
-@click.option("--bg_value", default=-1000, help="BG value to crop")
+@click.option(
+    "--bg_value",
+    default=-1000,
+    help="Lower threshold: all pixels "
+    "values strictly below will be considered as background",
+)
 def go(input_image, roi, output, bg_value):
     # read images
     img = itk.ReadImage(input_image)
@@ -26,15 +31,13 @@ def go(input_image, roi, output, bg_value):
 
     # check images spacing
     if not rim.images_have_same_domain(img, roi):
-        roi = rim.resample_itk_image_like(
-            roi, img, default_pixel_value=0, linear=False
-        )
+        roi = rim.resample_itk_image_like(roi, img, default_pixel_value=0, linear=False)
 
     # set background
     img = rim.image_set_background(img, roi, bg_value=bg_value, roi_bg_value=0)
 
     # crop
-    img = rim.crop_to_bounding_box(img, bg_value=bg_value)
+    img = rim.crop_to_bounding_box(img, lover_threshold=bg_value)
 
     # write
     itk.WriteImage(img, output)

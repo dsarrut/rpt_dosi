@@ -28,9 +28,7 @@ def read_metaimage(file_path, reading_mode="image"):
     if not os.path.exists(file_path):
         fatal(f"read_metaimage: {file_path} does not exist")
     image_type = read_metaimage_type_from_metadata(file_path)
-    print(image_type, reading_mode)
     if image_type is None and reading_mode != "metadata_only":
-        # print(f"read_metaimage: {file_path} is not a metaimage")
         pass
     if image_type is None and reading_mode == "metadata_only":
         fatal(f"read_metaimage: {file_path} is not a metaimage")
@@ -852,13 +850,36 @@ def image_set_background(ct, roi, bg_value=-1000, roi_bg_value=0):
     return cto
 
 
-def crop_to_bounding_box(img, bg_value=-1000):
+def get_pixel_value_range(pixel_type):
+    if pixel_type in (sitk.sitkUInt8, sitk.sitkUInt16, sitk.sitkUInt32):
+        bit_depth = {sitk.sitkUInt8: 8, sitk.sitkUInt16: 16, sitk.sitkUInt32: 32}[
+            pixel_type
+        ]
+        return 0, 2**bit_depth - 1
+
+    elif pixel_type in (sitk.sitkInt8, sitk.sitkInt16, sitk.sitkInt32):
+        bit_depth = {sitk.sitkInt8: 8, sitk.sitkInt16: 16, sitk.sitkInt32: 32}[
+            pixel_type
+        ]
+        return -(2 ** (bit_depth - 1)), 2 ** (bit_depth - 1) - 1
+
+    elif pixel_type == sitk.sitkFloat32:
+        return np.finfo(np.float32).min, np.finfo(np.float32).max
+
+    elif pixel_type == sitk.sitkFloat64:
+        return np.finfo(np.float64).min, np.finfo(np.float64).max
+
+    else:
+        raise ValueError(f"Unsupported pixel type: {pixel_type}")
+
+
+def crop_to_bounding_box(img, lover_threshold=-1000):
     # Create a binary version of the image (1 where img is not 0, else 0)
-    tiny = 1
+    # Values equal to either threshold is considered to be between the thresholds.
     binary = sitk.BinaryThreshold(
         img,
-        lowerThreshold=bg_value + tiny,
-        upperThreshold=1e10,
+        lowerThreshold=lover_threshold,
+        upperThreshold=get_pixel_value_range(img.GetPixelID())[1],
         insideValue=1,
         outsideValue=0,
     )
@@ -1284,7 +1305,6 @@ def roi_boolean_operation(sitk_img1, sitk_img2, bool_operator, spacing=None):
     sitk_combined_img = create_empty_sitk_image_from_extent(
         cmin, cmax, spacing, sitk.sitkUInt16
     )
-    print(sitk_combined_img.GetSize())
     # resample both
     sitk_img1 = resample_itk_image_like(sitk_img1, sitk_combined_img, 0, False)
     sitk_img2 = resample_itk_image_like(sitk_img2, sitk_combined_img, 0, False)

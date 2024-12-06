@@ -33,7 +33,8 @@ def go(input_images, output, operator, crop, verbose):
 
     # final crop
     if crop:
-        img1 = rim.crop_to_bounding_box(img1, bg_value=0)
+        print("crop")
+        img1 = rim.crop_to_bounding_box(img1, lover_threshold=1)
     verbose and print(f"Final size is {img1.GetSize()}")
     sitk.WriteImage(img1, output)
 

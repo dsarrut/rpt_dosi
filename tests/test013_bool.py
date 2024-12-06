@@ -30,7 +30,7 @@ if __name__ == "__main__":
         img1 = rim.roi_boolean_operation(img1, mimg2.image, "or")
 
     # final crop
-    img1 = rim.crop_to_bounding_box(img1, bg_value=0)
+    img1 = rim.crop_to_bounding_box(img1, lover_threshold=0)
     sitk.WriteImage(img1, output_folder / "bool.mhd")
 
     # compare with ref
