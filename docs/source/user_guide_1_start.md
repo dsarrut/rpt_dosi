@@ -18,9 +18,11 @@ or with `conda` environment:
     conda create --name rpt_dosi_env python=3.11
     conda activate rpt_dosi_env
 
+Now install, [git-lfs](https://git-lfs.com/) to be able to get the test data.
+
 Then, you need to clone the repository and install it (no pypi package yet, but this is planned):
 
-    git clone https://github.com/dsarrut/rpt_dosi.git
+    git clone --recurse-submodules https://github.com/dsarrut/rpt_dosi.git
     cd rpt_dosi
     pip install -e .
 
